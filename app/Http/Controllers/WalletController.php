@@ -1,0 +1,39 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Repositories\BitcoinRepository;
+use App\Repositories\MoneroRepository;
+use Illuminate\Http\Request;
+
+class WalletController extends Controller
+{
+    public function index(Request $request)
+    {
+        $user = $request->user();
+
+        // Ensure user has Bitcoin wallet
+        $btcWallet = BitcoinRepository::getOrCreateWalletForUser($user);
+
+        // Ensure user has Monero wallet
+        try {
+            $xmrWallet = MoneroRepository::getOrCreateWalletForUser($user);
+        } catch (\Exception $e) {
+            \Log::error("Failed to initialize Monero wallet for user {$user->id}", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Create a placeholder wallet object to prevent view errors
+            $xmrWallet = null;
+            
+            // Optionally flash an error message
+            session()->flash('warning', 'Monero wallet is temporarily unavailable. Please contact support if this persists.');
+        }
+
+        // Get balance including BTC wallet sync
+        $balance = $user->getBalance();
+
+        return view('wallets.index', compact('balance', 'btcWallet', 'xmrWallet'));
+    }
+}

@@ -1,0 +1,542 @@
+<?php
+
+namespace App\Repositories;
+
+use App\Models\User;
+use App\Models\XmrWallet;
+use App\Models\XmrAddress;
+use App\Models\XmrTransaction;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class MoneroRepository
+{
+    private string $rpcUrl;
+    private string $rpcUser;
+    private string $rpcPassword;
+
+    public function __construct()
+    {
+        $this->rpcUrl = config('monero.scheme') . '://' . 
+                        config('monero.host') . ':' . 
+                        config('monero.port') . '/json_rpc';
+        $this->rpcUser = config('monero.user');
+        $this->rpcPassword = config('monero.password');
+    }
+
+    /**
+     * Make RPC call to monero-wallet-rpc.
+     */
+    private function rpcCall(string $method, array $params = [])
+    {
+        try {
+            $response = Http::withBasicAuth($this->rpcUser, $this->rpcPassword)
+                ->timeout(30)
+                ->post($this->rpcUrl, [
+                    'jsonrpc' => '2.0',
+                    'id' => '0',
+                    'method' => $method,
+                    'params' => $params,
+                ]);
+
+            if (!$response->successful()) {
+                Log::error("Monero RPC call failed: {$method}", [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                return null;
+            }
+
+            $data = $response->json();
+
+            if (isset($data['error'])) {
+                Log::error("Monero RPC error: {$method}", $data['error']);
+                return null;
+            }
+
+            return $data['result'] ?? null;
+
+        } catch (\Exception $e) {
+            Log::error("Monero RPC exception: {$method} - " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Create or get Monero wallet for user.
+     */
+    public static function getOrCreateWalletForUser(User $user): XmrWallet
+    {
+        $existingWallet = $user->xmrWallet;
+        
+        if ($existingWallet) {
+            return $existingWallet;
+        }
+
+        $repository = new static();
+        $walletName = $user->username_pri . '.wallet';
+        $password = config('monero.default_wallet_password');
+
+        // Try to open existing wallet first
+        $opened = $repository->openWallet($walletName, $password);
+
+        if (!$opened) {
+            // Create new wallet
+            $walletData = $repository->createWallet($walletName, $password);
+
+            if (!$walletData) {
+                throw new \Exception("Failed to create Monero wallet for user {$user->id}");
+            }
+        } else {
+            // Get address from opened wallet
+            $walletData = $repository->getAddress();
+            
+            if (!$walletData) {
+                throw new \Exception("Failed to get address from Monero wallet");
+            }
+        }
+
+        // Create wallet record
+        $wallet = XmrWallet::create([
+            'user_id' => $user->id,
+            'name' => $walletName,
+            'primary_address' => $walletData['address'],
+            'view_key' => null, // Could store if needed
+            'spend_key_encrypted' => null,
+            'height' => 0,
+            'balance' => 0,
+            'unlocked_balance' => 0,
+            'total_received' => 0,
+            'total_sent' => 0,
+            'is_active' => true,
+        ]);
+
+        // Create primary address record
+        $wallet->addresses()->create([
+            'address' => $walletData['address'],
+            'account_index' => 0,
+            'address_index' => 0,
+            'label' => 'Primary Address',
+            'balance' => 0,
+            'total_received' => 0,
+            'tx_count' => 0,
+            'is_used' => false,
+        ]);
+
+        Log::info("Created Monero wallet for user {$user->id}", [
+            'wallet_name' => $walletName,
+            'address' => $walletData['address'],
+        ]);
+
+        return $wallet;
+    }
+
+    /**
+     * Open existing wallet.
+     */
+    public function openWallet(string $filename, string $password): bool
+    {
+        $result = $this->rpcCall('open_wallet', [
+            'filename' => $filename,
+            'password' => $password,
+        ]);
+
+        return $result !== null;
+    }
+
+    /**
+     * Create new wallet.
+     */
+    public function createWallet(string $filename, string $password): ?array
+    {
+        $result = $this->rpcCall('create_wallet', [
+            'filename' => $filename,
+            'password' => $password,
+            'language' => 'English',
+        ]);
+
+        if (!$result) {
+            return null;
+        }
+
+        // Get the primary address
+        $addressData = $this->getAddress();
+
+        return $addressData;
+    }
+
+    /**
+     * Close current wallet.
+     */
+    public function closeWallet(): bool
+    {
+        $result = $this->rpcCall('close_wallet');
+        return $result !== null;
+    }
+
+    /**
+     * Get wallet balance.
+     */
+    public static function getBalance(string $walletName): ?array
+    {
+        $repository = new static();
+        $password = config('monero.default_wallet_password');
+
+        // Open wallet
+        if (!$repository->openWallet($walletName, $password)) {
+            return null;
+        }
+
+        $result = $repository->rpcCall('get_balance', [
+            'account_index' => 0,
+        ]);
+
+        if (!$result) {
+            return null;
+        }
+
+        // Convert from atomic units (piconero) to XMR
+        return [
+            'balance' => $result['balance'] / 1e12,
+            'unlocked_balance' => $result['unlocked_balance'] / 1e12,
+        ];
+    }
+
+    /**
+     * Get primary address.
+     */
+    public function getAddress(int $accountIndex = 0, int $addressIndex = 0): ?array
+    {
+        $result = $this->rpcCall('get_address', [
+            'account_index' => $accountIndex,
+            'address_index' => [$addressIndex],
+        ]);
+
+        if (!$result || !isset($result['address'])) {
+            return null;
+        }
+
+        return [
+            'address' => $result['address'],
+            'addresses' => $result['addresses'] ?? [],
+        ];
+    }
+
+    /**
+     * Create subaddress.
+     */
+    public static function createSubaddress(string $walletName, int $accountIndex = 0, string $label = null): ?array
+    {
+        $repository = new static();
+        $password = config('monero.default_wallet_password');
+
+        // Open wallet
+        if (!$repository->openWallet($walletName, $password)) {
+            return null;
+        }
+
+        $result = $repository->rpcCall('create_address', [
+            'account_index' => $accountIndex,
+            'label' => $label ?? '',
+        ]);
+
+        if (!$result) {
+            return null;
+        }
+
+        return [
+            'address' => $result['address'],
+            'address_index' => $result['address_index'],
+        ];
+    }
+
+    /**
+     * Get incoming transfers.
+     */
+    public function getIncomingTransfers(int $accountIndex = 0): array
+    {
+        $result = $this->rpcCall('get_transfers', [
+            'in' => true,
+            'out' => false,
+            'pending' => true,
+            'failed' => false,
+            'pool' => true,
+            'account_index' => $accountIndex,
+        ]);
+
+        if (!$result) {
+            return [];
+        }
+
+        $transfers = [];
+
+        foreach (['in', 'pending', 'pool'] as $type) {
+            if (isset($result[$type])) {
+                $transfers = array_merge($transfers, $result[$type]);
+            }
+        }
+
+        return $transfers;
+    }
+
+    /**
+     * Get all transfers (incoming and outgoing).
+     */
+    public function getAllTransfers(int $accountIndex = 0): array
+    {
+        $result = $this->rpcCall('get_transfers', [
+            'in' => true,
+            'out' => true,
+            'pending' => true,
+            'failed' => true,
+            'pool' => true,
+            'account_index' => $accountIndex,
+        ]);
+
+        if (!$result) {
+            return [];
+        }
+
+        $transfers = [];
+
+        foreach (['in', 'out', 'pending', 'failed', 'pool'] as $type) {
+            if (isset($result[$type])) {
+                foreach ($result[$type] as $tx) {
+                    $tx['transfer_type'] = $type;
+                    $transfers[] = $tx;
+                }
+            }
+        }
+
+        return $transfers;
+    }
+
+    /**
+     * Send Monero transaction.
+     */
+    public static function transfer(string $walletName, string $address, float $amount): ?string
+    {
+        $repository = new static();
+        $password = config('monero.default_wallet_password');
+
+        // Open wallet
+        if (!$repository->openWallet($walletName, $password)) {
+            Log::error("Failed to open Monero wallet: {$walletName}");
+            return null;
+        }
+
+        // Convert XMR to atomic units (piconero)
+        $atomicAmount = (int) round($amount * 1e12);
+
+        $result = $repository->rpcCall('transfer', [
+            'destinations' => [
+                [
+                    'amount' => $atomicAmount,
+                    'address' => $address,
+                ],
+            ],
+            'account_index' => 0,
+            'priority' => 1, // Default priority
+            'get_tx_key' => true,
+        ]);
+
+        if (!$result || !isset($result['tx_hash'])) {
+            Log::error("Failed to send Monero from {$walletName} to {$address}");
+            return null;
+        }
+
+        Log::info("Monero sent successfully", [
+            'wallet' => $walletName,
+            'to' => $address,
+            'amount' => $amount,
+            'tx_hash' => $result['tx_hash'],
+        ]);
+
+        return $result['tx_hash'];
+    }
+
+    /**
+     * Sync all active Monero wallets.
+     */
+    public static function syncAllWallets(): void
+    {
+        Log::debug("=== Starting Monero wallet sync ===");
+
+        $activeWallets = XmrWallet::where('is_active', true)->get();
+
+        Log::debug("Found {$activeWallets->count()} active Monero wallets to sync");
+
+        foreach ($activeWallets as $wallet) {
+            Log::debug("Syncing wallet ID: {$wallet->id}, Name: {$wallet->name}, User ID: {$wallet->user_id}");
+            static::syncWalletTransactions($wallet);
+        }
+
+        Log::debug("=== Monero wallet sync completed ===");
+    }
+
+    /**
+     * Sync transactions for specific wallet.
+     */
+    public static function syncWalletTransactions(XmrWallet $wallet): void
+    {
+        try {
+            Log::debug("  Wallet {$wallet->id}: Starting sync");
+
+            $repository = new static();
+            $password = config('monero.default_wallet_password');
+
+            // Open wallet
+            if (!$repository->openWallet($wallet->name, $password)) {
+                Log::error("Failed to open wallet {$wallet->name} for sync");
+                return;
+            }
+
+            // Get all transfers
+            $transfers = $repository->getAllTransfers();
+
+            Log::debug("  Found " . count($transfers) . " transfer(s) from Monero RPC");
+
+            // Process each transfer
+            foreach ($transfers as $tx) {
+                $repository->processWalletTransaction($wallet, $tx);
+            }
+
+            // Update wallet balance
+            $wallet->updateBalance();
+
+            Log::debug("  Wallet {$wallet->id}: Sync completed");
+
+        } catch (\Exception $e) {
+            Log::error("Failed to sync Monero wallet {$wallet->id}: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Process individual transaction for a wallet.
+     */
+    private function processWalletTransaction(XmrWallet $wallet, array $txData): void
+    {
+        $txHash = $txData['txid'] ?? null;
+
+        if (!$txHash) {
+            Log::warning("Transaction missing txid", $txData);
+            return;
+        }
+
+        // Determine transaction type
+        $type = match ($txData['transfer_type']) {
+            'in' => 'deposit',
+            'out' => 'withdrawal',
+            default => null,
+        };
+
+        if (!$type) {
+            Log::debug("Skipping unsupported transaction type: " . ($txData['transfer_type'] ?? 'unknown'));
+            return;
+        }
+
+        // Check if transaction already exists
+        $existingTx = XmrTransaction::where('txid', $txHash)
+            ->where('xmr_wallet_id', $wallet->id)
+            ->first();
+
+        if ($existingTx) {
+            // Update confirmations
+            $this->updateExistingTransaction($existingTx, $txData);
+            return;
+        }
+
+        // Convert from atomic units to XMR
+        $amount = ($txData['amount'] ?? 0) / 1e12;
+        $fee = ($txData['fee'] ?? 0) / 1e12;
+
+        // Find associated address
+        $xmrAddressId = null;
+        if (isset($txData['address'])) {
+            $xmrAddress = $wallet->addresses()->where('address', $txData['address'])->first();
+            if ($xmrAddress) {
+                $xmrAddressId = $xmrAddress->id;
+            }
+        }
+
+        // Determine status
+        $confirmations = $txData['confirmations'] ?? 0;
+        $unlockTime = $txData['unlock_time'] ?? 0;
+
+        $status = 'pending';
+        if ($confirmations > 0) {
+            $status = 'confirmed';
+        }
+        if ($confirmations >= config('monero.min_confirmations', 10)) {
+            $status = 'unlocked';
+        }
+
+        // Create transaction record
+        $transaction = XmrTransaction::create([
+            'xmr_wallet_id' => $wallet->id,
+            'xmr_address_id' => $xmrAddressId,
+            'txid' => $txHash,
+            'payment_id' => $txData['payment_id'] ?? null,
+            'type' => $type,
+            'amount' => $amount,
+            'fee' => $fee,
+            'confirmations' => $confirmations,
+            'unlock_time' => $unlockTime,
+            'height' => $txData['height'] ?? null,
+            'status' => $status,
+            'raw_transaction' => $txData,
+            'confirmed_at' => $confirmations > 0 ? now() : null,
+            'unlocked_at' => $status === 'unlocked' ? now() : null,
+        ]);
+
+        Log::info("New XMR transaction detected: {$txHash} ({$type}) for {$amount} XMR");
+
+        // Process confirmation if unlocked
+        if ($status === 'unlocked') {
+            $transaction->processConfirmation();
+        }
+    }
+
+    /**
+     * Update existing transaction with new confirmation data.
+     */
+    private function updateExistingTransaction(XmrTransaction $transaction, array $txData): void
+    {
+        $newConfirmations = $txData['confirmations'] ?? 0;
+
+        if ($newConfirmations !== $transaction->confirmations) {
+            $transaction->updateConfirmations(
+                $newConfirmations,
+                $txData['height'] ?? $transaction->height
+            );
+
+            Log::info("Updated XMR transaction {$transaction->txid}: {$newConfirmations} confirmations");
+        }
+    }
+
+    /**
+     * Get current Monero price in USD.
+     */
+    public static function getCurrentPrice(): float
+    {
+        try {
+            $response = file_get_contents('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
+            $data = json_decode($response, true);
+
+            return $data['monero']['usd'] ?? 0;
+
+        } catch (\Exception $e) {
+            Log::error("Failed to fetch XMR price: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Convert XMR to USD.
+     */
+    public static function convertToUsd(float $xmrAmount): float
+    {
+        $price = static::getCurrentPrice();
+        return $xmrAmount * $price;
+    }
+}

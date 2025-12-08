@@ -1,0 +1,213 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Listing;
+use App\Models\ProductCategory;
+use Illuminate\Http\Request;
+
+class HomeController extends Controller
+{
+    /**
+     * Show the application dashboard.
+     */
+    public function home(Request $request): \Illuminate\View\View
+    {
+        // Get category and subcategory filters from request
+        $categoryUuid = $request->get('cat');
+        $subcategoryUuid = $request->get('scat');
+        $searchQuery = $request->get('search');
+        $filter = $request->get('filter'); // 'featured', 'all', or null (default)
+
+        // Determine which listings to show based on filter
+        if ($filter === 'all') {
+            // Show all listings combined (no separation)
+            $allListingsQuery = Listing::with([
+                'user',
+                'originCountry',
+                'destinationCountry',
+                'product.productCategory',
+                'media' => function ($query) {
+                    $query->orderBy('order');
+                }
+            ])
+            ->where('is_active', true);
+
+            // Apply search filter
+            if ($searchQuery) {
+                $allListingsQuery->where(function ($query) use ($searchQuery) {
+                    $query->where('title', 'like', "%{$searchQuery}%")
+                        ->orWhere('short_description', 'like', "%{$searchQuery}%")
+                        ->orWhere('description', 'like', "%{$searchQuery}%");
+                });
+            }
+
+            // Apply category filter
+            if ($categoryUuid) {
+                $allListingsQuery->whereHas('product.productCategory', function ($query) use ($categoryUuid) {
+                    $query->where('uuid', $categoryUuid);
+                });
+            }
+
+            // Apply subcategory filter
+            if ($subcategoryUuid) {
+                $allListingsQuery->whereHas('product', function ($query) use ($subcategoryUuid) {
+                    $query->where('uuid', $subcategoryUuid);
+                });
+            }
+
+            $all_listings = $allListingsQuery
+                ->orderBy('is_featured', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+
+            $featured_listings = collect();
+            $regular_listings = collect();
+            
+        } elseif ($filter === 'featured') {
+            // Show only featured listings
+            $featuredQuery = Listing::with([
+                'user',
+                'originCountry',
+                'destinationCountry',
+                'product.productCategory',
+                'media' => function ($query) {
+                    $query->orderBy('order');
+                }
+            ])
+            ->where('is_featured', true)
+            ->where('is_active', true);
+
+            // Apply search filter
+            if ($searchQuery) {
+                $featuredQuery->where(function ($query) use ($searchQuery) {
+                    $query->where('title', 'like', "%{$searchQuery}%")
+                        ->orWhere('short_description', 'like', "%{$searchQuery}%")
+                        ->orWhere('description', 'like', "%{$searchQuery}%");
+                });
+            }
+
+            // Apply category filter
+            if ($categoryUuid) {
+                $featuredQuery->whereHas('product.productCategory', function ($query) use ($categoryUuid) {
+                    $query->where('uuid', $categoryUuid);
+                });
+            }
+
+            // Apply subcategory filter
+            if ($subcategoryUuid) {
+                $featuredQuery->whereHas('product', function ($query) use ($subcategoryUuid) {
+                    $query->where('uuid', $subcategoryUuid);
+                });
+            }
+
+            $all_listings = $featuredQuery
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+
+            $featured_listings = collect();
+            $regular_listings = collect();
+            
+        } else {
+            // Default: Show featured section + regular section separately
+            // Default: Show featured section + regular section separately
+            // Base query for featured listings (sponsored)
+            $featuredQuery = Listing::with([
+                'user',
+                'originCountry',
+                'destinationCountry',
+                'product.productCategory',
+                'media' => function ($query) {
+                    $query->orderBy('order');
+                }
+            ])
+            ->where('is_featured', true)
+            ->where('is_active', true);
+
+            // Base query for regular listings (not sponsored)
+            $regularQuery = Listing::with([
+                'user',
+                'originCountry',
+                'destinationCountry',
+                'product.productCategory',
+                'media' => function ($query) {
+                    $query->orderBy('order');
+                }
+            ])
+            ->where('is_featured', false)
+            ->where('is_active', true);
+
+            // Apply search filter to both queries
+            if ($searchQuery) {
+                $featuredQuery->where(function ($query) use ($searchQuery) {
+                    $query->where('title', 'like', "%{$searchQuery}%")
+                        ->orWhere('short_description', 'like', "%{$searchQuery}%")
+                        ->orWhere('description', 'like', "%{$searchQuery}%");
+                });
+                
+                $regularQuery->where(function ($query) use ($searchQuery) {
+                    $query->where('title', 'like', "%{$searchQuery}%")
+                        ->orWhere('short_description', 'like', "%{$searchQuery}%")
+                        ->orWhere('description', 'like', "%{$searchQuery}%");
+                });
+            }
+
+            // Apply category filter if provided
+            if ($categoryUuid) {
+                $featuredQuery->whereHas('product.productCategory', function ($query) use ($categoryUuid) {
+                    $query->where('uuid', $categoryUuid);
+                });
+                
+                $regularQuery->whereHas('product.productCategory', function ($query) use ($categoryUuid) {
+                    $query->where('uuid', $categoryUuid);
+                });
+            }
+
+            // Apply subcategory (product) filter if provided
+            if ($subcategoryUuid) {
+                $featuredQuery->whereHas('product', function ($query) use ($subcategoryUuid) {
+                    $query->where('uuid', $subcategoryUuid);
+                });
+                
+                $regularQuery->whereHas('product', function ($query) use ($subcategoryUuid) {
+                    $query->where('uuid', $subcategoryUuid);
+                });
+            }
+
+            // Get featured listings (sponsored)
+            $featured_listings = $featuredQuery
+                ->orderBy('created_at', 'desc')
+                ->limit(20)
+                ->get();
+
+            // Get regular listings (not sponsored)
+            $regular_listings = $regularQuery
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+
+            $all_listings = collect();
+        }
+
+        // Get product categories with their products and listing counts for sidebar
+        $productCategories = ProductCategory::with([
+            'products' => function ($query) {
+                $query->withCount(['listings' => function ($q) {
+                    $q->where('is_active', true);
+                }]);
+            }
+        ])
+        ->withCount(['listings' => function ($query) {
+            $query->where('is_active', true);
+        }])
+        ->orderBy('name')
+        ->get();
+
+        return view('home', [
+            'featured_listings' => $featured_listings,
+            'regular_listings' => $regular_listings,
+            'all_listings' => $all_listings ?? collect(),
+            'productCategories' => $productCategories,
+            'filter' => $filter,
+        ]);
+    }
+}
