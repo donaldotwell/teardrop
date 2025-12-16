@@ -44,7 +44,7 @@ class BitcoinController extends Controller
     /**
      * Show Bitcoin top-up page.
      */
-    public function topup(Request $request): View
+    public function topup(Request $request)
     {
         $user = $request->user();
         $btcWallet = BitcoinRepository::getOrCreateWalletForUser($user);
