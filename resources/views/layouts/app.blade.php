@@ -85,7 +85,7 @@
                 <!-- Logo/Brand -->
                 <div class="flex items-center">
                     <a href="{{ route('home') }}" class="flex items-center space-x-2">
-                        <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-700 rounded-lg"></div>
+                        <img src="{{ asset('logo-h.png') }}" alt="{{ config('app.name') }}" class="h-8 w-auto">
                         <span class="text-xl font-bold text-gray-900">{{ config('app.name') }}</span>
                     </a>
                 </div>
