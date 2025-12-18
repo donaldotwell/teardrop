@@ -26,17 +26,6 @@
         }
         @endif
     </style>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            @if(app()->environment('production'))
-            var overlay = document.querySelector('.js-warning-overlay');
-            if (overlay) overlay.style.display = 'flex';
-            @else
-            var warning = document.querySelector('.js-warning');
-            if (warning) warning.style.display = 'block';
-            @endif
-        });
-    </script>
 </head>
 <body class="bg-gray-50">
 @if(app()->environment('production'))
@@ -47,7 +36,7 @@
     <div class="max-w-2xl text-center">
         <h2 class="text-4xl font-bold mb-4">Access Denied</h2>
         <p class="text-xl mb-6">
-            This site requires JavaScript to be disabled in your browser. 
+            This site requires JavaScript to be disabled in your browser.
             Please disable JavaScript and refresh this page to continue.
         </p>
         <div class="bg-amber-900 rounded-lg p-6 mb-6 text-left">
@@ -71,6 +60,20 @@
     Warning: JavaScript detected. JavaScript must be disabled to visit this page.
 </div>
 @endif
+
+<script>
+    // Show warning if JavaScript is enabled
+    document.addEventListener('DOMContentLoaded', function() {
+        @if(app()->environment('production'))
+        var overlay = document.querySelector('.js-warning-overlay');
+        if (overlay) overlay.style.display = 'flex';
+        @else
+        var warning = document.querySelector('.js-warning');
+        if (warning) warning.style.display = 'block';
+        @endif
+    });
+</script>
+
 <div class="min-h-screen flex flex-col">
     <header class="bg-white border-b border-gray-200 py-6">
         <div class="max-w-4xl mx-auto px-4">

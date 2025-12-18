@@ -29,18 +29,6 @@
         }
         @endif
     </style>
-    <script>
-        // Show warning if JavaScript is enabled
-        document.addEventListener('DOMContentLoaded', function() {
-            @if(app()->environment('production'))
-            var overlay = document.querySelector('.js-warning-overlay');
-            if (overlay) overlay.style.display = 'flex';
-            @else
-            var warning = document.querySelector('.js-warning');
-            if (warning) warning.style.display = 'block';
-            @endif
-        });
-    </script>
 </head>
 <body class="bg-gray-50">
 @if(app()->environment('production'))
@@ -51,7 +39,7 @@
     <div class="max-w-2xl text-center">
         <h2 class="text-4xl font-bold mb-4">Access Denied</h2>
         <p class="text-xl mb-6">
-            This site requires JavaScript to be disabled in your browser. 
+            This site requires JavaScript to be disabled in your browser.
             Please disable JavaScript and refresh this page to continue.
         </p>
         <div class="bg-red-700 rounded-lg p-6 mb-6 text-left">
@@ -75,82 +63,81 @@
     Warning: JavaScript detected. JavaScript must be disabled to visit this page.
 </div>
 @endif
-<div class="min-h-screen flex flex-col">
-    <!-- Premium Status Bar -->
-    <div class="bg-gradient-to-r from-amber-700 to-amber-800 border-b border-amber-600 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex flex-col sm:flex-row items-center justify-between py-2 gap-2 sm:gap-4 text-xs sm:text-sm">
-                <!-- Market Ticker -->
-                <div class="flex items-center space-x-3 overflow-x-auto scrollbar-hide">
-                    <div class="flex items-center space-x-1">
-                        <span class="text-amber-300 font-bold">BTC</span>
-                        <span class="font-medium text-amber-100">Markets:</span>
-                    </div>
 
-                    @foreach(['USD', 'EUR', 'GBP'] as $currency)
-                        <div class="flex items-center space-x-1">
-                            <span class="text-amber-50">{{ $currency }}</span>
-                            <span class="text-amber-200">{{ rand(50000, 200000)/100 }}</span>
-                            <span class="text-emerald-400 text-xs">+2.5%</span>
-                        </div>
-                    @endforeach
+<script>
+    // Show warning if JavaScript is enabled
+    document.addEventListener('DOMContentLoaded', function() {
+        @if(app()->environment('production'))
+        var overlay = document.querySelector('.js-warning-overlay');
+        if (overlay) overlay.style.display = 'flex';
+        @else
+        var warning = document.querySelector('.js-warning');
+        if (warning) warning.style.display = 'block';
+        @endif
+    });
+</script>
+
+<div class="min-h-screen flex flex-col">
+    <!-- Modern Header -->
+    <header class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo/Brand -->
+                <div class="flex items-center">
+                    <a href="{{ route('home') }}" class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-700 rounded-lg"></div>
+                        <span class="text-xl font-bold text-gray-900">{{ config('app.name') }}</span>
+                    </a>
                 </div>
 
                 <!-- User Widget -->
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-6">
                     @auth
-                        <div class="hidden sm:flex items-center space-x-2">
-                            <span class="text-amber-300 font-bold">User:</span>
-                            <span class="text-amber-100">{{ auth()->user()->username_pub }}</span>
+                        <!-- User Info -->
+                        <div class="hidden lg:flex items-center space-x-3 px-4 py-2 bg-gray-50 rounded-lg">
+                            <div class="flex flex-col">
+                                <span class="text-xs text-gray-500">Logged in as</span>
+                                <span class="text-sm font-semibold text-gray-900">{{ auth()->user()->username_pub }}</span>
+                            </div>
                         </div>
 
-                        <div class="flex items-center space-x-4">
-                            <!-- Bitcoin Balance -->
-                            <div class="flex items-center space-x-2">
-                                <span class="text-amber-300 font-bold text-sm">BTC</span>
-                                <div>
-                                    <span class="text-amber-100 font-mono text-sm">{{ $user_balance['btc']['balance'] }}</span>
-                                    <span class="text-amber-400 text-xs ml-2">≈ ${{ number_format($user_balance['btc']['usd_value'], 2) }}</span>
-                                </div>
+                        <!-- Wallet Balances -->
+                        <div class="hidden md:flex items-center space-x-4 px-4 py-2 bg-amber-50 rounded-lg border border-amber-200">
+                            <div class="flex flex-col">
+                                <span class="text-xs text-amber-600 font-medium">BTC</span>
+                                <span class="text-sm font-mono font-bold text-amber-900">{{ $user_balance['btc']['balance'] }}</span>
                             </div>
-
-                            <!-- Monero Balance -->
-                            <div class="flex items-center space-x-2">
-                                <span class="text-amber-300 font-bold text-sm">XMR</span>
-                                <div>
-                                    <span class="text-amber-100 font-mono text-sm">{{ $user_balance['xmr']['balance'] }}</span>
-                                    <span class="text-amber-400 text-xs ml-2">≈ ${{ number_format($user_balance['xmr']['usd_value'], 2) }}</span>
-                                </div>
+                            <div class="w-px h-8 bg-amber-300"></div>
+                            <div class="flex flex-col">
+                                <span class="text-xs text-amber-600 font-medium">XMR</span>
+                                <span class="text-sm font-mono font-bold text-amber-900">{{ $user_balance['xmr']['balance'] }}</span>
                             </div>
-
-                            <div class="h-5 w-px bg-amber-600"></div>
-
-                            <!-- Logout -->
-                            <form method="POST" action="{{ route('logout') }}" class="inline">
-                                @csrf
-                                <button type="submit" class="flex items-center space-x-1 px-3 py-1 rounded-md bg-amber-600 hover:bg-amber-700 transition-colors">
-                                    <span class="text-amber-50 text-sm">Sign Out</span>
-                                </button>
-                            </form>
                         </div>
+
+                        <!-- Logout Button -->
+                        <form method="POST" action="{{ route('logout') }}" class="inline">
+                            @csrf
+                            <button type="submit" class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium">
+                                Sign Out
+                            </button>
+                        </form>
                     @else
-                        <a href="{{ route('login') }}" class="text-amber-100 hover:text-white">Login</a>
-                        <span class="text-amber-300">|</span>
-                        <a href="{{ route('register') }}" class="text-amber-100 hover:text-white">Register</a>
+                        <a href="{{ route('login') }}" class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition-colors">Login</a>
+                        <a href="{{ route('register') }}" class="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium">Register</a>
                     @endauth
                 </div>
             </div>
         </div>
-    </div>
+    </header>
 
     <!-- Navigation -->
-    <nav class="bg-white border-b border-gray-200 shadow-sm">
+    <nav class="bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700">
         <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between items-center h-16">
+            <div class="flex justify-between items-center h-12">
                 <!-- Desktop Menu -->
-                <div class="hidden md:flex space-x-4">
+                <div class="hidden md:flex items-center space-x-1">
                     @foreach($navigation_links as $text => $url)
-                        <a href="{{ $url }}" class="flex items-center text-sm text-gray-700 hover:bg-yellow-50 px-3 py-2 rounded-md">
+                        <a href="{{ $url }}" class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition-colors">
                             {{ $text }}
                         </a>
                     @endforeach
@@ -158,18 +145,18 @@
 
                 <!-- Mobile Menu Toggle -->
                 <label for="menu-toggle" class="md:hidden p-2 cursor-pointer">
-                    <span class="block w-6 h-0.5 bg-gray-600 mb-1"></span>
-                    <span class="block w-6 h-0.5 bg-gray-600 mb-1"></span>
-                    <span class="block w-6 h-0.5 bg-gray-600"></span>
+                    <span class="block w-6 h-0.5 bg-gray-300 mb-1.5"></span>
+                    <span class="block w-6 h-0.5 bg-gray-300 mb-1.5"></span>
+                    <span class="block w-6 h-0.5 bg-gray-300"></span>
                 </label>
             </div>
         </div>
 
         <!-- Mobile Menu -->
         <input type="checkbox" id="menu-toggle" class="hidden">
-        <div class="mobile-menu md:hidden bg-white border-t">
+        <div class="mobile-menu md:hidden bg-gray-900 border-t border-gray-700">
             @foreach($navigation_links as $text => $url)
-                <a href="{{ $url }}" class="block px-4 py-3 text-sm text-gray-700 hover:bg-yellow-50">
+                <a href="{{ $url }}" class="block px-4 py-3 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800">
                     {{ $text }}
                 </a>
             @endforeach
@@ -219,11 +206,38 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white border-t mt-8">
-        <div class="max-w-7xl mx-auto px-4 py-4">
-            <p class="text-center text-sm text-gray-600">
-                &copy; {{ date('Y') }} {{ config('app.name') }}
-            </p>
+    <footer class="bg-gray-900 border-t border-gray-800 mt-8">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <!-- Exchange Rates -->
+            <div class="flex flex-col md:flex-row items-center justify-center gap-6 mb-6">
+                <div class="text-gray-400 text-sm font-medium">Live Exchange Rates:</div>
+                @php
+                    $rates = \App\Models\ExchangeRate::getAllRates();
+                    $btcRate = $rates['btc'] ?? 100000;
+                    $xmrRate = $rates['xmr'] ?? 230.08;
+                @endphp
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
+                        <span class="text-amber-400 font-bold text-sm">BTC</span>
+                        <span class="text-gray-400">=</span>
+                        <span class="text-white font-mono font-semibold">${{ number_format($btcRate, 2) }}</span>
+                        <span class="text-gray-500 text-xs">USD</span>
+                    </div>
+                    <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
+                        <span class="text-purple-400 font-bold text-sm">XMR</span>
+                        <span class="text-gray-400">=</span>
+                        <span class="text-white font-mono font-semibold">${{ number_format($xmrRate, 2) }}</span>
+                        <span class="text-gray-500 text-xs">USD</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Copyright -->
+            <div class="border-t border-gray-800 pt-4">
+                <p class="text-center text-sm text-gray-500">
+                    &copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.
+                </p>
+            </div>
         </div>
     </footer>
 </div>

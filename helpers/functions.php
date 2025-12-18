@@ -15,13 +15,16 @@ if (!function_exists('convert_usd_to_crypto')) {
             return 0;
         }
 
-        // Define the conversion rate for USD to crypto.
-        // For BTC: 1 BTC = 100,000 USD
-        // For XMR: 1 XMR = 230.08 USD
-        $conversionRate = ($currency === 'btc') ? 100000 : 230.08;
+        // Get exchange rate from database
+        $rate = \App\Models\ExchangeRate::getRate($currency);
+
+        // Fallback to hardcoded rates if database is not available
+        if ($rate === null) {
+            $rate = ($currency === 'btc') ? 100000 : 230.08;
+        }
 
         // Convert the USD amount to the crypto amount.
-        return round($amount / $conversionRate, 8);
+        return round($amount / $rate, 8);
     }
 }
 
@@ -40,13 +43,16 @@ if (!function_exists('convert_crypto_to_usd')) {
             return 0;
         }
 
-        // Define the conversion rate for crypto to USD.
-        // For BTC: 1 BTC = 100,000 USD
-        // For XMR: 1 XMR = 230.08 USD
-        $conversionRate = ($currency === 'btc') ? 100000 : 230.08;
+        // Get exchange rate from database
+        $rate = \App\Models\ExchangeRate::getRate($currency);
+
+        // Fallback to hardcoded rates if database is not available
+        if ($rate === null) {
+            $rate = ($currency === 'btc') ? 100000 : 230.08;
+        }
 
         // Convert the crypto amount to the USD value.
-        return round($amount * $conversionRate, 2);
+        return round($amount * $rate, 2);
     }
 }
 
