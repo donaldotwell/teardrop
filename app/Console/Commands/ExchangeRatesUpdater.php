@@ -38,35 +38,47 @@ class ExchangeRatesUpdater extends Command
 
             if (!$response->successful()) {
                 $this->error('Failed to fetch exchange rates from CoinGecko API.');
+                $this->error('Status: ' . $response->status());
                 return 1;
             }
 
             $data = $response->json();
 
+            if (!$data) {
+                $this->error('Empty response from CoinGecko API.');
+                return 1;
+            }
+
             // Update Bitcoin rate
             if (isset($data['bitcoin']['usd'])) {
+                $btcRate = $data['bitcoin']['usd'];
                 ExchangeRate::updateOrCreate(
                     ['crypto_shortname' => 'btc'],
                     [
                         'crypto_name' => 'bitcoin',
                         'crypto_shortname' => 'btc',
-                        'usd_rate' => $data['bitcoin']['usd'],
+                        'usd_rate' => $btcRate,
                     ]
                 );
-                $this->line("✓ BTC rate updated: ${$data['bitcoin']['usd']}");
+                $this->line("✓ BTC rate updated: $" . number_format($btcRate, 2));
+            } else {
+                $this->warn('Bitcoin rate not found in API response.');
             }
 
             // Update Monero rate
             if (isset($data['monero']['usd'])) {
+                $xmrRate = $data['monero']['usd'];
                 ExchangeRate::updateOrCreate(
                     ['crypto_shortname' => 'xmr'],
                     [
                         'crypto_name' => 'monero',
                         'crypto_shortname' => 'xmr',
-                        'usd_rate' => $data['monero']['usd'],
+                        'usd_rate' => $xmrRate,
                     ]
                 );
-                $this->line("✓ XMR rate updated: ${$data['monero']['usd']}");
+                $this->line("✓ XMR rate updated: $" . number_format($xmrRate, 2));
+            } else {
+                $this->warn('Monero rate not found in API response.');
             }
 
             $this->info('Exchange rates updated successfully!');
@@ -74,6 +86,15 @@ class ExchangeRatesUpdater extends Command
 
         } catch (\Exception $e) {
             $this->error('Error updating exchange rates: ' . $e->getMessage());
+            $this->error('File: ' . $e->getFile() . ':' . $e->getLine());
+
+            if ($this->output->isVerbose()) {
+                $this->error('Stack trace:');
+                $this->line($e->getTraceAsString());
+            } else {
+                $this->warn('Run with -v flag for full stack trace.');
+            }
+
             return 1;
         }
     }
