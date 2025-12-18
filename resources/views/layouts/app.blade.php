@@ -84,9 +84,8 @@
             <div class="flex items-center justify-between h-16">
                 <!-- Logo/Brand -->
                 <div class="flex items-center">
-                    <a href="{{ route('home') }}" class="flex items-center space-x-2">
+                    <a href="{{ route('home') }}">
                         <img src="{{ asset('logo-h.png') }}" alt="{{ config('app.name') }}" class="h-8 w-auto">
-                        <span class="text-xl font-bold text-gray-900">{{ config('app.name') }}</span>
                     </a>
                 </div>
 
