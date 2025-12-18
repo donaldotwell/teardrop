@@ -85,7 +85,7 @@
                 <!-- Logo/Brand -->
                 <div class="flex items-center">
                     <a href="{{ route('home') }}">
-                        <img src="{{ asset('logo-h.png') }}" alt="{{ config('app.name') }}" class="h-8 w-auto">
+                        <img src="{{ asset('logo-h.png') }}" alt="{{ config('app.name') }}" class="h-10 w-auto">
                     </a>
                 </div>
 
