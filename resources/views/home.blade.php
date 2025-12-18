@@ -110,23 +110,23 @@
                             $isCategoryActive = request('cat') === $category->uuid;
                             $hasActiveSubcategory = $category->products->contains('uuid', request('scat'));
                         @endphp
-                        <div class="space-y-2">
-                            {{-- Category Link --}}
-                            <a href="{{ route('home', ['cat' => $category->uuid]) }}"
-                               class="flex items-center justify-between p-2 rounded transition-colors
-                                      {{ $isCategoryActive ? 'bg-yellow-100 hover:bg-yellow-200' : 'hover:bg-gray-50' }}">
-                                <span class="text-sm font-medium {{ $isCategoryActive ? 'text-yellow-700' : 'text-gray-700' }}">
-                                    {{ $category->name }}
-                                </span>
-                                <span class="text-xs px-2 py-1 rounded-full
-                                           {{ $isCategoryActive ? 'bg-yellow-200 text-yellow-900' : 'bg-gray-200 text-gray-700' }}">
-                                    {{ $category->listings_count }}
-                                </span>
-                            </a>
+                        <div class="category-group">
+                            <input type="checkbox" id="cat-{{ $category->uuid }}" class="hidden peer" {{ ($isCategoryActive || $hasActiveSubcategory) ? 'checked' : '' }}>
+                            <label for="cat-{{ $category->uuid }}" class="flex items-center justify-between p-2 rounded transition-colors cursor-pointer group hover:bg-gray-50">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium {{ $isCategoryActive ? 'text-yellow-700' : 'text-gray-700' }} group-hover:text-yellow-700">
+                                        {{ $category->name }}
+                                    </span>
+                                    <span class="text-xs px-2 py-1 rounded-full {{ $isCategoryActive ? 'bg-yellow-200 text-yellow-900' : 'bg-gray-200 text-gray-700' }}">
+                                        {{ $category->listings_count }}
+                                    </span>
+                                </div>
+                                <span class="text-gray-400 transform transition-transform peer-checked:rotate-90">→</span>
+                            </label>
 
                             {{-- Subcategories (Products) --}}
-                            @if($category->products->isNotEmpty() && ($isCategoryActive || $hasActiveSubcategory))
-                                <div class="ml-4 space-y-1 bg-gray-50 rounded p-2">
+                            @if($category->products->isNotEmpty())
+                                <div class="ml-4 space-y-1 bg-gray-50 rounded p-2 hidden peer-checked:block">
                                     @foreach($category->products as $product)
                                         @php
                                             $isSubcategoryActive = request('scat') === $product->uuid && $isCategoryActive;
@@ -173,7 +173,7 @@
                                 {{-- Listing Image --}}
                                 @if($listing->media->isNotEmpty())
                                     <div class="aspect-video bg-gray-100 overflow-hidden relative">
-                                        <img src="{{ $listing->media->first()->data_uri }}" 
+                                        <img src="{{ $listing->media->first()->data_uri }}"
                                              alt="{{ $listing->title }}"
                                              class="w-full h-full object-cover transition-transform duration-300 hover:scale-110">
                                         <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
@@ -274,7 +274,7 @@
                                 {{-- Listing Image --}}
                                 @if($listing->media->isNotEmpty())
                                     <div class="aspect-video bg-gray-100 overflow-hidden relative">
-                                        <img src="{{ $listing->media->first()->data_uri }}" 
+                                        <img src="{{ $listing->media->first()->data_uri }}"
                                              alt="{{ $listing->title }}"
                                              class="w-full h-full object-cover transition-transform duration-300 hover:scale-110">
                                         @if($listing->is_featured)
@@ -389,7 +389,7 @@
                                 {{-- Listing Image --}}
                                 @if($listing->media->isNotEmpty())
                                     <div class="aspect-video bg-gray-100 overflow-hidden relative">
-                                        <img src="{{ $listing->media->first()->data_uri }}" 
+                                        <img src="{{ $listing->media->first()->data_uri }}"
                                              alt="{{ $listing->title }}"
                                              class="w-full h-full object-cover transition-transform duration-300 hover:scale-110">
                                         <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
@@ -496,7 +496,7 @@
                             {{-- Listing Image --}}
                             @if($listing->media->isNotEmpty())
                                 <div class="aspect-video bg-gray-100 overflow-hidden">
-                                    <img src="{{ $listing->media->first()->data_uri }}" 
+                                    <img src="{{ $listing->media->first()->data_uri }}"
                                          alt="{{ $listing->title }}"
                                          class="w-full h-full object-cover transition-transform duration-300 hover:scale-110">
                                 </div>
