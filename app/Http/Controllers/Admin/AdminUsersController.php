@@ -129,6 +129,29 @@ class AdminUsersController extends Controller
     }
 
     /**
+     * Promote user to vendor (admin bypass of conversion fee)
+     */
+    public function promoteToVendor(User $user)
+    {
+        // Check if user is already a vendor
+        if ($user->hasRole('vendor')) {
+            return redirect()->back()
+                ->with('error', 'User is already a vendor.');
+        }
+
+        // Update vendor level and set vendor_since timestamp
+        $user->update([
+            'vendor_level' => 1,
+        ]);
+
+        // Assign vendor role
+        $user->assignRoleByName('vendor');
+
+        return redirect()->back()
+            ->with('success', "User {$user->username_pub} has been promoted to vendor.");
+    }
+
+    /**
      * Export users to CSV
      */
     public function export(Request $request)

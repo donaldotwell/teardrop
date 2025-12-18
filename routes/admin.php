@@ -25,6 +25,7 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
         Route::post('/{user}/reset-password', [AdminUsersController::class, 'resetPassword'])->name('reset-password');
         Route::get('/{user}/wallet-transactions', [AdminUsersController::class, 'walletTransactions'])->name('wallet-transactions');
         Route::post('/{user}/adjust-balance', [AdminUsersController::class, 'adjustBalance'])->name('adjust-balance');
+        Route::post('/{user}/promote-to-vendor', [AdminUsersController::class, 'promoteToVendor'])->name('promote-to-vendor');
     });
 
     // Orders Management

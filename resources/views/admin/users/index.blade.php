@@ -175,6 +175,16 @@
                                        class="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200">
                                         Edit
                                     </a>
+                                    @if(!$user->hasRole('vendor'))
+                                        <form action="{{ route('admin.users.promote-to-vendor', $user) }}" method="POST" class="inline">
+                                            @csrf
+                                            <button type="submit"
+                                                    class="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200"
+                                                    title="Promote to vendor without payment">
+                                                Make Vendor
+                                            </button>
+                                        </form>
+                                    @endif
                                     @if($user->status !== 'banned')
                                         <form action="{{ route('admin.users.ban', $user) }}" method="POST" class="inline">
                                             @csrf
