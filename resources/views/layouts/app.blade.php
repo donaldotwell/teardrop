@@ -224,27 +224,37 @@
     <footer class="bg-gray-900 border-t border-gray-800 mt-8">
         <div class="max-w-7xl mx-auto px-4 py-6">
             <!-- Exchange Rates -->
-            <div class="flex flex-col md:flex-row items-center justify-center gap-6 mb-6">
-                <div class="text-gray-400 text-sm font-medium">Live Exchange Rates:</div>
+            <div class="flex flex-col items-center justify-center gap-4 mb-6">
                 @php
-                    $rates = \App\Models\ExchangeRate::getAllRates();
-                    $btcRate = $rates['btc'] ?? 100000;
-                    $xmrRate = $rates['xmr'] ?? 230.08;
+                    $btcRate = \App\Models\ExchangeRate::where('crypto_shortname', 'btc')->first();
+                    $xmrRate = \App\Models\ExchangeRate::where('crypto_shortname', 'xmr')->first();
+                    $hasRates = $btcRate && $xmrRate;
                 @endphp
-                <div class="flex items-center gap-6">
-                    <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
-                        <span class="text-amber-400 font-bold text-sm">BTC</span>
-                        <span class="text-gray-400">=</span>
-                        <span class="text-white font-mono font-semibold">${{ number_format($btcRate, 2) }}</span>
-                        <span class="text-gray-500 text-xs">USD</span>
+
+                @if($hasRates)
+                    <div class="text-gray-400 text-sm font-medium">
+                        Live Exchange Rates
+                        <span class="text-gray-500 text-xs">(Updated: {{ $btcRate->updated_at->diffForHumans() }})</span>
                     </div>
-                    <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
-                        <span class="text-orange-400 font-bold text-sm">XMR</span>
-                        <span class="text-gray-400">=</span>
-                        <span class="text-white font-mono font-semibold">${{ number_format($xmrRate, 2) }}</span>
-                        <span class="text-gray-500 text-xs">USD</span>
+                    <div class="flex items-center gap-6">
+                        <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
+                            <span class="text-amber-400 font-bold text-sm">BTC</span>
+                            <span class="text-gray-400">=</span>
+                            <span class="text-white font-mono font-semibold">${{ number_format($btcRate->usd_rate, 2) }}</span>
+                            <span class="text-gray-500 text-xs">USD</span>
+                        </div>
+                        <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
+                            <span class="text-orange-400 font-bold text-sm">XMR</span>
+                            <span class="text-gray-400">=</span>
+                            <span class="text-white font-mono font-semibold">${{ number_format($xmrRate->usd_rate, 2) }}</span>
+                            <span class="text-gray-500 text-xs">USD</span>
+                        </div>
                     </div>
-                </div>
+                @else
+                    <div class="text-gray-500 text-sm">
+                        Exchange rates not available. Run <span class="text-amber-400 font-mono">php artisan exchange:update</span> to fetch rates.
+                    </div>
+                @endif
             </div>
 
             <!-- Copyright -->
