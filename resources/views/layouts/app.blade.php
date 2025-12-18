@@ -149,7 +149,7 @@
                         @php
                             $isActive = request()->url() === $url || request()->fullUrl() === $url;
                         @endphp
-                        <a href="{{ $url }}" class="px-4 py-2 text-sm font-semibold rounded-md transition-all {{ $isActive ? 'bg-amber-600 text-white shadow-md' : 'text-gray-200 hover:text-white hover:bg-gray-600' }}">
+                        <a href="{{ $url }}" class="px-4 py-2 text-sm font-medium rounded-md transition-all {{ $isActive ? 'bg-amber-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700/50' }}">
                             {{ $text }}
                         </a>
                     @endforeach
@@ -171,7 +171,7 @@
                 @php
                     $isActive = request()->url() === $url || request()->fullUrl() === $url;
                 @endphp
-                <a href="{{ $url }}" class="block px-4 py-3 text-sm font-semibold {{ $isActive ? 'bg-amber-600 text-white' : 'text-gray-200 hover:text-white hover:bg-gray-700' }}">
+                <a href="{{ $url }}" class="block px-4 py-3 text-sm font-medium {{ $isActive ? 'bg-amber-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700/50' }}">
                     {{ $text }}
                 </a>
             @endforeach
@@ -232,10 +232,6 @@
                 @endphp
 
                 @if($hasRates)
-                    <div class="text-gray-400 text-sm font-medium">
-                        Live Exchange Rates
-                        <span class="text-gray-500 text-xs">(Updated: {{ $btcRate->updated_at->diffForHumans() }})</span>
-                    </div>
                     <div class="flex items-center gap-6">
                         <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
                             <span class="text-amber-400 font-bold text-sm">BTC</span>
@@ -244,7 +240,7 @@
                             <span class="text-gray-500 text-xs">USD</span>
                         </div>
                         <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
-                            <span class="text-orange-400 font-bold text-sm">XMR</span>
+                            <span class="text-amber-500 font-bold text-sm">XMR</span>
                             <span class="text-gray-400">=</span>
                             <span class="text-white font-mono font-semibold">${{ number_format($xmrRate->usd_rate, 2) }}</span>
                             <span class="text-gray-500 text-xs">USD</span>
