@@ -91,26 +91,35 @@
                 </div>
 
                 <!-- User Widget -->
-                <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-4">
                     @auth
                         <!-- User Info -->
-                        <div class="hidden lg:flex items-center space-x-3 px-4 py-2 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3 px-4 py-2 bg-amber-50 rounded-lg border border-amber-200">
+                            <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-700 rounded-full flex items-center justify-center">
+                                <span class="text-white font-bold text-sm">{{ strtoupper(substr(auth()->user()->username_pub, 0, 1)) }}</span>
+                            </div>
                             <div class="flex flex-col">
-                                <span class="text-xs text-gray-500">Logged in as</span>
-                                <span class="text-sm font-semibold text-gray-900">{{ auth()->user()->username_pub }}</span>
+                                <span class="text-xs text-amber-600 font-medium">User</span>
+                                <span class="text-sm font-bold text-gray-900">{{ auth()->user()->username_pub }}</span>
                             </div>
                         </div>
 
                         <!-- Wallet Balances -->
-                        <div class="hidden md:flex items-center space-x-4 px-4 py-2 bg-amber-50 rounded-lg border border-amber-200">
+                        <div class="hidden md:flex items-center space-x-3 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
                             <div class="flex flex-col">
-                                <span class="text-xs text-amber-600 font-medium">BTC</span>
-                                <span class="text-sm font-mono font-bold text-amber-900">{{ $user_balance['btc']['balance'] }}</span>
+                                <span class="text-xs text-gray-500 font-medium">BTC Balance</span>
+                                <div class="flex items-baseline space-x-2">
+                                    <span class="text-sm font-mono font-bold text-gray-900">{{ $user_balance['btc']['balance'] }}</span>
+                                    <span class="text-xs text-gray-500">≈ ${{ number_format($user_balance['btc']['usd_value'], 2) }}</span>
+                                </div>
                             </div>
-                            <div class="w-px h-8 bg-amber-300"></div>
+                            <div class="w-px h-10 bg-gray-300"></div>
                             <div class="flex flex-col">
-                                <span class="text-xs text-amber-600 font-medium">XMR</span>
-                                <span class="text-sm font-mono font-bold text-amber-900">{{ $user_balance['xmr']['balance'] }}</span>
+                                <span class="text-xs text-gray-500 font-medium">XMR Balance</span>
+                                <div class="flex items-baseline space-x-2">
+                                    <span class="text-sm font-mono font-bold text-gray-900">{{ $user_balance['xmr']['balance'] }}</span>
+                                    <span class="text-xs text-gray-500">≈ ${{ number_format($user_balance['xmr']['usd_value'], 2) }}</span>
+                                </div>
                             </div>
                         </div>
 
@@ -131,13 +140,16 @@
     </header>
 
     <!-- Navigation -->
-    <nav class="bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700">
+    <nav class="bg-gradient-to-r from-gray-800 to-gray-700 border-b border-gray-600 shadow-lg">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between items-center h-12">
                 <!-- Desktop Menu -->
                 <div class="hidden md:flex items-center space-x-1">
                     @foreach($navigation_links as $text => $url)
-                        <a href="{{ $url }}" class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition-colors">
+                        @php
+                            $isActive = request()->url() === $url || request()->fullUrl() === $url;
+                        @endphp
+                        <a href="{{ $url }}" class="px-4 py-2 text-sm font-semibold rounded-md transition-all {{ $isActive ? 'bg-amber-600 text-white shadow-md' : 'text-gray-200 hover:text-white hover:bg-gray-600' }}">
                             {{ $text }}
                         </a>
                     @endforeach
@@ -154,9 +166,12 @@
 
         <!-- Mobile Menu -->
         <input type="checkbox" id="menu-toggle" class="hidden">
-        <div class="mobile-menu md:hidden bg-gray-900 border-t border-gray-700">
+        <div class="mobile-menu md:hidden bg-gray-800 border-t border-gray-600">
             @foreach($navigation_links as $text => $url)
-                <a href="{{ $url }}" class="block px-4 py-3 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800">
+                @php
+                    $isActive = request()->url() === $url || request()->fullUrl() === $url;
+                @endphp
+                <a href="{{ $url }}" class="block px-4 py-3 text-sm font-semibold {{ $isActive ? 'bg-amber-600 text-white' : 'text-gray-200 hover:text-white hover:bg-gray-700' }}">
                     {{ $text }}
                 </a>
             @endforeach
@@ -224,7 +239,7 @@
                         <span class="text-gray-500 text-xs">USD</span>
                     </div>
                     <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
-                        <span class="text-purple-400 font-bold text-sm">XMR</span>
+                        <span class="text-orange-400 font-bold text-sm">XMR</span>
                         <span class="text-gray-400">=</span>
                         <span class="text-white font-mono font-semibold">${{ number_format($xmrRate, 2) }}</span>
                         <span class="text-gray-500 text-xs">USD</span>
