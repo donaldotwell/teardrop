@@ -34,7 +34,6 @@ class VendorController extends Controller
             },
             'receivedReviews' => function($query) {
                 $query->with('user')
-                      ->latest()
                       ->take(10);
             }
         ]);
@@ -42,19 +41,19 @@ class VendorController extends Controller
         // Get rating statistics
         $ratingBreakdown = $user->getRatingBreakdown();
         $totalReviews = $user->getTotalReviews();
-        
+
         // Get vendor statistics
         $activeListingsCount = $user->listings()->where('is_active', true)->count();
         $totalListingsCount = $user->listings()->count();
-        
+
         // Get total views from all listings
         $totalViews = $user->listings()->sum('views');
-        
+
         // Get completed orders count (orders where this vendor's listings were purchased and completed)
         $completedOrders = \App\Models\Order::whereHas('listing', function($query) use ($user) {
             $query->where('user_id', $user->id);
         })->where('status', 'completed')->count();
-        
+
         // Get dispute statistics by status
         $disputeStats = [
             'total' => \App\Models\Dispute::whereHas('order.listing', function($query) use ($user) {
@@ -82,10 +81,10 @@ class VendorController extends Controller
                 $query->where('user_id', $user->id);
             })->where('status', 'closed')->count(),
         ];
-        
+
         // Active disputes (not resolved or closed)
-        $disputedOrders = $disputeStats['open'] + $disputeStats['under_review'] + 
-                         $disputeStats['waiting_vendor'] + $disputeStats['waiting_buyer'] + 
+        $disputedOrders = $disputeStats['open'] + $disputeStats['under_review'] +
+                         $disputeStats['waiting_vendor'] + $disputeStats['waiting_buyer'] +
                          $disputeStats['escalated'];
 
         return view('vendors.show', compact(
@@ -151,7 +150,7 @@ class VendorController extends Controller
         // Check balance
         if ($userBtcWallet->balance < $requiredAmountBtc) {
             return back()->withErrors([
-                'currency' => "Insufficient balance. Required: " . number_format($requiredAmountBtc, $decimals) 
+                'currency' => "Insufficient balance. Required: " . number_format($requiredAmountBtc, $decimals)
                     . " BTC, Available: " . number_format($userBtcWallet->balance, $decimals) . " BTC"
             ]);
         }
@@ -159,7 +158,7 @@ class VendorController extends Controller
         // Get admin wallet
         $adminWalletName = config('fees.admin_btc_wallet_name', 'admin');
         $adminBtcWallet = BtcWallet::where('name', $adminWalletName)->first();
-        
+
         if (!$adminBtcWallet) {
             \Log::error("Admin BTC wallet not found: {$adminWalletName}");
             return back()->withErrors([
@@ -175,10 +174,10 @@ class VendorController extends Controller
 
         try {
             DB::beginTransaction();
-            
+
             // Lock user's wallet to prevent race conditions
             $userBtcWallet = BtcWallet::where('id', $userBtcWallet->id)->lockForUpdate()->first();
-            
+
             // Re-validate balance after lock
             if ($userBtcWallet->balance < $requiredAmountBtc) {
                 DB::rollBack();
@@ -269,7 +268,7 @@ class VendorController extends Controller
         // Check balance
         if ($userXmrWallet->balance < $requiredAmountXmr) {
             return back()->withErrors([
-                'currency' => "Insufficient balance. Required: " . number_format($requiredAmountXmr, $decimals) 
+                'currency' => "Insufficient balance. Required: " . number_format($requiredAmountXmr, $decimals)
                     . " XMR, Available: " . number_format($userXmrWallet->balance, $decimals) . " XMR"
             ]);
         }
@@ -277,7 +276,7 @@ class VendorController extends Controller
         // Get admin wallet
         $adminWalletName = config('fees.admin_xmr_wallet_name', 'admin');
         $adminXmrWallet = \App\Models\XmrWallet::where('name', $adminWalletName)->first();
-        
+
         if (!$adminXmrWallet) {
             \Log::error("Admin XMR wallet not found: {$adminWalletName}");
             return back()->withErrors([
@@ -293,10 +292,10 @@ class VendorController extends Controller
 
         try {
             DB::beginTransaction();
-            
+
             // Lock user's wallet to prevent race conditions
             $userXmrWallet = \App\Models\XmrWallet::where('id', $userXmrWallet->id)->lockForUpdate()->first();
-            
+
             // Re-validate balance after lock
             if ($userXmrWallet->balance < $requiredAmountXmr) {
                 DB::rollBack();

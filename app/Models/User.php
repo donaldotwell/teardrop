@@ -560,7 +560,8 @@ class User extends Authenticatable
      */
     public function receivedReviews(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
     {
-        return $this->hasManyThrough(Review::class, Listing::class);
+        return $this->hasManyThrough(Review::class, Listing::class)
+            ->orderBy('reviews.created_at', 'desc');
     }
 
     /**
