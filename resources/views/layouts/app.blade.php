@@ -239,7 +239,7 @@
                             <span class="text-gray-500 text-xs">USD</span>
                         </div>
                         <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
-                            <span class="text-orange-400 font-bold text-sm">XMR</span>
+                            <span class="text-amber-400 font-bold text-sm">XMR</span>
                             <span class="text-gray-400">=</span>
                             <span class="text-white font-mono font-semibold">${{ number_format($xmrRate->usd_rate, 2) }}</span>
                             <span class="text-gray-500 text-xs">USD</span>
