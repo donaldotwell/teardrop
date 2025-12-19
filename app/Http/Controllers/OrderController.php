@@ -19,7 +19,7 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        
+
         // Build base query for user's orders (as buyer OR vendor)
         $query = Order::query()
             ->with(['listing.user', 'user', 'dispute'])
@@ -127,15 +127,15 @@ class OrderController extends Controller
         if ($order->user_id !== $request->user()->id && $order->listing->user_id !== $request->user()->id) {
             abort(403, 'Unauthorized access to order');
         }
-        
+
         // Determine who is viewing and who is the other party
         $isVendor = $order->listing->user_id === $request->user()->id;
         $otherParty = $isVendor ? $order->user : $order->listing->user;
-        
+
         // Load order relationships including recent messages
         $order = $order->load([
             'listing.user',
-            'listing.media', 
+            'listing.media',
             'user',
             'review',
             'messages' => function($query) {
@@ -144,7 +144,7 @@ class OrderController extends Controller
                       ->limit(10);
             }
         ]);
-        
+
         return view('orders.show', compact('order', 'otherParty', 'isVendor'));
     }
 
@@ -181,16 +181,16 @@ class OrderController extends Controller
             DB::transaction(function () use ($order) {
                 $buyer = $order->user;
                 $seller = $order->listing->user;
-                
+
                 // Calculate service charge (from config)
                 $serviceFeePercent = config('fees.order_completion_percentage', 3);
-                
+
                 // Determine decimal precision based on currency
                 $decimals = $order->currency === 'btc' ? 8 : 12;
-                
+
                 $serviceFeeAmount = round(($order->crypto_value * $serviceFeePercent) / 100, $decimals);
                 $sellerAmount = round($order->crypto_value - $serviceFeeAmount, $decimals);
-                
+
                 // Handle based on currency
                 if ($order->currency === 'btc') {
                     $this->completeBitcoinOrder($order, $buyer, $seller, $sellerAmount, $serviceFeeAmount, $serviceFeePercent);
@@ -224,21 +224,21 @@ class OrderController extends Controller
         if (!$sellerBtcWallet) {
             throw new \Exception("Seller does not have a Bitcoin wallet configured");
         }
-        
+
         $sellerAddress = $sellerBtcWallet->getCurrentAddress();
         if (!$sellerAddress) {
             // Generate new address for seller if none exists
             $sellerAddress = $sellerBtcWallet->generateNewAddress();
         }
-        
+
         // 2. Get admin wallet for service charge
         $adminWalletName = config('fees.admin_btc_wallet_name', 'admin');
         $adminBtcWallet = \App\Models\BtcWallet::where('name', $adminWalletName)->first();
-        
+
         if (!$adminBtcWallet) {
             throw new \Exception("Admin wallet not found: {$adminWalletName}");
         }
-        
+
         $adminAddress = $adminBtcWallet->getCurrentAddress();
         if (!$adminAddress) {
             $adminAddress = $adminBtcWallet->generateNewAddress();
@@ -358,21 +358,21 @@ class OrderController extends Controller
         if (!$sellerXmrWallet) {
             throw new \Exception("Seller does not have a Monero wallet configured");
         }
-        
+
         $sellerAddress = $sellerXmrWallet->getCurrentAddress();
         if (!$sellerAddress) {
             // Generate new address for seller if none exists
             $sellerAddress = $sellerXmrWallet->generateNewAddress();
         }
-        
+
         // 2. Get admin wallet for service charge
         $adminWalletName = config('fees.admin_xmr_wallet_name', 'admin');
         $adminXmrWallet = \App\Models\XmrWallet::where('name', $adminWalletName)->first();
-        
+
         if (!$adminXmrWallet) {
             throw new \Exception("Admin wallet not found: {$adminWalletName}");
         }
-        
+
         $adminAddress = $adminXmrWallet->getCurrentAddress();
         if (!$adminAddress) {
             $adminAddress = $adminXmrWallet->generateNewAddress();
@@ -551,7 +551,7 @@ class OrderController extends Controller
         $data = $request->validate([
             'currency' => 'required|in:btc,xmr',
             'quantity' => 'required|numeric|min:1',
-            'delivery_address' => 'required|string|max:500',
+            'delivery_address' => 'nullable|string|max:500',
             'note' => 'nullable|string|max:1000',
         ]);
 
@@ -575,32 +575,35 @@ class OrderController extends Controller
             ]);
         }
 
-        // Encrypt delivery address with vendor's PGP public key
-        try {
-            $encryptedAddress = $this->encryptWithPGP($data['delivery_address'], $listing->user->pgp_pub_key);
-        } catch (\Exception $e) {
-            \Log::error('PGP encryption failed for order', [
-                'listing_id' => $listing->id,
-                'vendor_id' => $listing->user_id,
-                'error' => $e->getMessage(),
-            ]);
-            return redirect()->back()->withErrors([
-                'error' => 'Failed to encrypt delivery address. The vendor\'s PGP key may be invalid.',
-            ]);
+        // Encrypt delivery address with vendor's PGP public key (if provided)
+        $encryptedAddress = null;
+        if (!empty($data['delivery_address'])) {
+            try {
+                $encryptedAddress = $this->encryptWithPGP($data['delivery_address'], $listing->user->pgp_pub_key);
+            } catch (\Exception $e) {
+                \Log::error('PGP encryption failed for order', [
+                    'listing_id' => $listing->id,
+                    'vendor_id' => $listing->user_id,
+                    'error' => $e->getMessage(),
+                ]);
+                return redirect()->back()->withErrors([
+                    'error' => 'Failed to encrypt delivery address. The vendor\'s PGP key may be invalid.',
+                ]);
+            }
         }
 
         // Create order and deduct balance in transaction
         DB::transaction(function () use ($user, $listing, $data, $crypto_value, $usd_price, $encryptedAddress) {
             // Deduct balance from main wallet (escrow for order)
             $wallet = $user->wallets()->where('currency', $data['currency'])->firstOrFail();
-            
+
             // Create wallet transaction for order escrow
             $wallet->transactions()->create([
                 'amount' => -$crypto_value,
                 'type' => 'order_escrow',
                 'comment' => "Escrowed for order #{$listing->id}",
             ]);
-            
+
             // Update wallet balance
             $wallet->decrement('balance', $crypto_value);
 
@@ -642,21 +645,36 @@ class OrderController extends Controller
      */
     private function encryptWithPGP(string $data, string $publicKey): string
     {
-        // Import the public key
-        $key = gnupg_import(gnupg_init(), $publicKey);
-        
-        if (!$key) {
-            throw new \Exception('Failed to import PGP public key');
+        // Check if gnupg extension is loaded
+        if (!extension_loaded('gnupg')) {
+            throw new \Exception('GnuPG extension is not loaded');
         }
 
         // Initialize gnupg
         $gpg = gnupg_init();
-        gnupg_addencryptkey($gpg, $key['fingerprint']);
-        
+
+        if (!$gpg) {
+            throw new \Exception('Failed to initialize GnuPG');
+        }
+
+        // Import the public key and get the fingerprint
+        $importResult = gnupg_import($gpg, $publicKey);
+
+        if (!$importResult || !isset($importResult['fingerprint'])) {
+            throw new \Exception('Failed to import PGP public key');
+        }
+
+        // Add the key for encryption using the fingerprint
+        $addKeyResult = gnupg_addencryptkey($gpg, $importResult['fingerprint']);
+
+        if (!$addKeyResult) {
+            throw new \Exception('Failed to add encryption key');
+        }
+
         // Encrypt the data
         $encrypted = gnupg_encrypt($gpg, $data);
-        
-        if (!$encrypted) {
+
+        if ($encrypted === false) {
             throw new \Exception('Failed to encrypt data with PGP key');
         }
 
@@ -673,7 +691,7 @@ class OrderController extends Controller
     public function sendMessage(Request $request, Order $order) : \Illuminate\Http\RedirectResponse
     {
         $user = $request->user();
-        
+
         // Authorization check - only buyer or seller can send messages
         if ($order->user_id !== $user->id && $order->listing->user_id !== $user->id) {
             abort(403, 'Unauthorized to send message for this order');
@@ -685,7 +703,7 @@ class OrderController extends Controller
         ]);
 
         // Determine receiver (the other party)
-        $receiverId = ($order->user_id === $user->id) 
+        $receiverId = ($order->user_id === $user->id)
             ? $order->listing->user_id  // Buyer sending to vendor
             : $order->user_id;           // Vendor sending to buyer
 
