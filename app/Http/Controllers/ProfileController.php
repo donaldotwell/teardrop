@@ -357,60 +357,98 @@ class ProfileController extends Controller
     }
 
     /**
-     * Encrypt a message using PGP public key
-     * This is a placeholder - in production you would use gnupg extension or external service
+     * Encrypt a message using PGP public key with gnupg extension
+     *
+     * @param string $message The plaintext message to encrypt
+     * @param string $publicKey The PGP public key block
+     * @return string The encrypted PGP message
+     * @throws \Exception If encryption fails or gnupg is not available
      */
     private function encryptWithPgp(string $message, string $publicKey): string
     {
-        // IMPORTANT: This is a MOCK implementation
-        // In production, use one of these approaches:
-        // 1. PHP gnupg extension: https://www.php.net/manual/en/book.gnupg.php
-        // 2. External command line gpg: exec('gpg --encrypt ...')
-        // 3. JavaScript library on client side for encryption
-        // 4. External service API
-
-        // For development/demo purposes, we'll return a base64 encoded mock
-        // The real implementation would use actual PGP encryption
-
-        // Check if gnupg extension is available
-        if (extension_loaded('gnupg')) {
-            try {
-                $gpg = new \gnupg();
-                $gpg->seterrormode(\gnupg::ERROR_EXCEPTION);
-
-                // Import the public key
-                $info = $gpg->import($publicKey);
-
-                if (!$info || !isset($info['fingerprint'])) {
-                    throw new \Exception('Failed to import PGP public key');
-                }
-
-                // Add key for encryption
-                $gpg->addencryptkey($info['fingerprint']);
-
-                // Encrypt the message
-                $encrypted = $gpg->encrypt($message);
-
-                if (!$encrypted) {
-                    throw new \Exception('Encryption failed');
-                }
-
-                return $encrypted;
-            } catch (\Exception $e) {
-                throw new \Exception('PGP encryption failed: ' . $e->getMessage());
-            }
+        // Ensure gnupg extension is loaded
+        if (!extension_loaded('gnupg')) {
+            throw new \Exception(
+                'PGP encryption requires the php-gnupg extension. ' .
+                'Install with: sudo apt install php-gnupg or sudo pecl install gnupg'
+            );
         }
 
-        // Fallback: Mock encryption for development
-        // WARNING: This is NOT secure and should NEVER be used in production
-        $mock = "-----BEGIN PGP MESSAGE-----\n\n"
-            . "*** DEVELOPMENT MODE - NO ACTUAL ENCRYPTION ***\n"
-            . "In production, this would be properly encrypted with gnupg.\n\n"
-            . "PLAINTEXT MESSAGE FOR TESTING:\n"
-            . $message . "\n\n"
-            . "*** Install php-gnupg extension for real encryption ***\n\n"
-            . "-----END PGP MESSAGE-----";
+        try {
+            // Initialize gnupg
+            $gpg = new \gnupg();
 
-        return $mock;
+            // Set error mode to throw exceptions
+            $gpg->seterrormode(\gnupg::ERROR_EXCEPTION);
+
+            // Set armor mode for ASCII output
+            $gpg->setarmor(1);
+
+            // Import the public key
+            $importResult = $gpg->import($publicKey);
+
+            // Validate import result
+            if (!$importResult || !is_array($importResult)) {
+                throw new \Exception('Failed to import PGP public key - invalid key format');
+            }
+
+            if (!isset($importResult['fingerprint']) || empty($importResult['fingerprint'])) {
+                throw new \Exception('Failed to extract key fingerprint from public key');
+            }
+
+            $fingerprint = $importResult['fingerprint'];
+
+            // Verify key was imported successfully
+            $keyInfo = $gpg->keyinfo($fingerprint);
+            if (empty($keyInfo)) {
+                throw new \Exception('Imported key could not be verified');
+            }
+
+            // Check if key can be used for encryption
+            $canEncrypt = false;
+            foreach ($keyInfo as $key) {
+                if (isset($key['can_encrypt']) && $key['can_encrypt']) {
+                    $canEncrypt = true;
+                    break;
+                }
+            }
+
+            if (!$canEncrypt) {
+                throw new \Exception('The provided key cannot be used for encryption');
+            }
+
+            // Add the key for encryption
+            if (!$gpg->addencryptkey($fingerprint)) {
+                throw new \Exception('Failed to add encryption key');
+            }
+
+            // Encrypt the message
+            $encrypted = $gpg->encrypt($message);
+
+            if (!$encrypted || empty($encrypted)) {
+                throw new \Exception('Encryption produced empty result');
+            }
+
+            // Verify encrypted message has proper PGP format
+            if (!str_contains($encrypted, '-----BEGIN PGP MESSAGE-----')) {
+                throw new \Exception('Encryption did not produce valid PGP message format');
+            }
+
+            return $encrypted;
+
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            \Log::error('PGP encryption failed', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+                'key_length' => strlen($publicKey),
+            ]);
+
+            // Throw user-friendly error
+            throw new \Exception(
+                'Failed to encrypt with PGP key: ' . $e->getMessage() .
+                '. Please verify your public key is valid and can be used for encryption.'
+            );
+        }
     }
 }
