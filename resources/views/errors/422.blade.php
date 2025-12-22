@@ -1,0 +1,5 @@
+@extends('layouts.errors')
+@section('title', __('Unprocessable Entity'))
+@section('code', '422')
+@section('message', __('Validation Error'))
+@section('details', __('The data you submitted could not be processed. Please check your input and try again.'))

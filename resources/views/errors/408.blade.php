@@ -1,0 +1,5 @@
+@extends('layouts.errors')
+@section('title', __('Request Timeout'))
+@section('code', '408')
+@section('message', __('Request Timeout'))
+@section('details', __('Your request took too long to complete. Please try again.'))

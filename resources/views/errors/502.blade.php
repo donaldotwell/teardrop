@@ -1,0 +1,5 @@
+@extends('layouts.errors')
+@section('title', __('Bad Gateway'))
+@section('code', '502')
+@section('message', __('Bad Gateway'))
+@section('details', __('The server received an invalid response. Please try again later.'))

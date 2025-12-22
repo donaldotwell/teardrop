@@ -1,0 +1,5 @@
+@extends('layouts.errors')
+@section('title', __('Bad Request'))
+@section('code', '400')
+@section('message', __('Bad Request'))
+@section('details', __('The server could not understand the request. Please check your input and try again.'))

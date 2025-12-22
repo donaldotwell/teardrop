@@ -1,0 +1,5 @@
+@extends('layouts.errors')
+@section('title', __('Token Expired'))
+@section('code', '498')
+@section('message', __('Session Expired'))
+@section('details', __('Your session has expired. Please refresh the page and try again.'))

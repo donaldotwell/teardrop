@@ -1,0 +1,5 @@
+@extends('layouts.errors')
+@section('title', __('Payload Too Large'))
+@section('code', '413')
+@section('message', __('File Too Large'))
+@section('details', __('The uploaded file or request data exceeds the maximum allowed size.'))

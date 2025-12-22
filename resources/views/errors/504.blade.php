@@ -1,0 +1,5 @@
+@extends('layouts.errors')
+@section('title', __('Gateway Timeout'))
+@section('code', '504')
+@section('message', __('Gateway Timeout'))
+@section('details', __('The server did not respond in time. Please try again later.'))

@@ -40,5 +40,35 @@ return Application::configure(basePath: dirname(__DIR__))
         // TODO:  add user.status to global middleware stack
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Custom error page rendering
+        $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response) {
+            $statusCode = $response->getStatusCode();
+
+            // List of status codes we have custom pages for
+            $customPages = [400, 401, 402, 403, 404, 405, 408, 413, 419, 422, 429, 498, 500, 502, 503, 504];
+
+            // If we have a custom page for this status code, use it
+            if (in_array($statusCode, $customPages)) {
+                $view = "errors.{$statusCode}";
+
+                if (view()->exists($view)) {
+                    return response()->view($view, [], $statusCode);
+                }
+            }
+
+            // Fallback: render a generic error page for any other status code
+            if ($statusCode >= 400) {
+                $isServerError = $statusCode >= 500;
+
+                return response()->view('errors.generic', [
+                    'code' => $statusCode,
+                    'message' => $isServerError ? 'Server Error' : 'Error',
+                    'details' => $isServerError
+                        ? 'The server encountered an error. Please try again later.'
+                        : 'An error occurred while processing your request.',
+                ], $statusCode);
+            }
+
+            return $response;
+        });
     })->create();

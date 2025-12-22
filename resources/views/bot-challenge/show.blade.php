@@ -18,7 +18,6 @@
             {{-- Header --}}
             <div class="text-center mb-6">
                 <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span class="text-yellow-700 font-bold text-2xl">SEC</span>
                 </div>
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">Security Verification</h1>
                 <p class="text-sm text-gray-600">Please complete the challenge below to continue</p>
