@@ -374,7 +374,28 @@ class ProfileController extends Controller
             );
         }
 
+        // Create a temporary GPG home directory in /tmp
+        $tempGpgHome = '/tmp/teardrop_gpg_' . uniqid('', true);
+
         try {
+            // Create the temporary directory
+            if (!mkdir($tempGpgHome, 0700, true)) {
+                throw new \Exception('Failed to create temporary GPG directory');
+            }
+
+            // Set environment variable for GPG home
+            putenv("GNUPGHOME={$tempGpgHome}");
+
+            // Normalize the public key (trim whitespace, ensure proper line endings)
+            $publicKey = trim($publicKey);
+            $publicKey = str_replace("\r\n", "\n", $publicKey);
+            $publicKey = str_replace("\r", "\n", $publicKey);
+
+            // Validate basic PGP key structure
+            if (!preg_match('/-----BEGIN PGP PUBLIC KEY BLOCK-----.*-----END PGP PUBLIC KEY BLOCK-----/s', $publicKey)) {
+                throw new \Exception('Invalid PGP key format. Key must contain BEGIN and END markers.');
+            }
+
             // Initialize gnupg
             $gpg = new \gnupg();
 
@@ -387,46 +408,72 @@ class ProfileController extends Controller
             // Import the public key
             $importResult = $gpg->import($publicKey);
 
-            // Validate import result
-            if (!$importResult || !is_array($importResult)) {
-                throw new \Exception('Failed to import PGP public key - invalid key format');
+            // Validate import result - gnupg returns array with fingerprint on success
+            if (!$importResult) {
+                throw new \Exception('Key import failed. The key may be corrupted or invalid.');
             }
 
-            if (!isset($importResult['fingerprint']) || empty($importResult['fingerprint'])) {
-                throw new \Exception('Failed to extract key fingerprint from public key');
+            // Handle both array and object returns
+            $fingerprint = null;
+            if (is_array($importResult)) {
+                $fingerprint = $importResult['fingerprint'] ?? null;
+            } elseif (is_object($importResult)) {
+                $fingerprint = $importResult->fingerprint ?? null;
             }
 
-            $fingerprint = $importResult['fingerprint'];
+            if (empty($fingerprint)) {
+                // Try alternate method - check if key was imported
+                $allKeys = $gpg->keyinfo("");
+                if (!empty($allKeys)) {
+                    // Get the most recently imported key
+                    $lastKey = end($allKeys);
+                    $fingerprint = $lastKey['subkeys'][0]['fingerprint'] ?? null;
+                }
+            }
+
+            if (empty($fingerprint)) {
+                throw new \Exception('Failed to extract fingerprint from imported key. Key may be malformed.');
+            }
 
             // Verify key was imported successfully
             $keyInfo = $gpg->keyinfo($fingerprint);
             if (empty($keyInfo)) {
-                throw new \Exception('Imported key could not be verified');
+                throw new \Exception('Imported key could not be verified in keyring.');
             }
 
             // Check if key can be used for encryption
             $canEncrypt = false;
             foreach ($keyInfo as $key) {
+                // Check main key capabilities
                 if (isset($key['can_encrypt']) && $key['can_encrypt']) {
                     $canEncrypt = true;
                     break;
                 }
+                // Also check subkeys
+                if (isset($key['subkeys'])) {
+                    foreach ($key['subkeys'] as $subkey) {
+                        if (isset($subkey['can_encrypt']) && $subkey['can_encrypt']) {
+                            $canEncrypt = true;
+                            break 2;
+                        }
+                    }
+                }
             }
 
             if (!$canEncrypt) {
-                throw new \Exception('The provided key cannot be used for encryption');
+                throw new \Exception('This key does not have encryption capabilities. Please use a key that supports encryption.');
             }
 
             // Add the key for encryption
             if (!$gpg->addencryptkey($fingerprint)) {
-                throw new \Exception('Failed to add encryption key');
+                throw new \Exception('Failed to add encryption key to GPG context.');
             }
 
             // Encrypt the message
             $encrypted = $gpg->encrypt($message);
 
             if (!$encrypted || empty($encrypted)) {
-                throw new \Exception('Encryption produced empty result');
+                throw new \Exception('Encryption produced empty result.');
             }
 
             // Verify encrypted message has proper PGP format
@@ -437,11 +484,13 @@ class ProfileController extends Controller
             return $encrypted;
 
         } catch (\Exception $e) {
-            // Log the error for debugging
+            // Log the error for debugging with more context
             \Log::error('PGP encryption failed', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'user_id' => auth()->id(),
-                'key_length' => strlen($publicKey),
+                'key_length' => strlen($publicKey ?? ''),
+                'key_preview' => substr($publicKey ?? '', 0, 100),
             ]);
 
             // Throw user-friendly error
@@ -449,6 +498,25 @@ class ProfileController extends Controller
                 'Failed to encrypt with PGP key: ' . $e->getMessage() .
                 '. Please verify your public key is valid and can be used for encryption.'
             );
+        } finally {
+            // Cleanup: Remove temporary GPG home directory
+            if (isset($tempGpgHome) && is_dir($tempGpgHome)) {
+                // Remove all files in the temp directory
+                $files = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($tempGpgHome, \RecursiveDirectoryIterator::SKIP_DOTS),
+                    \RecursiveIteratorIterator::CHILD_FIRST
+                );
+
+                foreach ($files as $fileinfo) {
+                    $todo = ($fileinfo->isDir() ? 'rmdir' : 'unlink');
+                    @$todo($fileinfo->getRealPath());
+                }
+
+                @rmdir($tempGpgHome);
+            }
+
+            // Reset GPG home to default
+            putenv("GNUPGHOME");
         }
     }
 }
