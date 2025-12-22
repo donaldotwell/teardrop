@@ -519,4 +519,186 @@ class ProfileController extends Controller
             putenv("GNUPGHOME");
         }
     }
+
+    /**
+     * Show account deletion confirmation form
+     */
+    public function showDeleteAccountForm()
+    {
+        $user = auth()->user();
+
+        // User must have a PGP key configured to delete account
+        if (empty($user->pgp_pub_key)) {
+            return redirect()->route('profile.show')
+                ->with('error', 'You must configure a PGP key before you can delete your account.');
+        }
+
+        return view('profile.delete-account');
+    }
+
+    /**
+     * Process account deletion - requires PGP verification + password
+     */
+    public function deleteAccount(Request $request)
+    {
+        $user = $request->user();
+
+        // User must have a PGP key configured
+        if (empty($user->pgp_pub_key)) {
+            return redirect()->route('profile.show')
+                ->with('error', 'PGP key configuration required.');
+        }
+
+        // Validate inputs
+        $validated = $request->validate([
+            'password' => 'required|string',
+            'confirmation_text' => 'required|string|in:DELETE MY ACCOUNT',
+        ], [
+            'confirmation_text.in' => 'You must type "DELETE MY ACCOUNT" exactly to confirm.',
+        ]);
+
+        // Verify password
+        if (!Hash::check($validated['password'], $user->password)) {
+            return back()->withErrors([
+                'password' => 'Password is incorrect.'
+            ]);
+        }
+
+        // Prepare PGP key (trim and normalize like in initiatePgpVerification)
+        $pgpKey = trim($user->pgp_pub_key);
+
+        // Basic PGP key format validation
+        if (!str_contains($pgpKey, '-----BEGIN PGP PUBLIC KEY BLOCK-----') ||
+            !str_contains($pgpKey, '-----END PGP PUBLIC KEY BLOCK-----')) {
+            return back()->withErrors([
+                'password' => 'Your stored PGP key appears to be invalid. Please update your PGP key.'
+            ]);
+        }
+
+        // Generate PGP challenge for final verification
+        $verificationCode = Str::upper(Str::random(16));
+
+        // Create the deletion challenge message
+        $challengeMessage = strtoupper(config('app.name')) . " ACCOUNT DELETION VERIFICATION\n\n"
+            . "WARNING: This action is PERMANENT and IRREVERSIBLE!\n\n"
+            . "Username: {$user->username_pub}\n"
+            . "Verification Code: {$verificationCode}\n"
+            . "Timestamp: " . now()->toDateTimeString() . "\n\n"
+            . "If you wish to proceed with account deletion, decrypt this message\n"
+            . "and submit the verification code above within 30 minutes.\n\n"
+            . "Once confirmed, your account and all associated data will be permanently deleted.";
+
+        // Encrypt with user's PGP key
+        try {
+            $encryptedMessage = $this->encryptWithPgp($challengeMessage, $pgpKey);
+        } catch (\Exception $e) {
+            \Log::error('PGP encryption failed for account deletion', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            return back()->withErrors([
+                'password' => 'Failed to generate PGP challenge. Please verify your PGP key is valid.'
+            ]);
+        }
+
+        // Store deletion challenge in session (30 minute expiry)
+        session([
+            'account_deletion_challenge' => [
+                'code' => $verificationCode,
+                'encrypted_message' => $encryptedMessage,
+                'user_id' => $user->id,
+                'expires_at' => now()->addMinutes(30)->timestamp,
+                'attempts' => 0,
+            ]
+        ]);
+
+        return view('profile.delete-account-verify', [
+            'encryptedMessage' => $encryptedMessage,
+        ]);
+    }
+
+    /**
+     * Verify PGP code and permanently delete account
+     */
+    public function confirmDeleteAccount(Request $request)
+    {
+        $user = auth()->user();
+
+        // Get challenge from session
+        $challenge = session('account_deletion_challenge');
+
+        if (!$challenge) {
+            return redirect()->route('profile.show')
+                ->with('error', 'No active deletion challenge found. Please start over.');
+        }
+
+        // Verify user ID matches
+        if ($challenge['user_id'] !== $user->id) {
+            session()->forget('account_deletion_challenge');
+            abort(403, 'Invalid deletion challenge.');
+        }
+
+        // Check if expired (30 minutes)
+        if ($challenge['expires_at'] < now()->timestamp) {
+            session()->forget('account_deletion_challenge');
+            return redirect()->route('profile.show')
+                ->with('error', 'Deletion challenge has expired. Please start over.');
+        }
+
+        // Check max attempts (5)
+        if ($challenge['attempts'] >= 5) {
+            session()->forget('account_deletion_challenge');
+            return redirect()->route('profile.show')
+                ->with('error', 'Maximum verification attempts exceeded. Please start over.');
+        }
+
+        // Validate submitted code
+        $validated = $request->validate([
+            'verification_code' => 'required|string',
+        ]);
+
+        $submittedCode = strtoupper(trim($validated['verification_code']));
+
+        // Check if code matches
+        if ($submittedCode !== $challenge['code']) {
+            // Increment attempts
+            $challenge['attempts']++;
+            session(['account_deletion_challenge' => $challenge]);
+
+            $attemptsLeft = 5 - $challenge['attempts'];
+            return back()->withErrors([
+                'verification_code' => "Incorrect verification code. You have {$attemptsLeft} attempts remaining."
+            ]);
+        }
+
+        // CODE VERIFIED - Proceed with account deletion
+        // Clear the session challenge
+        session()->forget('account_deletion_challenge');
+
+        // Log the deletion for audit purposes
+        \Log::info('Account deletion confirmed', [
+            'user_id' => $user->id,
+            'username_pub' => $user->username_pub,
+            'username_pri' => $user->username_pri,
+            'deleted_at' => now()->toDateTimeString(),
+        ]);
+
+        // Store username for goodbye message
+        $username = $user->username_pub;
+
+        // Logout the user
+        auth()->logout();
+
+        // Permanently delete the user and all related data
+        // Laravel's cascade deletes will handle related records if set up in migrations
+        $user->delete();
+
+        // Invalidate session
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        // Redirect to homepage with goodbye message
+        return redirect()->route('home')
+            ->with('success', "Account '{$username}' has been permanently deleted. Goodbye.");
+    }
 }

@@ -69,6 +69,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/pgp/verify/{verification}', [ProfileController::class, 'verifyPgpCode'])
         ->name('profile.pgp.verify.submit');
 
+    // Account Deletion (requires PGP + password verification)
+    Route::get('/profile/delete-account', [ProfileController::class, 'showDeleteAccountForm'])
+        ->name('profile.delete-account.show');
+    Route::post('/profile/delete-account', [ProfileController::class, 'deleteAccount'])
+        ->name('profile.delete-account.process');
+    Route::post('/profile/delete-account/confirm', [ProfileController::class, 'confirmDeleteAccount'])
+        ->name('profile.delete-account.confirm');
+
     // General profile management
     Route::put('/profile', [ProfileController::class, 'update'])
         ->name('profile.update');
