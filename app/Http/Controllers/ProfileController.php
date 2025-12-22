@@ -257,7 +257,7 @@ class ProfileController extends Controller
         $verificationCode = Str::upper(Str::random(12)); // e.g., "A3F9K2L8P5M1"
 
         // Create the challenge message
-        $challengeMessage = "TEARDROP PGP VERIFICATION\n\n"
+        $challengeMessage = strtoupper(config('app.name')) . " PGP VERIFICATION\n\n"
             . "Username: {$user->username_pub}\n"
             . "Verification Code: {$verificationCode}\n"
             . "Timestamp: " . now()->toDateTimeString() . "\n\n"
