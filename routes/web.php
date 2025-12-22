@@ -52,6 +52,16 @@ Route::middleware('auth')->group(function () {
     Route::put('/profile/passphrases', [ProfileController::class, 'updatePassphrases'])
         ->name('profile.passphrases.update');
 
+    // PGP Key Verification Flow
+    Route::get('/profile/pgp', [ProfileController::class, 'showPgpForm'])
+        ->name('profile.pgp');
+    Route::post('/profile/pgp/initiate', [ProfileController::class, 'initiatePgpVerification'])
+        ->name('profile.pgp.initiate');
+    Route::get('/profile/pgp/verify/{verification}', [ProfileController::class, 'showPgpVerificationChallenge'])
+        ->name('profile.pgp.verify');
+    Route::post('/profile/pgp/verify/{verification}', [ProfileController::class, 'verifyPgpCode'])
+        ->name('profile.pgp.verify.submit');
+
     // General profile management
     Route::put('/profile', [ProfileController::class, 'update'])
         ->name('profile.update');
