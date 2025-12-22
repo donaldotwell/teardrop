@@ -12,15 +12,20 @@
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
     <div class="max-w-md w-full">
+
+        {{-- Platform Branding --}}
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ config('app.name') }}</h1>
+            <p class="text-gray-600">Secure Marketplace</p>
+        </div>
+
         {{-- Main Challenge Card --}}
-        <div class="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
+        <div class="bg-white rounded-lg shadow-lg p-8 border border-gray-200 mb-6">
 
             {{-- Header --}}
             <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                </div>
-                <h1 class="text-2xl font-bold text-gray-900 mb-2">Security Verification</h1>
-                <p class="text-sm text-gray-600">Please complete the challenge below to continue</p>
+                <h2 class="text-xl font-bold text-gray-900 mb-2">Security Verification</h2>
+                <p class="text-sm text-gray-600">Please solve the challenge below to continue</p>
             </div>
 
             {{-- Error Messages --}}
@@ -36,16 +41,15 @@
             @if($remainingAttempts < 3)
                 <div class="bg-amber-50 border border-amber-200 rounded p-4 mb-6">
                     <p class="text-sm text-amber-800 font-semibold">
-                        WARNING: You have {{ $remainingAttempts }} attempt(s) remaining.
-                        After 3 failed attempts, you will be locked out for 30 minutes.
+                        WARNING: {{ $remainingAttempts }} attempt(s) remaining.
                     </p>
                 </div>
             @endif
 
             {{-- Math Challenge --}}
             <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-3">
-                    Solve the math problem:
+                <label class="block text-sm font-medium text-gray-700 mb-3 text-center">
+                    Solve this problem:
                 </label>
 
                 <div class="flex justify-center mb-4">
@@ -57,7 +61,7 @@
                 </div>
 
                 <p class="text-xs text-gray-500 text-center mb-4">
-                    Can't see the image? Refresh the page to get a new challenge.
+                    Refresh the page for a new challenge
                 </p>
             </div>
 
@@ -72,8 +76,8 @@
                     <input type="number"
                            name="answer"
                            id="answer"
-                           class="block w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-lg"
-                           placeholder="Enter the result"
+                           class="block w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-lg text-center"
+                           placeholder="Enter answer"
                            required
                            autofocus>
                 </div>
@@ -83,24 +87,54 @@
                     Verify
                 </button>
             </form>
+        </div>
 
-            {{-- Security Info --}}
-            <div class="mt-6 pt-6 border-t border-gray-200">
-                <div class="text-xs text-gray-600 space-y-2">
-                    <p><strong>Security measures:</strong></p>
-                    <ul class="list-disc list-inside ml-2 space-y-1">
-                        <li>Verification expires after 30 minutes</li>
-                        <li>Maximum 3 attempts allowed</li>
-                        <li>Lockout period: 30 minutes after failed attempts</li>
-                    </ul>
+        {{-- Platform Features - Subtle --}}
+        <div class="bg-white rounded-lg shadow p-6 border border-gray-200 mb-6">
+            <h3 class="text-sm font-semibold text-gray-900 mb-4 text-center">About This Marketplace</h3>
+
+            <div class="grid grid-cols-2 gap-4 text-center">
+                <div>
+                    <div class="text-xs font-semibold text-gray-900 mb-1">Bitcoin</div>
+                    <div class="text-xs text-gray-600">BTC Payments</div>
+                </div>
+                <div>
+                    <div class="text-xs font-semibold text-gray-900 mb-1">Monero</div>
+                    <div class="text-xs text-gray-600">XMR Privacy</div>
+                </div>
+                <div>
+                    <div class="text-xs font-semibold text-gray-900 mb-1">Escrow</div>
+                    <div class="text-xs text-gray-600">Buyer Protection</div>
+                </div>
+                <div>
+                    <div class="text-xs font-semibold text-gray-900 mb-1">PGP</div>
+                    <div class="text-xs text-gray-600">Encrypted Chat</div>
                 </div>
             </div>
         </div>
 
+        {{-- Account Links --}}
+        <div class="text-center space-y-3">
+            <div class="flex gap-3 justify-center">
+                <a href="{{ route('register') }}"
+                   class="px-6 py-2 border border-yellow-600 text-yellow-700 font-medium rounded hover:bg-yellow-50 transition text-sm">
+                    Create Account
+                </a>
+                <a href="{{ route('login') }}"
+                   class="px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded hover:bg-gray-50 transition text-sm">
+                    Sign In
+                </a>
+            </div>
+
+            <p class="text-xs text-gray-500 mt-4">
+                This challenge protects against automated bots
+            </p>
+        </div>
+
         {{-- Footer --}}
-        <div class="text-center mt-6">
-            <p class="text-sm text-gray-600">
-                © {{ date('Y') }} {{ config('app.name') }}. All rights reserved.
+        <div class="text-center mt-8">
+            <p class="text-xs text-gray-500">
+                © {{ date('Y') }} {{ config('app.name') }}
             </p>
         </div>
     </div>
