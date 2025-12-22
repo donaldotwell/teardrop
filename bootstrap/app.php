@@ -23,12 +23,18 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
-//        $middleware->append(RoleMiddleware::class);
+        // Register middleware aliases
         $middleware->alias([
             'admin' => AdminMiddleware::class,
             'moderator' => ModeratorMiddleware::class,
             'role' => RoleMiddleware::class,
             'user.status' => \App\Http\Middleware\CheckUserStatus::class,
+            'bot.protection' => \App\Http\Middleware\BotProtectionMiddleware::class,
+        ]);
+
+        // Apply bot protection globally to web routes
+        $middleware->web(append: [
+            \App\Http\Middleware\BotProtectionMiddleware::class,
         ]);
 
         // TODO:  add user.status to global middleware stack

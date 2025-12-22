@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BotChallengeController;
 use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\ForumCommentController;
 use App\Http\Controllers\ForumPostController;
@@ -11,6 +12,12 @@ use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+
+// Bot Challenge Routes (no auth required)
+Route::get('/bot-challenge', [BotChallengeController::class, 'show'])->name('bot-challenge');
+Route::post('/bot-challenge/verify', [BotChallengeController::class, 'verify'])->name('bot-challenge.verify');
+Route::get('/bot-challenge/image', [BotChallengeController::class, 'image'])->name('bot-challenge.image');
+Route::get('/bot-challenge/locked', [BotChallengeController::class, 'locked'])->name('bot-challenge.locked');
 
 // Auth routes
 Route::prefix('auth')->group(function () {
