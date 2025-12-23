@@ -247,7 +247,7 @@
                     </div>
                 @else
                     <div class="text-gray-500 text-sm">
-                        Exchange rates not available. Run <span class="text-amber-400 font-mono">php artisan exchange:update</span> to fetch rates.
+                        Exchange rates not available.
                     </div>
                 @endif
             </div>
