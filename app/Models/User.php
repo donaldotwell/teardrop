@@ -189,12 +189,12 @@ class User extends Authenticatable
 
         // Sync BTC wallet balance if exists
         if ($btcWallet) {
-            $btcWallet->updateBalance();
+            //$btcWallet->updateBalance();
         }
 
         // Sync XMR wallet balance if exists
         if ($xmrWallet) {
-            $xmrWallet->updateBalance();
+            //$xmrWallet->updateBalance();
         }
 
         return [
