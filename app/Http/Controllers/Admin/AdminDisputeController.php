@@ -75,27 +75,71 @@ class AdminDisputeController extends Controller
             $q->where('name', 'admin');
         })->get();
 
-        // Recent activity (mock data - implement based on your activity logging)
-        $recent_activity = [
-            [
-                'type' => 'created',
-                'message' => 'New dispute created for Order #12345',
-                'time' => '2 minutes ago',
-                'amount' => 150.00
-            ],
-            [
-                'type' => 'resolved',
-                'message' => 'Dispute #67890 resolved in favor of buyer',
-                'time' => '1 hour ago',
-                'amount' => 75.50
-            ],
-            [
-                'type' => 'escalated',
-                'message' => 'Dispute #54321 escalated to high priority',
-                'time' => '3 hours ago',
-                'amount' => 200.00
-            ],
-        ];
+        // Recent activity - real data from disputes
+        $recent_activity = collect();
+
+        // Get recently created disputes (last 24 hours)
+        $recentlyCreated = Dispute::with(['order', 'initiatedBy'])
+            ->where('created_at', '>=', now()->subDay())
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($dispute) {
+                return [
+                    'type' => 'created',
+                    'message' => "New dispute created for Order #{$dispute->order->uuid}",
+                    'time' => $dispute->created_at->diffForHumans(),
+                    'amount' => $dispute->disputed_amount
+                ];
+            });
+
+        // Get recently resolved disputes (last 24 hours)
+        $recentlyResolved = Dispute::with(['order'])
+            ->whereNotNull('resolved_at')
+            ->where('resolved_at', '>=', now()->subDay())
+            ->orderBy('resolved_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($dispute) {
+                $resolutionText = $dispute->resolution
+                    ? str_replace('_', ' ', $dispute->resolution)
+                    : 'resolved';
+                return [
+                    'type' => 'resolved',
+                    'message' => "Dispute #{$dispute->uuid} {$resolutionText}",
+                    'time' => $dispute->resolved_at->diffForHumans(),
+                    'amount' => $dispute->disputed_amount
+                ];
+            });
+
+        // Get recently escalated disputes (last 24 hours)
+        $recentlyEscalated = Dispute::with(['order'])
+            ->whereNotNull('escalated_at')
+            ->where('escalated_at', '>=', now()->subDay())
+            ->orderBy('escalated_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($dispute) {
+                return [
+                    'type' => 'escalated',
+                    'message' => "Dispute #{$dispute->uuid} escalated to {$dispute->priority} priority",
+                    'time' => $dispute->escalated_at->diffForHumans(),
+                    'amount' => $dispute->disputed_amount
+                ];
+            });
+
+        // Merge all activities and sort by time (most recent first)
+        $recent_activity = $recent_activity
+            ->concat($recentlyCreated)
+            ->concat($recentlyResolved)
+            ->concat($recentlyEscalated)
+            ->sortByDesc(function($activity) {
+                // Convert "X ago" back to timestamp for sorting
+                // This is approximate but works for display purposes
+                return $activity['time'];
+            })
+            ->take(10)
+            ->values();
 
         return view('admin.disputes.index', compact('disputes', 'stats', 'admins', 'recent_activity'));
     }
@@ -164,7 +208,7 @@ class AdminDisputeController extends Controller
         // If moderator_id is null, unassign moderator
         if (!$validated['moderator_id']) {
             $previousModerator = $dispute->assignedModerator;
-            
+
             $dispute->update([
                 'assigned_moderator_id' => null,
                 'assigned_at' => null,
@@ -172,7 +216,7 @@ class AdminDisputeController extends Controller
 
             $dispute->messages()->create([
                 'user_id' => auth()->id(),
-                'message' => "Moderator unassigned by admin: " . 
+                'message' => "Moderator unassigned by admin: " .
                     ($previousModerator ? $previousModerator->username_pub : 'N/A') . " removed",
                 'message_type' => 'assignment_update',
                 'is_internal' => true,
@@ -190,7 +234,7 @@ class AdminDisputeController extends Controller
         }
 
         $previousModerator = $dispute->assignedModerator;
-        
+
         $dispute->update([
             'assigned_moderator_id' => $moderator->id,
             'assigned_at' => now(),
@@ -198,7 +242,7 @@ class AdminDisputeController extends Controller
         ]);
 
         // Add assignment message
-        $messageText = $previousModerator 
+        $messageText = $previousModerator
             ? "Dispute reassigned by admin from {$previousModerator->username_pub} to {$moderator->username_pub}"
             : "Dispute assigned to moderator: {$moderator->username_pub} by admin";
 

@@ -90,27 +90,83 @@ class AdminSupportTicketController extends Controller
         // Get ticket types for filtering
         $ticketTypes = SupportTicket::getTicketTypes();
 
-        // Recent activity (sample data - implement based on your activity logging)
-        $recent_activity = [
-            [
-                'type' => 'created',
-                'message' => 'New ticket created by user123',
-                'time' => '5 minutes ago',
-                'ticket_id' => 'ST-20240101-0001'
-            ],
-            [
-                'type' => 'resolved',
-                'message' => 'Ticket ST-20240101-0002 resolved',
-                'time' => '30 minutes ago',
-                'ticket_id' => 'ST-20240101-0002'
-            ],
-            [
-                'type' => 'assigned',
-                'message' => 'Ticket assigned to support_user',
-                'time' => '1 hour ago',
-                'ticket_id' => 'ST-20240101-0003'
-            ],
-        ];
+        // Recent activity - real data from support tickets
+        $recent_activity = collect();
+
+        // Get recently created tickets (last 24 hours)
+        $recentlyCreated = SupportTicket::with(['user'])
+            ->where('created_at', '>=', now()->subDay())
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($ticket) {
+                return [
+                    'type' => 'created',
+                    'message' => "New ticket created by {$ticket->user->username_pub}",
+                    'time' => $ticket->created_at->diffForHumans(),
+                    'ticket_id' => $ticket->ticket_number
+                ];
+            });
+
+        // Get recently resolved tickets (last 24 hours)
+        $recentlyResolved = SupportTicket::whereNotNull('resolved_at')
+            ->where('resolved_at', '>=', now()->subDay())
+            ->orderBy('resolved_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($ticket) {
+                return [
+                    'type' => 'resolved',
+                    'message' => "Ticket {$ticket->ticket_number} resolved",
+                    'time' => $ticket->resolved_at->diffForHumans(),
+                    'ticket_id' => $ticket->ticket_number
+                ];
+            });
+
+        // Get recently assigned tickets (last 24 hours)
+        $recentlyAssigned = SupportTicket::with(['assignedTo'])
+            ->whereNotNull('assigned_to')
+            ->where('updated_at', '>=', now()->subDay())
+            ->orderBy('updated_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($ticket) {
+                return [
+                    'type' => 'assigned',
+                    'message' => "Ticket {$ticket->ticket_number} assigned to {$ticket->assignedTo->username_pub}",
+                    'time' => $ticket->updated_at->diffForHumans(),
+                    'ticket_id' => $ticket->ticket_number
+                ];
+            });
+
+        // Get recently closed tickets (last 24 hours)
+        $recentlyClosed = SupportTicket::whereNotNull('closed_at')
+            ->where('closed_at', '>=', now()->subDay())
+            ->orderBy('closed_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($ticket) {
+                return [
+                    'type' => 'closed',
+                    'message' => "Ticket {$ticket->ticket_number} closed",
+                    'time' => $ticket->closed_at->diffForHumans(),
+                    'ticket_id' => $ticket->ticket_number
+                ];
+            });
+
+        // Merge all activities and sort by time (most recent first)
+        $recent_activity = $recent_activity
+            ->concat($recentlyCreated)
+            ->concat($recentlyResolved)
+            ->concat($recentlyAssigned)
+            ->concat($recentlyClosed)
+            ->sortByDesc(function($activity) {
+                // Convert "X ago" back to timestamp for sorting
+                // This is approximate but works for display purposes
+                return $activity['time'];
+            })
+            ->take(10)
+            ->values();
 
         return view('admin.support.index', compact(
             'tickets',
@@ -182,14 +238,14 @@ class AdminSupportTicketController extends Controller
         // If staff_id is null, unassign the ticket
         if (!$validated['staff_id']) {
             $oldStaff = $supportTicket->assignedTo;
-            
+
             $supportTicket->update([
                 'assigned_to' => null,
             ]);
 
             $supportTicket->messages()->create([
                 'user_id' => auth()->id(),
-                'message' => "Ticket unassigned by admin" . 
+                'message' => "Ticket unassigned by admin" .
                     ($oldStaff ? " from {$oldStaff->username_pub}" : ""),
                 'message_type' => 'assignment_update',
                 'is_internal' => true,
@@ -211,7 +267,7 @@ class AdminSupportTicketController extends Controller
         $supportTicket->assignTo($newStaff);
 
         // Add reassignment message
-        $messageText = $oldStaff 
+        $messageText = $oldStaff
             ? "Ticket reassigned from {$oldStaff->username_pub} to {$newStaff->username_pub} by admin"
             : "Ticket assigned to {$newStaff->username_pub} by admin";
 
