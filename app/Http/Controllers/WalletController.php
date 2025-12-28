@@ -13,7 +13,20 @@ class WalletController extends Controller
         $user = $request->user();
 
         // Ensure user has Bitcoin wallet
-        $btcWallet = BitcoinRepository::getOrCreateWalletForUser($user);
+        try {
+            $btcWallet = BitcoinRepository::getOrCreateWalletForUser($user);
+        } catch (\Exception $e) {
+            \Log::error("Failed to initialize Bitcoin wallet for user {$user->id}", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Create a placeholder wallet object to prevent view errors
+            $btcWallet = null;
+
+            // Optionally flash an error message
+            session()->flash('warning', 'Bitcoin wallet is temporarily unavailable. Please contact support if this persists.');
+        }
 
         // Ensure user has Monero wallet
         try {
@@ -23,10 +36,10 @@ class WalletController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             // Create a placeholder wallet object to prevent view errors
             $xmrWallet = null;
-            
+
             // Optionally flash an error message
             session()->flash('warning', 'Monero wallet is temporarily unavailable. Please contact support if this persists.');
         }
