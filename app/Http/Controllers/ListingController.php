@@ -33,18 +33,28 @@ class ListingController extends Controller
     {
         // Record unique view for authenticated users only
         $listing->recordView(auth()->id());
-        
+
         $listing->load(['media', 'user', 'originCountry', 'destinationCountry', 'reviews.user']);
-        
+
         $productCategories = \App\Models\ProductCategory::with(['products' => function($query) {
             $query->withCount('listings');
         }])
         ->withCount('listings')
         ->get();
-        
+
+        // Fetch exchange rates for cryptocurrency conversion
+        $btcRate = \App\Models\ExchangeRate::where('crypto_shortname', 'btc')->first();
+        $xmrRate = \App\Models\ExchangeRate::where('crypto_shortname', 'xmr')->first();
+
+        // Calculate crypto amounts
+        $btcAmount = $btcRate ? number_format($listing->price / $btcRate->usd_rate, 8) : 'N/A';
+        $xmrAmount = $xmrRate ? number_format($listing->price / $xmrRate->usd_rate, 8) : 'N/A';
+
         return view('listings.show', [
             'listing' => $listing,
             'productCategories' => $productCategories,
+            'btcAmount' => $btcAmount,
+            'xmrAmount' => $xmrAmount,
         ]);
     }
 

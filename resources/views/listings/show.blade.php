@@ -152,8 +152,8 @@
                                                 <select name="currency"
                                                         id="currency"
                                                         class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
-                                                    <option value="btc">Bitcoin (BTC)</option>
-                                                    <option value="xmr">Monero (XMR)</option>
+                                                    <option value="btc">Bitcoin (BTC) - {{ $btcAmount }} BTC</option>
+                                                    <option value="xmr">Monero (XMR) - {{ $xmrAmount }} XMR</option>
                                                 </select>
                                                 @error('currency')
                                                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>

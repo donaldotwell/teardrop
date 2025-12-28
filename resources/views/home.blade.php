@@ -155,7 +155,7 @@
         <div class="lg:col-span-3 space-y-6">
 
             {{-- Featured/Featured Listings --}}
-            @if($featured_listings->isNotEmpty())
+            @if($filter !== 'all' && $filter !== 'featured')
                 <div class="bg-white rounded-lg border border-gray-200 p-6">
                     <div class="flex items-center justify-between mb-6">
                         <div>
@@ -168,7 +168,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        @foreach($featured_listings as $listing)
+                        @forelse($featured_listings as $listing)
                             <div class="border-2 border-yellow-200 rounded-lg overflow-hidden hover:border-yellow-400 hover:shadow-lg transition-all">
                                 {{-- Listing Image --}}
                                 @if($listing->media->isNotEmpty())
@@ -253,13 +253,28 @@
                                     </a>
                                 </div>
                             </div>
-                        @endforeach
+                        @empty
+                            <div class="col-span-full text-center py-12">
+                                <div class="bg-yellow-50 rounded-lg p-8 border border-yellow-200">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-2">No Featured Listings</h3>
+                                    <p class="text-gray-600">
+                                        @if(request('search'))
+                                            No featured listings match your search.
+                                        @elseif(request('cat') || request('scat'))
+                                            No featured listings in this category.
+                                        @else
+                                            There are no featured listings at the moment.
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+                        @endforelse
                     </div>
                 </div>
             @endif
 
             {{-- All Listings Combined (when filter=all) --}}
-            @if($filter === 'all' && $all_listings->isNotEmpty())
+            @if($filter === 'all')
                 <div class="bg-white rounded-lg border border-gray-200 p-6">
                     <div class="flex items-center justify-between mb-6">
                         <div>
@@ -269,7 +284,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        @foreach($all_listings as $listing)
+                        @forelse($all_listings as $listing)
                             <div class="border {{ $listing->is_featured ? 'border-2 border-yellow-200' : 'border-gray-200' }} rounded-lg overflow-hidden hover:border-yellow-300 hover:shadow-md transition-all">
                                 {{-- Listing Image --}}
                                 @if($listing->media->isNotEmpty())
@@ -358,7 +373,25 @@
                                     </a>
                                 </div>
                             </div>
-                        @endforeach
+                        @empty
+                            <div class="col-span-full text-center py-12">
+                                <div class="bg-gray-50 rounded-lg p-8 border border-gray-200">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-2">No Listings Found</h3>
+                                    <p class="text-gray-600 mb-4">
+                                        @if(request('search'))
+                                            No listings match your search criteria.
+                                        @elseif(request('cat') || request('scat'))
+                                            No listings found in this category.
+                                        @else
+                                            There are no listings available at the moment.
+                                        @endif
+                                    </p>
+                                    <a href="{{ route('home') }}" class="inline-block px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
+                                        View All Listings
+                                    </a>
+                                </div>
+                            </div>
+                        @endforelse
                     </div>
 
                     {{-- Pagination --}}
@@ -371,7 +404,7 @@
             @endif
 
             {{-- Featured Only View (when filter=featured) --}}
-            @if($filter === 'featured' && $all_listings->isNotEmpty())
+            @if($filter === 'featured')
                 <div class="bg-white rounded-lg border border-gray-200 p-6">
                     <div class="flex items-center justify-between mb-6">
                         <div>
@@ -384,7 +417,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        @foreach($all_listings as $listing)
+                        @forelse($all_listings as $listing)
                             <div class="border-2 border-yellow-200 rounded-lg overflow-hidden hover:border-yellow-400 hover:shadow-lg transition-all">
                                 {{-- Listing Image --}}
                                 @if($listing->media->isNotEmpty())
@@ -465,7 +498,25 @@
                                     </a>
                                 </div>
                             </div>
-                        @endforeach
+                        @empty
+                            <div class="col-span-full text-center py-12">
+                                <div class="bg-yellow-50 rounded-lg p-8 border border-yellow-200">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-2">No Featured Listings</h3>
+                                    <p class="text-gray-600 mb-4">
+                                        @if(request('search'))
+                                            No featured listings match your search.
+                                        @elseif(request('cat') || request('scat'))
+                                            No featured listings in this category.
+                                        @else
+                                            There are no featured listings at the moment.
+                                        @endif
+                                    </p>
+                                    <a href="{{ route('home') }}" class="inline-block px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
+                                        View All Listings
+                                    </a>
+                                </div>
+                            </div>
+                        @endforelse
                     </div>
 
                     {{-- Pagination --}}
@@ -478,7 +529,7 @@
             @endif
 
             {{-- Regular Listings (default view only) --}}
-            @if(!$filter && $regular_listings->isNotEmpty())
+            @if(!$filter)
             <div class="bg-white rounded-lg border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-6">
                     <div>
