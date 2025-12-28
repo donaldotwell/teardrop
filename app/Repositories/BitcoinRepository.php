@@ -63,16 +63,16 @@ class BitcoinRepository
     public static function syncAllWallets(): void
     {
         Log::debug("=== Starting Bitcoin wallet sync ===");
-        
+
         $activeWallets = BtcWallet::where('is_active', true)->with('addresses')->get();
-        
+
         Log::debug("Found {$activeWallets->count()} active wallets to sync");
 
         foreach ($activeWallets as $wallet) {
             Log::debug("Syncing wallet ID: {$wallet->id}, Name: {$wallet->name}, User ID: {$wallet->user_id}");
             static::syncWalletTransactions($wallet);
         }
-        
+
         Log::debug("=== Bitcoin wallet sync completed ===");
     }
 
@@ -83,12 +83,12 @@ class BitcoinRepository
     {
         try {
             Log::debug("  Wallet {$wallet->id}: Starting sync");
-            
+
             $repository = new static();
-            
+
             // Get ALL transactions for this wallet from Bitcoin node (once per wallet, not per address)
             $response = $repository->client->wallet($wallet->name)->listTransactions("*", 1000);
-            
+
             // Handle Bitcoin RPC response object
             $transactions = $response;
             if (is_object($response)) {
@@ -106,12 +106,12 @@ class BitcoinRepository
                     $transactions = [];
                 }
             }
-            
+
             if (!is_array($transactions)) {
                 Log::warning("  Transactions is not an array after conversion, type: " . gettype($transactions));
                 $transactions = [];
             }
-            
+
             $txCount = count($transactions);
             Log::debug("  Found {$txCount} transaction(s) from Bitcoin node");
 
@@ -124,7 +124,7 @@ class BitcoinRepository
             $oldBalance = $wallet->balance;
             $wallet->updateBalance();
             $newBalance = $wallet->fresh()->balance;
-            
+
             Log::debug("  Wallet {$wallet->id}: Balance updated from {$oldBalance} to {$newBalance} BTC");
 
         } catch (\Exception $e) {
@@ -145,12 +145,12 @@ class BitcoinRepository
         Log::debug("      Address (from node): " . ($txData['address'] ?? 'N/A'));
         Log::debug("      Wallet ID: {$wallet->id}");
         Log::debug("      Wallet Name: {$wallet->name}");
-        
+
         // Check if transaction already exists
         $existingTx = BtcTransaction::where('txid', $txData['txid'])
             ->where('btc_wallet_id', $wallet->id)
             ->first();
-        
+
         if ($existingTx) {
             Log::debug("      Transaction exists in DB (ID: {$existingTx->id}), checking for updates");
             // Update confirmations for existing transaction
@@ -161,6 +161,8 @@ class BitcoinRepository
         // Determine transaction type
         $type = match ($txData['category']) {
             'receive' => 'deposit',
+            // TODO: remove 'generate' if not using mining or testing
+            'generate' => 'deposit',
             'send' => 'withdrawal',
             default => null
         };
@@ -211,7 +213,7 @@ class BitcoinRepository
         ]);
 
         Log::info("New BTC transaction detected: {$transaction->txid} ({$type}) for {$transaction->amount} BTC on wallet {$wallet->name}");
-        
+
         // Mark address as used if this is a deposit
         if ($type === 'deposit' && $btcAddressId) {
             $btcAddress = BtcAddress::find($btcAddressId);
@@ -220,7 +222,7 @@ class BitcoinRepository
                 Log::debug("      Marked address as used: {$btcAddress->address}");
             }
         }
-        
+
         // Process confirmation if already confirmed
         if ($transaction->status === 'confirmed') {
             Log::debug("      Transaction already confirmed, processing confirmation");
@@ -230,7 +232,7 @@ class BitcoinRepository
         } else {
             Log::debug("      Transaction is pending (confirmations: {$transaction->confirmations})");
         }
-        
+
         Log::debug("      === Transaction Processing Complete ===");
     }
 
@@ -241,17 +243,17 @@ class BitcoinRepository
     {
         $oldConfirmations = $transaction->confirmations;
         $newConfirmations = $txData['confirmations'] ?? 0;
-        
+
         // Only update if confirmations have changed
         if ($oldConfirmations !== $newConfirmations) {
             Log::debug("          Updating confirmations: {$oldConfirmations} -> {$newConfirmations}");
-            
+
             $transaction->updateConfirmations(
                 $newConfirmations,
                 $txData['blockhash'] ?? $transaction->block_hash,
                 $txData['blockheight'] ?? $transaction->block_height
             );
-            
+
             Log::info("Updated BTC transaction {$transaction->txid}: {$newConfirmations} confirmations");
         } else {
             Log::debug("          No confirmation change ({$oldConfirmations} confirmations)");
@@ -347,7 +349,7 @@ class BitcoinRepository
 
     /**
      * Send Bitcoin from user's wallet to address.
-     * 
+     *
      * @param string $walletName User's wallet name (username_pri)
      * @param string $address Recipient Bitcoin address
      * @param float $amount Amount in BTC
@@ -355,7 +357,7 @@ class BitcoinRepository
      */
     /**
      * Send Bitcoin from wallet to address.
-     * 
+     *
      * @param string $walletName
      * @param string $address
      * @param float $amount
@@ -364,7 +366,7 @@ class BitcoinRepository
     public static function sendBitcoin(string $walletName, string $address, float $amount): ?string
     {
         $repository = new self();
-        
+
         try {
             // Validate wallet exists
             if (!$repository->searchWallet($walletName)) {
@@ -377,10 +379,10 @@ class BitcoinRepository
 
             // Check available balance
             $balanceResponse = $wallet->getBalance();
-            $balance = is_object($balanceResponse) && method_exists($balanceResponse, 'result') 
-                ? (float) $balanceResponse->result() 
+            $balance = is_object($balanceResponse) && method_exists($balanceResponse, 'result')
+                ? (float) $balanceResponse->result()
                 : (float) $balanceResponse;
-                
+
             if ($balance < $amount) {
                 Log::error("Insufficient balance in wallet {$walletName}: {$balance} < {$amount}");
                 return null;
