@@ -49,8 +49,6 @@ class AppServiceProvider extends ServiceProvider
                 ];
 
                 if ($user->hasRole('vendor')) {
-                    $navigation_links['Create Listing'] = route('listings.create');
-                } else {
                     $navigation_links['Start Selling'] = route('vendor.convert');
                 }
 

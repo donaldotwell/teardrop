@@ -27,20 +27,30 @@ Route::middleware(['auth', 'moderator'])->name('moderator.')->group(function () 
     // Settings (Admin only)
     Route::get('/settings', [ModeratorSettingsController::class, 'index'])->name('settings');
 
-    // Ticket Management Routes
+    // Ticket Management Routes (merged from staff.php - support role doesn't exist)
     Route::prefix('tickets')->name('tickets.')->group(function () {
         Route::get('/', [ModeratorTicketController::class, 'index'])->name('index');
         Route::get('/{supportTicket}', [ModeratorTicketController::class, 'show'])->name('show');
 
         // Assignment Actions
         Route::post('/{supportTicket}/assign', [ModeratorTicketController::class, 'assign'])->name('assign');
+        Route::post('/{supportTicket}/assign-me', [ModeratorTicketController::class, 'assignMe'])->name('assign-me');
         Route::post('/{supportTicket}/unassign', [ModeratorTicketController::class, 'unassign'])->name('unassign');
+        Route::post('/{supportTicket}/reassign-staff', [ModeratorTicketController::class, 'reassignStaff'])->name('reassign-staff');
         Route::post('/auto-assign', [ModeratorTicketController::class, 'autoAssign'])->name('auto-assign');
+
+        // Status & Priority Management
+        Route::post('/{supportTicket}/update-status', [ModeratorTicketController::class, 'updateStatus'])->name('update-status');
+        Route::post('/{supportTicket}/update-priority', [ModeratorTicketController::class, 'updatePriority'])->name('update-priority');
 
         // Response Actions
         Route::post('/{supportTicket}/add-response', [ModeratorTicketController::class, 'addResponse'])->name('add-response');
+        Route::post('/{supportTicket}/add-message', [ModeratorTicketController::class, 'addMessage'])->name('add-message');
         Route::post('/{supportTicket}/escalate', [ModeratorTicketController::class, 'escalate'])->name('escalate');
         Route::post('/{supportTicket}/resolve', [ModeratorTicketController::class, 'resolve'])->name('resolve');
+
+        // Attachments
+        Route::get('/{supportTicket}/attachment/{attachment}/download', [ModeratorTicketController::class, 'downloadAttachment'])->name('download-attachment');
     });
 
     // Dispute Management Routes

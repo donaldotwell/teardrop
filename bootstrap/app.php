@@ -20,6 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware('web')
                 ->prefix('moderator')
                 ->group(base_path('routes/moderator.php'));
+            Route::middleware('web')
+                ->prefix('vendor')
+                ->group(base_path('routes/vendor.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware) {

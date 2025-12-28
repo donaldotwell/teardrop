@@ -91,9 +91,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', [HomeController::class, 'home'])->name('home');
     Route::get('/listings', [HomeController::class, 'home'])->name('listings.index');
-    Route::get('/listings/create', [\App\Http\Controllers\ListingController::class, 'create'])->name('listings.create');
     Route::get('/listings/{listing}', [\App\Http\Controllers\ListingController::class, 'show'])->name('listings.show');
-    Route::post('/listings/store', [\App\Http\Controllers\ListingController::class, 'store'])->name('listings.store');
 
     // create an order for a listing using get
     Route::post('/listings/{listing}/create', [\App\Http\Controllers\OrderController::class, 'create'])->name('orders.create');
@@ -117,9 +115,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/orders/{order}/review', [ReviewController::class, 'store'])->name('reviews.store');
 
     // vendor routes
-    Route::get('/vendor/convert', [VendorController::class, 'showConvertForm'])->name('vendor.convert');
-    Route::post('/vendor/convert', [VendorController::class, 'convert'])->name('vendor.convert.store');
-    Route::get('/vendor/{user}', [VendorController::class, 'show'])->name('vendor.show');
+    Route::get('/seller/convert', [VendorController::class, 'showConvertForm'])->name('vendor.convert');
+    Route::post('/seller/convert', [VendorController::class, 'convert'])->name('vendor.convert.store');
+    Route::get('/seller/{user}', [VendorController::class, 'show'])->name('vendor.show');
 
     Route::prefix('support')->name('support.')->group(function () {
 

@@ -38,7 +38,17 @@ class AuthController extends Controller
         if ($user && Hash::check($credentials['password'], $user->password)) {
             auth()->login($user);
 
-            return redirect()->intended('/');
+            // Role-based redirect with priority
+            // Priority: admin > moderator > vendor > user
+            if ($user->hasRole('admin')) {
+                return redirect()->intended(route('admin.dashboard'));
+            } elseif ($user->hasRole('moderator')) {
+                return redirect()->intended(route('moderator.dashboard'));
+            } elseif ($user->hasRole('vendor')) {
+                return redirect()->intended(route('vendor.dashboard'));
+            } else {
+                return redirect()->intended(route('home'));
+            }
         }
 
         return back()->withErrors([
