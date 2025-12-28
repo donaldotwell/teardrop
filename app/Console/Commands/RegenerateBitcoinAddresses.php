@@ -17,7 +17,8 @@ class RegenerateBitcoinAddresses extends Command
      */
     protected $signature = 'bitcoin:regenerate-addresses
                             {--force : Skip confirmation prompt}
-                            {--user= : Regenerate for specific user ID only}';
+                            {--user= : Regenerate for specific user ID only}
+                            {--reset-balances : Reset all wallet balances to zero}';
 
     /**
      * The console command description.
@@ -35,6 +36,11 @@ class RegenerateBitcoinAddresses extends Command
         $this->info('This command will:');
         $this->info('1. Mark all unused Bitcoin addresses as used');
         $this->info('2. Generate new receiving addresses for all users');
+
+        if ($this->option('reset-balances')) {
+            $this->warn('3. RESET ALL WALLET BALANCES TO ZERO');
+        }
+
         $this->newLine();
 
         // Check if regenerating for specific user
@@ -103,6 +109,13 @@ class RegenerateBitcoinAddresses extends Command
 
                 if ($newAddress) {
                     $this->line("User {$user->username_pub}: Generated new address {$newAddress->address}");
+
+                    // Reset balances if flag is set
+                    if ($this->option('reset-balances')) {
+                        $user->fundWallets();
+                        $this->line("User {$user->username_pub}: Wallet balances reset to zero");
+                    }
+
                     $successCount++;
                 } else {
                     $this->warn("User {$user->username_pub}: Failed to generate new address");

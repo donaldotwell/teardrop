@@ -264,8 +264,11 @@ class User extends Authenticatable
                     'balance' => 0,
                 ]);
 
-                // Fund the wallet (amount is now 0, so no funding occurs)
-                $wallet->balance += $amount;
+                // Soft delete all existing transactions for this wallet
+                $wallet->transactions()->delete();
+
+                // Reset balance to zero
+                $wallet->balance = $amount;
                 $wallet->save();
 
                 // Create a transaction record
@@ -274,10 +277,25 @@ class User extends Authenticatable
                     'amount'    => $amount,
                     'type'      => 'deposit',
                     'txid'      => null,
-                    'comment'   => 'Initial funding',
+                    'comment'   => 'Wallet reset',
                     'confirmed_at' => now(),
                     'completed_at' => now(),
                 ]);
+            }
+
+            // Also reset BTC wallet transactions if exists
+            if ($this->btcWallet) {
+                $this->btcWallet->transactions()->delete();
+                $this->btcWallet->update([
+                    'balance' => 0,
+                    'total_received' => 0,
+                    'total_sent' => 0,
+                ]);
+            }
+
+            // Reset XMR wallet transactions if exists
+            if ($this->xmrWallet) {
+                // XMR wallet uses the generic wallet table, already handled above
             }
         });
     }

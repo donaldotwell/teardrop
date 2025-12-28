@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BtcTransaction extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'btc_wallet_id',
         'btc_address_id',
@@ -28,7 +31,8 @@ class BtcTransaction extends Model
         'confirmations' => 'integer',
         'block_height' => 'integer',
         'raw_transaction' => 'array',
-        'confirmed_at' => 'datetime'
+        'confirmed_at' => 'datetime',
+        'deleted_at' => 'datetime'
     ];
 
     /**
@@ -113,11 +117,11 @@ class BtcTransaction extends Model
             // Create main wallet transaction (only once)
             $this->createMainWalletTransaction();
         }
-        
+
         if ($this->type === 'withdrawal') {
             // Update wallet balance for withdrawals
             $this->btcWallet->updateBalance();
-            
+
             // Create main wallet transaction for withdrawal
             $this->createMainWalletTransaction();
         }
@@ -146,19 +150,19 @@ class BtcTransaction extends Model
 
         // Determine amount sign based on type
         $amount = $this->type === 'deposit' ? $this->amount : -$this->amount;
-        
+
         // Create the wallet transaction
         $mainWallet->transactions()->create([
             'amount' => $amount,
             'type' => $this->type,
             'txid' => $this->txid,
-            'comment' => $this->type === 'deposit' 
-                ? "Bitcoin deposit" 
+            'comment' => $this->type === 'deposit'
+                ? "Bitcoin deposit"
                 : "Bitcoin withdrawal",
             'confirmed_at' => $this->confirmed_at,
             'completed_at' => $this->confirmed_at
         ]);
-        
+
         \Log::info("Created main wallet transaction for txid: {$this->txid}");
     }
 
