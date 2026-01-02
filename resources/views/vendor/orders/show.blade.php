@@ -139,7 +139,7 @@
                                         <span class="text-sm font-medium text-gray-700">
                                             {{ $message->sender_id === auth()->id() ? 'You' : $otherParty->username_pub }}
                                         </span>
-                                        <span class="text-xs text-gray-500">{{ $message->created_at->diffForHumans() }}</span>
+                                        <span class="text-xs text-gray-500">{{ $message->created_at ? $message->created_at->diffForHumans() : '' }}</span>
                                     </div>
                                     <p class="text-sm text-gray-800 whitespace-pre-line">{{ $message->message }}</p>
                                 </div>
@@ -212,7 +212,7 @@
                             </div>
                             <div class="flex items-center">
                                 <span class="w-20 font-medium text-gray-600">Created:</span>
-                                <span class="text-gray-900">{{ $order->dispute->created_at->format('M d, Y') }}</span>
+                                <span class="text-gray-900">{{ $order->dispute->created_at ? $order->dispute->created_at->format('M d, Y') : 'N/A' }}</span>
                             </div>
                         </div>
 
@@ -271,7 +271,7 @@
                         </div>
                     @endif
                     <div class="mt-3 text-xs text-gray-500">
-                        Reviewed {{ $order->review->created_at->format('F d, Y') }}
+                        Reviewed {{ $order->review->created_at ? $order->review->created_at->format('F d, Y') : 'N/A' }}
                     </div>
                 </div>
             </div>
