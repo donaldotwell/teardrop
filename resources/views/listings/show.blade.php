@@ -132,7 +132,7 @@
                                         <span class="text-sm text-gray-600">USD</span>
                                     </div>
 
-                                    <form action="{{ route('orders.create', $listing) }}" method="post" class="space-y-4">
+                                    <form action="{{ route('orders.create', $listing) }}" method="get" class="space-y-4">
                                         @csrf
                                         <input type="hidden" name="listing_id" value="{{ $listing->id }}">
 

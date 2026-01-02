@@ -94,7 +94,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/listings/{listing}', [\App\Http\Controllers\ListingController::class, 'show'])->name('listings.show');
 
     // create an order for a listing using get
-    Route::post('/listings/{listing}/create', [\App\Http\Controllers\OrderController::class, 'create'])->name('orders.create');
+    Route::get('/listings/{listing}/create', [\App\Http\Controllers\OrderController::class, 'create'])->name('orders.create');
     Route::post('/listings/{listing}/orders', [\App\Http\Controllers\OrderController::class, 'store'])
         ->name('orders.store');
 

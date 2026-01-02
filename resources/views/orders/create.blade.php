@@ -75,9 +75,8 @@
             <div>
                 <label for="delivery_address" class="block text-sm font-medium text-gray-700 mb-2">
                     Delivery Address
-                    <span class="text-red-500">*</span>
                 </label>
-                <textarea id="delivery_address" name="delivery_address" rows="4" required
+                <textarea id="delivery_address" name="delivery_address" rows="4"
                           class="block w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm
                            focus:ring-2 focus:ring-amber-500 focus:border-amber-500
                            transition-all duration-150 placeholder-gray-400 text-base"
