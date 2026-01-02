@@ -99,6 +99,16 @@ class Order extends Model
     }
 
     /**
+     * Get the escrow wallet for this order.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function escrowWallet(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(EscrowWallet::class);
+    }
+
+    /**
      * Check if this order has an active dispute.
      *
      * @return bool
@@ -127,5 +137,27 @@ class Order extends Model
     public function shouldHoldEscrow(): bool
     {
         return $this->hasActiveDispute() && $this->listing->payment_method === 'escrow';
+    }
+
+    /**
+     * Check if order has active escrow.
+     *
+     * @return bool
+     */
+    public function hasActiveEscrow(): bool
+    {
+        return $this->escrowWallet && $this->escrowWallet->status === 'active';
+    }
+
+    /**
+     * Check if escrow is funded.
+     *
+     * @return bool
+     */
+    public function isEscrowFunded(): bool
+    {
+        return $this->escrow_funded_at !== null &&
+               $this->escrowWallet &&
+               $this->escrowWallet->balance > 0;
     }
 }

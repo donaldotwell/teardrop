@@ -73,7 +73,36 @@ class SyncMoneroWallets implements ShouldQueue
             Log::info('Starting Monero wallet synchronization');
 
             $startTime = microtime(true);
+
+            // Sync user wallets
             MoneroRepository::syncAllWallets();
+
+            // Sync escrow wallets
+            $activeEscrowWallets = \App\Models\EscrowWallet::where('currency', 'xmr')
+                ->where('status', 'active')
+                ->get();
+
+            Log::debug("Found {$activeEscrowWallets->count()} active Monero escrow wallets to sync");
+
+            foreach ($activeEscrowWallets as $escrowWallet) {
+                $xmrWallet = \App\Models\XmrWallet::where('name', $escrowWallet->wallet_name)->first();
+                if ($xmrWallet) {
+                    Log::debug("Syncing escrow wallet: {$escrowWallet->wallet_name}");
+                    MoneroRepository::syncWalletTransactions($xmrWallet);
+
+                    // Update escrow balance
+                    $escrowWallet->updateBalance();
+
+                    // Check if escrow is now funded
+                    if (!$escrowWallet->order->escrow_funded_at && $escrowWallet->balance > 0) {
+                        $escrowWallet->order->update([
+                            'escrow_funded_at' => now(),
+                        ]);
+                        Log::info("Escrow wallet funded for order #{$escrowWallet->order_id}");
+                    }
+                }
+            }
+
             $duration = round(microtime(true) - $startTime, 2);
 
             Log::info("Monero wallet synchronization completed successfully in {$duration} seconds");

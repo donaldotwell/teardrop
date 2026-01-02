@@ -286,16 +286,6 @@
                     <h2 class="text-lg font-semibold text-gray-900">Order Actions</h2>
                 </div>
                 <div class="p-6 space-y-3">
-                    {{-- Complete Order Button (Vendor) --}}
-                    @if(in_array($order->status, ['pending', 'shipped']) && in_array($order->currency, ['btc', 'xmr']))
-                        <form action="{{ route('vendor.orders.complete', $order) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="w-full px-6 py-3 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                                Complete Order & Release Payment
-                            </button>
-                        </form>
-                    @endif
-
                     {{-- Mark as Shipped (Vendor Only) --}}
                     @if($order->status === 'pending')
                         <form action="{{ route('vendor.orders.ship', $order) }}" method="POST">
@@ -304,6 +294,13 @@
                                 Mark as Shipped
                             </button>
                         </form>
+                    @endif
+
+                    {{-- Order Shipped Info --}}
+                    @if($order->status === 'shipped')
+                        <div class="w-full px-6 py-3 text-sm text-center text-blue-700 bg-blue-50 rounded-md border border-blue-200">
+                            Order marked as shipped. Funds will be released when buyer confirms receipt.
+                        </div>
                     @endif
 
                     {{-- Dispute Status --}}
@@ -361,7 +358,9 @@
                     @if($order->txid)
                     <div class="pt-3 border-t border-gray-100">
                         <div class="text-xs text-gray-500 mb-1">Transaction ID</div>
-                        <div class="text-xs font-mono text-gray-900 break-all">{{ $order->txid }}</div>
+                        <div class="text-xs font-mono text-gray-700 break-all overflow-x-auto max-w-full" style="word-break: break-all;">
+                            {{ $order->txid }}
+                        </div>
                     </div>
                     @endif
                 </div>

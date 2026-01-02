@@ -34,7 +34,6 @@ Route::middleware(['auth', 'role:vendor'])->name('vendor.')->group(function () {
     Route::prefix('orders')->name('orders.')->group(function () {
         Route::get('/', [VendorController::class, 'orders'])->name('index');
         Route::get('/{order}', [VendorController::class, 'showOrder'])->name('show');
-        Route::post('/{order}/complete', [VendorController::class, 'completeOrder'])->name('complete');
         Route::post('/{order}/ship', [VendorController::class, 'shipOrder'])->name('ship');
         Route::post('/{order}/message', [VendorController::class, 'sendOrderMessage'])->name('message');
     });

@@ -24,7 +24,7 @@ class SyncBitcoinWallets implements ShouldQueue
      * The maximum number of seconds the job can run.
      */
     public int $timeout = 300;
-    
+
     /**
      * The number of seconds after which the job's unique lock will be released.
      */
@@ -37,7 +37,7 @@ class SyncBitcoinWallets implements ShouldQueue
     {
         //
     }
-    
+
     /**
      * Get the unique ID for the job to prevent concurrent execution.
      */
@@ -52,7 +52,7 @@ class SyncBitcoinWallets implements ShouldQueue
     public function handle(): void
     {
         Log::debug("SyncBitcoinWallets job started at " . now()->toDateTimeString());
-        
+
         // Use cache lock to prevent concurrent execution
         $lock = Cache::lock('bitcoin:sync:lock', 300);
 
@@ -63,11 +63,40 @@ class SyncBitcoinWallets implements ShouldQueue
 
         try {
             Log::info('Starting Bitcoin wallet synchronization');
-            
+
             $startTime = microtime(true);
+
+            // Sync user wallets
             BitcoinRepository::syncAllWallets();
+
+            // Sync escrow wallets
+            $activeEscrowWallets = \App\Models\EscrowWallet::where('currency', 'btc')
+                ->where('status', 'active')
+                ->get();
+
+            Log::debug("Found {$activeEscrowWallets->count()} active Bitcoin escrow wallets to sync");
+
+            foreach ($activeEscrowWallets as $escrowWallet) {
+                $btcWallet = \App\Models\BtcWallet::where('name', $escrowWallet->wallet_name)->first();
+                if ($btcWallet) {
+                    Log::debug("Syncing escrow wallet: {$escrowWallet->wallet_name}");
+                    BitcoinRepository::syncWalletTransactions($btcWallet);
+
+                    // Update escrow balance
+                    $escrowWallet->updateBalance();
+
+                    // Check if escrow is now funded
+                    if (!$escrowWallet->order->escrow_funded_at && $escrowWallet->balance > 0) {
+                        $escrowWallet->order->update([
+                            'escrow_funded_at' => now(),
+                        ]);
+                        Log::info("Escrow wallet funded for order #{$escrowWallet->order_id}");
+                    }
+                }
+            }
+
             $duration = round(microtime(true) - $startTime, 2);
-            
+
             Log::info("Bitcoin wallet synchronization completed successfully in {$duration} seconds");
             Log::debug("SyncBitcoinWallets job finished at " . now()->toDateTimeString());
         } catch (\Exception $e) {

@@ -61,8 +61,8 @@
                             <div class="flex mt-6">
                                 <div class="flex-shrink-0 w-32 h-32 overflow-hidden rounded-lg bg-gray-100">
                                     @if($order->listing->media->first())
-                                        <img src="{{ $order->listing->media->first()->data_uri }}" 
-                                             alt="{{ $order->listing->title }}" 
+                                        <img src="{{ $order->listing->media->first()->data_uri }}"
+                                             alt="{{ $order->listing->title }}"
                                              class="object-cover object-center w-full h-full">
                                     @else
                                         <div class="flex items-center justify-center w-full h-full text-gray-400">
@@ -96,7 +96,7 @@
                     <div class="overflow-hidden bg-white rounded-xl shadow-lg">
                         <div class="p-6">
                             <h2 class="text-xl font-semibold text-gray-900 mb-4">
-                                Communication with 
+                                Communication with
                                 <a href="{{ route('vendor.show', $otherParty) }}" class="text-amber-600 hover:text-amber-700 hover:underline">
                                     {{ $otherParty->username_pub }}
                                 </a>
@@ -130,10 +130,10 @@
                                     <label for="message" class="block text-sm font-medium text-gray-700 mb-2">
                                         Send a message
                                     </label>
-                                    <textarea 
-                                        name="message" 
+                                    <textarea
+                                        name="message"
                                         id="message"
-                                        rows="4" 
+                                        rows="4"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                                         placeholder="Type your message here..."
                                         required
@@ -142,8 +142,8 @@
                                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>
-                                <button 
-                                    type="submit" 
+                                <button
+                                    type="submit"
                                     class="w-full px-6 py-3 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
                                 >
                                     Send Message
@@ -208,7 +208,7 @@
                             <div class="overflow-hidden bg-white rounded-xl shadow-lg border-2 border-green-200">
                                 <div class="p-6">
                                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Your Review</h2>
-                                    
+
                                     <div class="space-y-4">
                                         <!-- Stealth Rating -->
                                         <div>
@@ -260,7 +260,7 @@
                             <div class="overflow-hidden bg-white rounded-xl shadow-lg border-2 border-amber-200">
                                 <div class="p-6">
                                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Leave a Review</h2>
-                                    
+
                                     <form action="{{ route('reviews.store', $order) }}" method="POST" class="space-y-4">
                                         @csrf
 
@@ -269,12 +269,12 @@
                                             <label for="rating_stealth" class="block text-sm font-medium text-gray-700 mb-2">
                                                 Stealth Rating
                                             </label>
-                                            <input 
-                                                type="number" 
-                                                name="rating_stealth" 
-                                                id="rating_stealth" 
-                                                min="1" 
-                                                max="5" 
+                                            <input
+                                                type="number"
+                                                name="rating_stealth"
+                                                id="rating_stealth"
+                                                min="1"
+                                                max="5"
                                                 required
                                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                                                 placeholder="1-5"
@@ -289,12 +289,12 @@
                                             <label for="rating_quality" class="block text-sm font-medium text-gray-700 mb-2">
                                                 Quality Rating
                                             </label>
-                                            <input 
-                                                type="number" 
-                                                name="rating_quality" 
-                                                id="rating_quality" 
-                                                min="1" 
-                                                max="5" 
+                                            <input
+                                                type="number"
+                                                name="rating_quality"
+                                                id="rating_quality"
+                                                min="1"
+                                                max="5"
                                                 required
                                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                                                 placeholder="1-5"
@@ -309,12 +309,12 @@
                                             <label for="rating_delivery" class="block text-sm font-medium text-gray-700 mb-2">
                                                 Delivery Rating
                                             </label>
-                                            <input 
-                                                type="number" 
-                                                name="rating_delivery" 
-                                                id="rating_delivery" 
-                                                min="1" 
-                                                max="5" 
+                                            <input
+                                                type="number"
+                                                name="rating_delivery"
+                                                id="rating_delivery"
+                                                min="1"
+                                                max="5"
                                                 required
                                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                                                 placeholder="1-5"
@@ -329,10 +329,10 @@
                                             <label for="comment" class="block text-sm font-medium text-gray-700 mb-2">
                                                 Comment (max 140 characters)
                                             </label>
-                                            <textarea 
-                                                name="comment" 
+                                            <textarea
+                                                name="comment"
                                                 id="comment"
-                                                rows="3" 
+                                                rows="3"
                                                 maxlength="140"
                                                 required
                                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
@@ -343,8 +343,8 @@
                                             @enderror
                                         </div>
 
-                                        <button 
-                                            type="submit" 
+                                        <button
+                                            type="submit"
                                             class="w-full px-6 py-3 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
                                         >
                                             Submit Review
@@ -360,8 +360,8 @@
                         <div class="p-6">
                             <h2 class="text-xl font-semibold text-gray-900">Order Actions</h2>
                             <div class="mt-6 space-y-3">
-                                {{-- Complete Order Button (Buyer or Vendor) --}}
-                                @if(in_array($order->status, ['pending', 'shipped']) && $order->currency === 'btc')
+                                {{-- Complete Order Button (Buyer Only - confirms receipt and releases escrow) --}}
+                                @if(!$isVendor && in_array($order->status, ['pending', 'shipped']) && in_array($order->currency, ['btc', 'xmr']))
                                     <form action="{{ route('orders.complete', $order) }}" method="POST">
                                         @csrf
                                         <button type="submit" class="w-full px-6 py-3 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">

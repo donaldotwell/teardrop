@@ -69,13 +69,13 @@ class BtcWallet extends Model
     public function generateNewAddress(): BtcAddress
     {
         $repository = new BitcoinRepository();
-        
+
         // Ensure Bitcoin wallet exists on the node
         $repository->generateBTCWallet($this->user->username_pri);
-        
+
         // Get new address from Bitcoin node
         $newAddress = $repository->getNewAddress($this->user->username_pri);
-        
+
         // If address generation failed, throw exception
         if (!$newAddress) {
             throw new \Exception("Failed to generate Bitcoin address from node");
@@ -119,7 +119,7 @@ class BtcWallet extends Model
             ->where('type', 'deposit')
             ->where('status', 'confirmed')
             ->sum('amount');
-            
+
         // For withdrawals, include both confirmed AND pending (to prevent double-spend)
         $totalSent = $this->transactions()
             ->where('type', 'withdrawal')
@@ -132,10 +132,12 @@ class BtcWallet extends Model
             'balance' => $totalReceived - $totalSent
         ]);
 
-        // Sync with main wallet system
-        $mainWallet = $this->user->wallets()->where('currency', 'btc')->first();
-        if ($mainWallet) {
-            $mainWallet->update(['balance' => $this->balance]);
+        // Sync with main wallet system (only for user wallets, not escrow wallets)
+        if ($this->user_id && $this->user) {
+            $mainWallet = $this->user->wallets()->where('currency', 'btc')->first();
+            if ($mainWallet) {
+                $mainWallet->update(['balance' => $this->balance]);
+            }
         }
     }
 

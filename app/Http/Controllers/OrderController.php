@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Listing;
 use App\Models\Order;
 use App\Models\UserMessage;
+use App\Services\EscrowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -157,10 +159,10 @@ class OrderController extends Controller
      */
     public function complete(Request $request, Order $order) : \Illuminate\Http\RedirectResponse
     {
-        // Authorization: Only buyer or vendor can mark as complete
+        // Authorization: Only buyer can complete the order (confirm receipt and release escrow)
         $user = $request->user();
-        if ($order->user_id !== $user->id && $order->listing->user_id !== $user->id) {
-            abort(403, 'Only the buyer or vendor can complete the order');
+        if ($order->user_id !== $user->id) {
+            abort(403, 'Only the buyer can complete the order and release escrow');
         }
 
         // Check if order is in valid state
@@ -177,34 +179,57 @@ class OrderController extends Controller
             ]);
         }
 
+        // Check for escrow wallet
+        if (!$order->escrowWallet) {
+            return redirect()->back()->withErrors([
+                'error' => 'No escrow wallet found for this order.',
+            ]);
+        }
+
+        // Check if escrow has been funded
+        if (!$order->escrow_funded_at) {
+            return redirect()->back()->withErrors([
+                'error' => 'Escrow has not been funded yet. Please wait for blockchain confirmations.',
+            ]);
+        }
+
         try {
             DB::transaction(function () use ($order) {
-                $buyer = $order->user;
-                $seller = $order->listing->user;
+                $escrowService = new EscrowService();
 
-                // Calculate service charge (from config)
-                $serviceFeePercent = config('fees.order_completion_percentage', 3);
+                // Release escrow to vendor and admin
+                // The releaseEscrow method sends crypto and returns transaction IDs
+                // The sync jobs (bitcoin:sync/monero:sync) will automatically update wallet balances
+                $txids = $escrowService->releaseEscrow($order->escrowWallet, $order);
 
-                // Determine decimal precision based on currency
-                $decimals = $order->currency === 'btc' ? 8 : 12;
+                // Update order status to completed
+                $order->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                    'txid' => $txids['seller_txid'], // Store seller transaction
+                ]);
 
-                $serviceFeeAmount = round(($order->crypto_value * $serviceFeePercent) / 100, $decimals);
-                $sellerAmount = round($order->crypto_value - $serviceFeeAmount, $decimals);
+                // Notify vendor
+                UserMessage::create([
+                    'sender_id' => $order->user_id,
+                    'receiver_id' => $order->listing->user_id,
+                    'message' => "Order #{$order->id} has been completed.\nEscrow released.\nVendor Payment Transaction ID: {$txids['seller_txid']}\nAdmin Fee Transaction ID: {$txids['admin_txid']}",
+                    'order_id' => $order->id,
+                ]);
 
-                // Handle based on currency
-                if ($order->currency === 'btc') {
-                    $this->completeBitcoinOrder($order, $buyer, $seller, $sellerAmount, $serviceFeeAmount, $serviceFeePercent);
-                } elseif ($order->currency === 'xmr') {
-                    $this->completeMoneroOrder($order, $buyer, $seller, $sellerAmount, $serviceFeeAmount, $serviceFeePercent);
-                }
+                Log::info("Order completed via escrow release", [
+                    'order_id' => $order->id,
+                    'seller_txid' => $txids['seller_txid'],
+                    'admin_txid' => $txids['admin_txid'],
+                ]);
             });
 
             $currencyName = $order->currency === 'btc' ? 'Bitcoin' : 'Monero';
-            return redirect()->route('orders.show', $order)->with('success', "Order completed! {$currencyName} sent to seller. Transaction will be confirmed by the network.");
+            return redirect()->route('orders.show', $order)->with('success', "Order completed! Escrow released. {$currencyName} sent to vendor. Balances will update automatically after blockchain confirmations.");
 
         } catch (\Exception $e) {
-            \Log::error("Failed to complete order #{$order->id}", [
-                'exception' => $e,
+            Log::error("Failed to complete order #{$order->id}", [
+                'exception' => $e->getMessage(),
                 'order_id' => $order->id,
                 'user_id' => $request->user()->id,
             ]);
@@ -212,276 +237,6 @@ class OrderController extends Controller
                 'error' => 'Failed to complete order. Please contact support if the issue persists.'
             ]);
         }
-    }
-
-    /**
-     * Complete a Bitcoin order.
-     */
-    private function completeBitcoinOrder($order, $buyer, $seller, $sellerAmount, $serviceFeeAmount, $serviceFeePercent): void
-    {
-        // 1. Get seller's current Bitcoin address
-        $sellerBtcWallet = $seller->btcWallet;
-        if (!$sellerBtcWallet) {
-            throw new \Exception("Seller does not have a Bitcoin wallet configured");
-        }
-
-        $sellerAddress = $sellerBtcWallet->getCurrentAddress();
-        if (!$sellerAddress) {
-            // Generate new address for seller if none exists
-            $sellerAddress = $sellerBtcWallet->generateNewAddress();
-        }
-
-        // 2. Get admin wallet for service charge
-        $adminWalletName = config('fees.admin_btc_wallet_name', 'admin');
-        $adminBtcWallet = \App\Models\BtcWallet::where('name', $adminWalletName)->first();
-
-        if (!$adminBtcWallet) {
-            throw new \Exception("Admin wallet not found: {$adminWalletName}");
-        }
-
-        $adminAddress = $adminBtcWallet->getCurrentAddress();
-        if (!$adminAddress) {
-            $adminAddress = $adminBtcWallet->generateNewAddress();
-        }
-
-        // 3. Get buyer's wallet
-        $buyerBtcWallet = $buyer->btcWallet;
-        if (!$buyerBtcWallet) {
-            throw new \Exception("Buyer does not have a Bitcoin wallet configured");
-        }
-
-        \Log::info("Sending Bitcoin for order #{$order->id}", [
-            'buyer_wallet' => $buyerBtcWallet->name,
-            'seller_address' => $sellerAddress->address,
-            'seller_amount' => $sellerAmount,
-            'service_fee' => $serviceFeeAmount,
-            'admin_address' => $adminAddress->address,
-            'total_amount' => $order->crypto_value,
-        ]);
-
-        // 4. Send Bitcoin to seller (after service fee deduction)
-        $sellerTxid = \App\Repositories\BitcoinRepository::sendBitcoin(
-            $buyerBtcWallet->name,
-            $sellerAddress->address,
-            $sellerAmount
-        );
-
-        if (!$sellerTxid) {
-            throw new \Exception("Failed to send Bitcoin transaction to seller");
-        }
-
-        \Log::info("Bitcoin sent to seller for order #{$order->id}", ['txid' => $sellerTxid]);
-
-        // 5. Send service fee to admin
-        $adminTxid = \App\Repositories\BitcoinRepository::sendBitcoin(
-            $buyerBtcWallet->name,
-            $adminAddress->address,
-            $serviceFeeAmount
-        );
-
-        if (!$adminTxid) {
-            throw new \Exception("Failed to send service fee to admin");
-        }
-
-        \Log::info("Service fee sent to admin for order #{$order->id}", ['txid' => $adminTxid]);
-
-        // 6. Create withdrawal transaction for seller payment
-        \App\Models\BtcTransaction::create([
-            'btc_wallet_id' => $buyerBtcWallet->id,
-            'btc_address_id' => null,
-            'txid' => $sellerTxid,
-            'type' => 'withdrawal',
-            'amount' => $sellerAmount,
-            'fee' => 0,
-            'confirmations' => 0,
-            'status' => 'pending',
-            'raw_transaction' => [
-                'order_id' => $order->id,
-                'to_address' => $sellerAddress->address,
-                'purpose' => 'order_payment',
-            ],
-        ]);
-
-        // 7. Create withdrawal transaction for service fee
-        \App\Models\BtcTransaction::create([
-            'btc_wallet_id' => $buyerBtcWallet->id,
-            'btc_address_id' => null,
-            'txid' => $adminTxid,
-            'type' => 'withdrawal',
-            'amount' => $serviceFeeAmount,
-            'fee' => 0,
-            'confirmations' => 0,
-            'status' => 'pending',
-            'raw_transaction' => [
-                'order_id' => $order->id,
-                'to_address' => $adminAddress->address,
-                'purpose' => 'service_fee',
-                'fee_percent' => $serviceFeePercent,
-            ],
-        ]);
-
-        // 8. Update buyer's balance to reflect both withdrawals
-        $buyerBtcWallet->updateBalance();
-
-        // 9. Mark order as completed
-        $order->update([
-            'status' => 'completed',
-            'completed_at' => now(),
-            'txid' => $sellerTxid,
-        ]);
-
-        // 10. Create notification message
-        UserMessage::create([
-            'sender_id' => $order->user_id,
-            'receiver_id' => $order->listing->user_id,
-            'message' => "Order #{$order->id} has been completed.\nPayment: " . number_format($sellerAmount, 8) . " BTC\nService fee ({$serviceFeePercent}%): " . number_format($serviceFeeAmount, 8) . " BTC\nTransaction ID: {$sellerTxid}\n\nThe bitcoin:sync command will detect and credit your wallet once confirmed.",
-            'order_id' => $order->id,
-        ]);
-
-        \Log::info("Order #{$order->id} completed with blockchain transactions", [
-            'seller_txid' => $sellerTxid,
-            'admin_txid' => $adminTxid,
-            'seller_amount' => $sellerAmount,
-            'service_fee' => $serviceFeeAmount,
-            'seller_address' => $sellerAddress->address,
-            'admin_address' => $adminAddress->address,
-        ]);
-    }
-
-    /**
-     * Complete a Monero order.
-     */
-    private function completeMoneroOrder($order, $buyer, $seller, $sellerAmount, $serviceFeeAmount, $serviceFeePercent): void
-    {
-        // 1. Get seller's current Monero address
-        $sellerXmrWallet = $seller->xmrWallet;
-        if (!$sellerXmrWallet) {
-            throw new \Exception("Seller does not have a Monero wallet configured");
-        }
-
-        $sellerAddress = $sellerXmrWallet->getCurrentAddress();
-        if (!$sellerAddress) {
-            // Generate new address for seller if none exists
-            $sellerAddress = $sellerXmrWallet->generateNewAddress();
-        }
-
-        // 2. Get admin wallet for service charge
-        $adminWalletName = config('fees.admin_xmr_wallet_name', 'admin');
-        $adminXmrWallet = \App\Models\XmrWallet::where('name', $adminWalletName)->first();
-
-        if (!$adminXmrWallet) {
-            throw new \Exception("Admin wallet not found: {$adminWalletName}");
-        }
-
-        $adminAddress = $adminXmrWallet->getCurrentAddress();
-        if (!$adminAddress) {
-            $adminAddress = $adminXmrWallet->generateNewAddress();
-        }
-
-        // 3. Get buyer's wallet
-        $buyerXmrWallet = $buyer->xmrWallet;
-        if (!$buyerXmrWallet) {
-            throw new \Exception("Buyer does not have a Monero wallet configured");
-        }
-
-        \Log::info("Sending Monero for order #{$order->id}", [
-            'buyer_wallet' => $buyerXmrWallet->name,
-            'seller_address' => $sellerAddress->address,
-            'seller_amount' => $sellerAmount,
-            'service_fee' => $serviceFeeAmount,
-            'admin_address' => $adminAddress->address,
-            'total_amount' => $order->crypto_value,
-        ]);
-
-        // 4. Send Monero to seller (after service fee deduction)
-        $sellerTxid = \App\Repositories\MoneroRepository::transfer(
-            $buyerXmrWallet->name,
-            $sellerAddress->address,
-            $sellerAmount
-        );
-
-        if (!$sellerTxid) {
-            throw new \Exception("Failed to send Monero transaction to seller");
-        }
-
-        \Log::info("Monero sent to seller for order #{$order->id}", ['txid' => $sellerTxid]);
-
-        // 5. Send service fee to admin
-        $adminTxid = \App\Repositories\MoneroRepository::transfer(
-            $buyerXmrWallet->name,
-            $adminAddress->address,
-            $serviceFeeAmount
-        );
-
-        if (!$adminTxid) {
-            throw new \Exception("Failed to send service fee to admin");
-        }
-
-        \Log::info("Service fee sent to admin for order #{$order->id}", ['txid' => $adminTxid]);
-
-        // 6. Create withdrawal transaction for seller payment
-        \App\Models\XmrTransaction::create([
-            'xmr_wallet_id' => $buyerXmrWallet->id,
-            'xmr_address_id' => null,
-            'txid' => $sellerTxid,
-            'type' => 'withdrawal',
-            'amount' => $sellerAmount,
-            'fee' => 0,
-            'confirmations' => 0,
-            'unlock_time' => 0,
-            'status' => 'pending',
-            'raw_transaction' => [
-                'order_id' => $order->id,
-                'to_address' => $sellerAddress->address,
-                'purpose' => 'order_payment',
-            ],
-        ]);
-
-        // 7. Create withdrawal transaction for service fee
-        \App\Models\XmrTransaction::create([
-            'xmr_wallet_id' => $buyerXmrWallet->id,
-            'xmr_address_id' => null,
-            'txid' => $adminTxid,
-            'type' => 'withdrawal',
-            'amount' => $serviceFeeAmount,
-            'fee' => 0,
-            'confirmations' => 0,
-            'unlock_time' => 0,
-            'status' => 'pending',
-            'raw_transaction' => [
-                'order_id' => $order->id,
-                'to_address' => $adminAddress->address,
-                'purpose' => 'service_fee',
-                'fee_percent' => $serviceFeePercent,
-            ],
-        ]);
-
-        // 8. Update buyer's balance to reflect both withdrawals
-        $buyerXmrWallet->updateBalance();
-
-        // 9. Mark order as completed
-        $order->update([
-            'status' => 'completed',
-            'completed_at' => now(),
-            'txid' => $sellerTxid,
-        ]);
-
-        // 10. Create notification message
-        UserMessage::create([
-            'sender_id' => $order->user_id,
-            'receiver_id' => $order->listing->user_id,
-            'message' => "Order #{$order->id} has been completed.\nPayment: " . number_format($sellerAmount, 12) . " XMR\nService fee ({$serviceFeePercent}%): " . number_format($serviceFeeAmount, 12) . " XMR\nTransaction ID: {$sellerTxid}\n\nThe monero:sync command will detect and credit your wallet once confirmed (10 confirmations required).",
-            'order_id' => $order->id,
-        ]);
-
-        \Log::info("Order #{$order->id} completed with blockchain transactions", [
-            'seller_txid' => $sellerTxid,
-            'admin_txid' => $adminTxid,
-            'seller_amount' => $sellerAmount,
-            'service_fee' => $serviceFeeAmount,
-            'seller_address' => $sellerAddress->address,
-            'admin_address' => $adminAddress->address,
-        ]);
     }
 
     /**
@@ -592,47 +347,82 @@ class OrderController extends Controller
             }
         }
 
-        // Create order and deduct balance in transaction
-        DB::transaction(function () use ($user, $listing, $data, $crypto_value, $usd_price, $encryptedAddress) {
-            // Deduct balance from main wallet (escrow for order)
-            $wallet = $user->wallets()->where('currency', $data['currency'])->firstOrFail();
+        // Create order and escrow wallet in transaction
+        try {
+            DB::transaction(function () use ($user, $listing, $data, $crypto_value, $usd_price, $encryptedAddress) {
+                // 1. Create order with encrypted delivery address
+                $order = $user->orders()->create([
+                    'listing_id' => $listing->id,
+                    'quantity' => $data['quantity'],
+                    'currency' => $data['currency'],
+                    'crypto_value' => $crypto_value,
+                    'usd_price' => $usd_price,
+                    'status' => 'pending',
+                    'encrypted_delivery_address' => $encryptedAddress,
+                ]);
 
-            // Create wallet transaction for order escrow
-            $wallet->transactions()->create([
-                'amount' => -$crypto_value,
-                'type' => 'order_escrow',
-                'comment' => "Escrowed for order #{$listing->id}",
-            ]);
+                // 2. Create escrow wallet
+                $escrowService = new EscrowService();
+                $escrowWallet = $escrowService->createEscrowForOrder($order);
 
-            // Update wallet balance
-            $wallet->decrement('balance', $crypto_value);
+                // 3. Fund escrow from buyer's wallet
+                $txid = $escrowService->fundEscrow($escrowWallet, $order);
 
-            // Create order with encrypted delivery address
-            $order = $user->orders()->create([
+                if (!$txid) {
+                    throw new \Exception("Failed to fund escrow wallet");
+                }
+
+                // 4. Update order with escrow info
+                $order->update([
+                    'escrow_wallet_id' => $escrowWallet->id,
+                    'txid' => $txid, // Store initial funding transaction
+                ]);
+
+                // 5. Create wallet transaction record for buyer (for balance tracking)
+                $wallet = $user->wallets()->where('currency', $data['currency'])->firstOrFail();
+                $wallet->transactions()->create([
+                    'amount' => -$crypto_value,
+                    'type' => 'order_escrow',
+                    'comment' => "Sent to escrow for order #{$order->id}",
+                ]);
+
+                // 6. Update buyer's wallet balance
+                $wallet->decrement('balance', $crypto_value);
+
+                // 7. Create message to vendor
+                $messageContent = "New order #{$order->id}:\n";
+                $messageContent .= "Quantity: {$data['quantity']}\n";
+                $messageContent .= "Amount: {$crypto_value} ".strtoupper($data['currency'])."\n";
+                $messageContent .= "Escrow Address: {$escrowWallet->address}\n";
+                $messageContent .= "Note: ".(($data['note'] ?? 'No message provided'));
+
+                UserMessage::create([
+                    'sender_id' => $user->id,
+                    'receiver_id' => $listing->user_id,
+                    'message' => $messageContent,
+                    'order_id' => $order->id,
+                ]);
+
+                Log::info("Order created with escrow", [
+                    'order_id' => $order->id,
+                    'escrow_wallet' => $escrowWallet->wallet_name,
+                    'funding_txid' => $txid,
+                ]);
+            });
+
+            return redirect()->route('orders.index')->with('success', 'Order placed successfully! Funds sent to escrow.');
+
+        } catch (\Exception $e) {
+            Log::error("Failed to create order with escrow", [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id,
                 'listing_id' => $listing->id,
-                'quantity' => $data['quantity'],
-                'currency' => $data['currency'],
-                'crypto_value' => $crypto_value,
-                'usd_price' => $usd_price,
-                'status' => 'pending',
-                'encrypted_delivery_address' => $encryptedAddress,
             ]);
 
-            // Create message to vendor
-            $messageContent = "New order #{$order->id}:\n";
-            $messageContent .= "Quantity: {$data['quantity']}\n";
-            $messageContent .= "Amount: {$crypto_value} ".strtoupper($data['currency'])."\n";
-            $messageContent .= "Note: ".(($data['note'] ?? 'No message provided'));
-
-            UserMessage::create([
-                'sender_id' => $user->id,
-                'receiver_id' => $listing->user_id,
-                'message' => $messageContent,
-                'order_id' => $order->id,
-            ]);
-        });
-
-        return redirect()->route('orders.index')->with('success', 'Order placed successfully!');
+            return redirect()->back()->withErrors([
+                'error' => 'Failed to create order. Please try again or contact support.',
+            ])->withInput();
+        }
     }
 
     /**
