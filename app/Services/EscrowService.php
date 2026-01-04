@@ -201,6 +201,31 @@ class EscrowService
             'escrow_address' => $escrowWallet->address,
         ]);
 
+        // Create transaction record for internal transfer (so updateBalance works)
+        $btcWallet = BtcWallet::where('name', $escrowWallet->wallet_name)->first();
+        if ($btcWallet) {
+            $btcWallet->transactions()->create([
+                'txid' => $txid,
+                'amount' => $order->crypto_value,
+                'type' => 'deposit',
+                'status' => 'confirmed',
+                'address' => $escrowWallet->address,
+                'confirmations' => 1,
+            ]);
+
+            // Update balance immediately for internal transfer
+            $btcWallet->updateBalance();
+            $escrowWallet->update(['balance' => $btcWallet->balance]);
+        }
+
+        // Mark order as funded immediately (internal transfers are instant)
+        $order->update(['escrow_funded_at' => now()]);
+
+        Log::info("Escrow wallet funded for order #{$order->id}", [
+            'balance' => $escrowWallet->balance,
+            'funded_at' => $order->fresh()->escrow_funded_at,
+        ]);
+
         return $txid;
     }
 
@@ -229,6 +254,31 @@ class EscrowService
             'txid' => $txid,
             'amount' => $order->crypto_value,
             'escrow_address' => $escrowWallet->address,
+        ]);
+
+        // Create transaction record for internal transfer (so updateBalance works)
+        $xmrWallet = XmrWallet::where('name', $escrowWallet->wallet_name)->first();
+        if ($xmrWallet) {
+            $xmrWallet->transactions()->create([
+                'txid' => $txid,
+                'amount' => $order->crypto_value,
+                'type' => 'deposit',
+                'status' => 'unlocked',
+                'address' => $escrowWallet->address,
+                'height' => 0,
+            ]);
+
+            // Update balance immediately for internal transfer
+            $xmrWallet->updateBalance();
+            $escrowWallet->update(['balance' => $xmrWallet->unlocked_balance]);
+        }
+
+        // Mark order as funded immediately (internal transfers are instant)
+        $order->update(['escrow_funded_at' => now()]);
+
+        Log::info("Escrow wallet funded for order #{$order->id}", [
+            'balance' => $escrowWallet->balance,
+            'funded_at' => $order->fresh()->escrow_funded_at,
         ]);
 
         return $txid;
