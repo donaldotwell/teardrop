@@ -75,3 +75,31 @@ if (!function_exists('user_can_post')) {
         return auth()->check() && auth()->user()->status === 'active';
     }
 }
+
+if (!function_exists('estimate_btc_transaction_fee')) {
+    /**
+     * Estimate Bitcoin transaction fee based on amount.
+     * Returns estimated fee in BTC based on fee tiers.
+     *
+     * @param float $amount Transaction amount in BTC
+     * @return float Estimated fee in BTC
+     */
+    function estimate_btc_transaction_fee(float $amount): float
+    {
+        // Get fee rate for this amount (sat/vB)
+        $feeRate = \App\Repositories\BitcoinRepository::getFeeRateForAmount($amount);
+
+        // Estimate transaction size in vBytes
+        // Average transaction: 1 input (~148 vB) + 2 outputs (~68 vB) = ~226 vB
+        // Conservative estimate: 250 vBytes
+        $estimatedVBytes = 250;
+
+        // Calculate fee in satoshis
+        $feeSatoshis = $feeRate * $estimatedVBytes;
+
+        // Convert to BTC (1 BTC = 100,000,000 satoshis)
+        $feeBtc = $feeSatoshis / 100000000;
+
+        return round($feeBtc, 8);
+    }
+}

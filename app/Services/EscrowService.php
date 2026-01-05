@@ -313,11 +313,6 @@ class EscrowService
     {
         $seller = $order->listing->user;
 
-        // Calculate amounts
-        $serviceFeePercent = config('fees.order_completion_percentage', 3);
-        $serviceFeeAmount = round(($escrowWallet->balance * $serviceFeePercent) / 100, 8);
-        $sellerAmount = round($escrowWallet->balance - $serviceFeeAmount, 8);
-
         // Get seller address
         $sellerWallet = $seller->btcWallet;
         if (!$sellerWallet) {
@@ -341,7 +336,44 @@ class EscrowService
             $adminAddress = $adminWallet->generateNewAddress();
         }
 
-        // Send to seller
+        // INTELLIGENT FEE CALCULATION:
+        // Step 1: Estimate network fees for BOTH transactions
+        $serviceFeePercent = config('fees.order_completion_percentage', 3);
+        $estimatedServiceFee = round(($escrowWallet->balance * $serviceFeePercent) / 100, 8);
+        $estimatedSellerAmount = round($escrowWallet->balance - $estimatedServiceFee, 8);
+
+        // Estimate network fees using fee tier system
+        $sellerNetworkFee = estimate_btc_transaction_fee($estimatedSellerAmount);
+        $adminNetworkFee = estimate_btc_transaction_fee($estimatedServiceFee);
+
+        Log::info("Escrow release fee calculation for order #{$order->id}", [
+            'escrow_balance' => $escrowWallet->balance,
+            'estimated_seller_amount' => $estimatedSellerAmount,
+            'estimated_service_fee' => $estimatedServiceFee,
+            'seller_network_fee' => $sellerNetworkFee,
+            'admin_network_fee' => $adminNetworkFee,
+        ]);
+
+        // Step 2: Calculate net amount after deducting BOTH network fees
+        $totalNetworkFees = $sellerNetworkFee + $adminNetworkFee;
+        $netAmountAfterFees = round($escrowWallet->balance - $totalNetworkFees, 8);
+
+        if ($netAmountAfterFees <= 0) {
+            throw new \Exception("Escrow balance insufficient to cover network fees");
+        }
+
+        // Step 3: Split net amount - seller gets 97%, admin gets 3%
+        $serviceFeeAmount = round(($netAmountAfterFees * $serviceFeePercent) / 100, 8);
+        $sellerAmount = round($netAmountAfterFees - $serviceFeeAmount, 8);
+
+        Log::info("Final amounts after fee accounting", [
+            'net_after_fees' => $netAmountAfterFees,
+            'seller_amount' => $sellerAmount,
+            'service_fee_amount' => $serviceFeeAmount,
+            'total_network_fees' => $totalNetworkFees,
+        ]);
+
+        // Step 4: Send to seller first
         $sellerTxid = BitcoinRepository::sendBitcoin(
             $escrowWallet->wallet_name,
             $sellerAddress->address,
@@ -352,11 +384,38 @@ class EscrowService
             throw new \Exception("Failed to send Bitcoin to seller from escrow");
         }
 
-        // Send to admin
+        Log::info("Seller payment sent", [
+            'txid' => $sellerTxid,
+            'amount' => $sellerAmount,
+        ]);
+
+        // Step 5: Send remaining balance to admin (whatever is left after seller transaction)
+        // This is more reliable than using the calculated amount because actual network fees may vary
+        // Get current escrow wallet balance from Bitcoin node to see what's actually left
+        $repository = new BitcoinRepository();
+        $remainingBalance = $repository->getWalletBalance($escrowWallet->wallet_name);
+
+        if ($remainingBalance === null) {
+            throw new \Exception("Failed to get escrow wallet balance after seller payment");
+        }
+
+        if ($remainingBalance < 0.00001) {
+            throw new \Exception("Insufficient balance remaining in escrow for admin fee after seller payment");
+        }
+
+        Log::info("Remaining balance after seller payment", [
+            'remaining' => $remainingBalance,
+            'will_send_to_admin' => $remainingBalance,
+        ]);
+
+        // Send ALL remaining balance to admin with fee deducted from amount
+        // This ensures we can send the entire remaining balance without "insufficient funds" errors
+        // Admin receives slightly less due to network fee, but all escrow funds are cleared
         $adminTxid = BitcoinRepository::sendBitcoin(
             $escrowWallet->wallet_name,
             $adminAddress->address,
-            $serviceFeeAmount
+            $remainingBalance,
+            true  // subtractFeeFromAmount = true (admin pays the network fee)
         );
 
         if (!$adminTxid) {
@@ -370,7 +429,8 @@ class EscrowService
             'seller_txid' => $sellerTxid,
             'admin_txid' => $adminTxid,
             'seller_amount' => $sellerAmount,
-            'service_fee' => $serviceFeeAmount,
+            'admin_amount' => $remainingBalance,
+            'total_network_fees' => $totalNetworkFees,
         ]);
 
         return [

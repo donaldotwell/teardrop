@@ -56,11 +56,34 @@
                 </div>
             </div>
 
+            @if($estimated_fee > 0)
+            <div class="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-lg">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Transaction Fee Breakdown</h4>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Order Amount:</span>
+                        <span class="font-medium text-gray-900">{{ $crypto_value }} {{ strtoupper($currency) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Network Fee (estimated):</span>
+                        <span class="font-medium text-amber-700">{{ $estimated_fee }} {{ strtoupper($currency) }}</span>
+                    </div>
+                    <div class="pt-2 border-t border-amber-200 flex justify-between items-center">
+                        <span class="font-semibold text-gray-900">Total Required:</span>
+                        <span class="font-bold text-amber-700">{{ $total_needed }} {{ strtoupper($currency) }}</span>
+                    </div>
+                </div>
+                <p class="mt-3 text-xs text-gray-500">
+                    Network fee is calculated based on transaction size and current network conditions to ensure fast confirmation.
+                </p>
+            </div>
+            @endif
+
             <div class="mt-6 p-4 bg-gray-50 rounded-lg">
                 <div class="flex items-center space-x-2 text-sm text-gray-600">
                     <span class="font-medium">Your {{ strtoupper($currency) }} Balance:</span>
                     <span class="font-semibold text-amber-700">
-                        {{ $user_balance[$currency]['balance'] }} {{ strtoupper($currency) }}
+                        {{ auth()->user()->getBalance()[$currency]['balance'] }} {{ strtoupper($currency) }}
                     </span>
                 </div>
             </div>

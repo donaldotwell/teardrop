@@ -19,8 +19,8 @@ class MoneroRepository
 
     public function __construct()
     {
-        $this->rpcUrl = config('monero.scheme') . '://' . 
-                        config('monero.host') . ':' . 
+        $this->rpcUrl = config('monero.scheme') . '://' .
+                        config('monero.host') . ':' .
                         config('monero.port') . '/json_rpc';
         $this->rpcUser = config('monero.user');
         $this->rpcPassword = config('monero.password');
@@ -116,7 +116,7 @@ class MoneroRepository
     public static function getOrCreateWalletForUser(User $user): XmrWallet
     {
         $existingWallet = $user->xmrWallet;
-        
+
         if ($existingWallet) {
             return $existingWallet;
         }
@@ -142,7 +142,7 @@ class MoneroRepository
                 $viewKey = $repository->getViewKey();
                 $spendKey = $repository->getSpendKey();
                 $seed = $repository->getSeed();
-                
+
                 if (!$addressData) {
                     throw new MoneroRpcException("Failed to get address from existing wallet");
                 }
@@ -281,7 +281,7 @@ class MoneroRepository
 
         // Get the mnemonic seed (CRITICAL for recovery)
         $seed = $this->getSeed();
-        
+
         // Get view and spend keys
         $viewKey = $this->getViewKey();
         $spendKey = $this->getSpendKey();
@@ -373,10 +373,10 @@ class MoneroRepository
     public static function getBalance(string $walletName): ?array
     {
         $repository = new static();
-        
+
         // Get wallet from database to retrieve password hash
         $wallet = XmrWallet::where('name', $walletName)->first();
-        
+
         if (!$wallet || !$wallet->user) {
             Log::error("Wallet not found or user missing for balance check: {$walletName}");
             return null;
@@ -431,10 +431,10 @@ class MoneroRepository
     public static function createSubaddress(string $walletName, int $accountIndex = 0, string $label = null): ?array
     {
         $repository = new static();
-        
+
         // Get wallet from database to retrieve password
         $wallet = XmrWallet::where('name', $walletName)->first();
-        
+
         if (!$wallet || !$wallet->user) {
             Log::error("Wallet not found or user missing for subaddress: {$walletName}");
             return null;
@@ -530,10 +530,10 @@ class MoneroRepository
     public static function transfer(string $walletName, string $address, float $amount): ?string
     {
         $repository = new static();
-        
+
         // Get wallet from database to retrieve password
         $wallet = XmrWallet::where('name', $walletName)->first();
-        
+
         if (!$wallet || !$wallet->user) {
             Log::error("Wallet not found or user missing for transfer: {$walletName}");
             return null;
@@ -605,7 +605,7 @@ class MoneroRepository
             Log::debug("  Wallet {$wallet->id}: Starting sync");
 
             $repository = new static();
-            
+
             if (!$wallet->user) {
                 Log::error("User missing for wallet {$wallet->id}, cannot sync");
                 return;
@@ -687,15 +687,15 @@ class MoneroRepository
             }
         }
 
-        // Determine status
+        // Determine status based on confirmation thresholds
         $confirmations = $txData['confirmations'] ?? 0;
         $unlockTime = $txData['unlock_time'] ?? 0;
+        $minConfirmations = config('monero.min_confirmations', 10);
 
         $status = 'pending';
-        if ($confirmations > 0) {
+        if ($confirmations > 0 && $confirmations < $minConfirmations) {
             $status = 'confirmed';
-        }
-        if ($confirmations >= config('monero.min_confirmations', 10)) {
+        } elseif ($confirmations >= $minConfirmations) {
             $status = 'unlocked';
         }
 
@@ -730,16 +730,36 @@ class MoneroRepository
      */
     private function updateExistingTransaction(XmrTransaction $transaction, array $txData): void
     {
+        $oldConfirmations = $transaction->confirmations;
         $newConfirmations = $txData['confirmations'] ?? 0;
+        $minConfirmations = config('monero.min_confirmations', 10);
 
-        if ($newConfirmations !== $transaction->confirmations) {
-            $transaction->updateConfirmations(
-                $newConfirmations,
-                $txData['height'] ?? $transaction->height
-            );
-
-            Log::info("Updated XMR transaction {$transaction->txid}: {$newConfirmations} confirmations");
+        // Only update if confirmations have changed
+        if ($oldConfirmations === $newConfirmations) {
+            Log::debug("          No confirmation change ({$oldConfirmations} confirmations)");
+            return;
         }
+
+        // Always update confirmations count, but track progress toward unlock threshold
+        if ($transaction->status === 'pending' && $newConfirmations > 0 && $newConfirmations < $minConfirmations) {
+            // Update to confirmed but not yet unlocked
+            $transaction->update([
+                'confirmations' => $newConfirmations,
+                'status' => 'confirmed',
+                'height' => $txData['height'] ?? $transaction->height,
+                'confirmed_at' => $transaction->confirmed_at ?? now(),
+            ]);
+            Log::debug("          Updated confirmations ({$oldConfirmations} -> {$newConfirmations}) to confirmed status (unlock threshold: {$minConfirmations})");
+            return;
+        }
+
+        // Process full confirmation update (may trigger unlock and balance update)
+        $transaction->updateConfirmations(
+            $newConfirmations,
+            $txData['height'] ?? $transaction->height
+        );
+
+        Log::info("Updated XMR transaction {$transaction->txid}: {$newConfirmations} confirmations");
     }
 
     /**

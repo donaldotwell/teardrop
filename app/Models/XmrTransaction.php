@@ -59,10 +59,12 @@ class XmrTransaction extends Model
     public function updateConfirmations(int $confirmations, int $height = null)
     {
         $this->confirmations = $confirmations;
-        
+
         if ($height) {
             $this->height = $height;
         }
+
+        $minConfirmations = config('monero.min_confirmations', 10);
 
         // Update status based on confirmations
         if ($confirmations > 0 && $this->status === 'pending') {
@@ -70,11 +72,11 @@ class XmrTransaction extends Model
             $this->confirmed_at = now();
         }
 
-        // Check if unlocked (Monero requires 10 confirmations by default)
-        if ($confirmations >= 10 && $this->status === 'confirmed') {
+        // Check if unlocked (requires min_confirmations from config)
+        if ($confirmations >= $minConfirmations && $this->status === 'confirmed') {
             $this->status = 'unlocked';
             $this->unlocked_at = now();
-            
+
             // Process confirmation and update internal wallet balance
             $this->processConfirmation();
         }

@@ -101,9 +101,19 @@ class OrderController extends Controller
 
         $crypto_value = convert_usd_to_crypto($usd_price, $data['currency']);
 
-        if ($crypto_value > $user_balance[$data['currency']]['balance']) {
+        // Calculate estimated transaction fee (only for BTC)
+        $estimatedFee = 0;
+        if ($data['currency'] === 'btc') {
+            $estimatedFee = estimate_btc_transaction_fee($crypto_value);
+        }
+
+        // Total amount needed = transaction amount + fee
+        $totalNeeded = $crypto_value + $estimatedFee;
+
+        if ($totalNeeded > $user_balance[$data['currency']]['balance']) {
+            $feeDisplay = $estimatedFee > 0 ? " (including ~{$estimatedFee} {$data['currency']} network fee)" : "";
             return redirect()->back()->withErrors([
-                'error' => "Insufficient balance for this transaction. Your current balance is {$user_balance[$data['currency']]['balance']} {$data['currency']} which is not enough to cover the transaction of {$crypto_value} {$data['currency']}.",
+                'error' => "Insufficient balance for this transaction. Your current balance is {$user_balance[$data['currency']]['balance']} {$data['currency']} which is not enough to cover the transaction of {$crypto_value} {$data['currency']}{$feeDisplay}.",
             ]);
         }
 
@@ -114,6 +124,8 @@ class OrderController extends Controller
             'crypto_value' => $crypto_value,
             'currency'      => $data['currency'],
             'quantity'      => $data['quantity'],
+            'estimated_fee' => $estimatedFee,
+            'total_needed'  => $totalNeeded,
         ]);
     }
 
@@ -319,14 +331,24 @@ class OrderController extends Controller
 
         $user = $request->user();
 
-        // Recheck balance
+        // Recheck balance including transaction fees
         $user_balance = $user->getBalance();
         $usd_price = $listing->price * $data['quantity'];
         $crypto_value = convert_usd_to_crypto($usd_price, $data['currency']);
 
-        if ($crypto_value > $user_balance[$data['currency']]['balance']) {
+        // Calculate estimated transaction fee (only for BTC)
+        $estimatedFee = 0;
+        if ($data['currency'] === 'btc') {
+            $estimatedFee = estimate_btc_transaction_fee($crypto_value);
+        }
+
+        // Total amount needed = transaction amount + fee
+        $totalNeeded = $crypto_value + $estimatedFee;
+
+        if ($totalNeeded > $user_balance[$data['currency']]['balance']) {
+            $feeDisplay = $estimatedFee > 0 ? " + {$estimatedFee} fee" : "";
             return redirect()->back()->withErrors([
-                'error' => "Insufficient balance. Needed: {$crypto_value} {$data['currency']}, Available: {$user_balance[$data['currency']]['balance']} {$data['currency']}",
+                'error' => "Insufficient balance. Needed: {$crypto_value}{$feeDisplay} {$data['currency']}, Available: {$user_balance[$data['currency']]['balance']} {$data['currency']}",
             ]);
         }
 

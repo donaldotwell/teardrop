@@ -28,6 +28,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Transaction Fee Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Fee tiers determine the transaction fee rate (sat/vB) based on the
+    | transaction amount in BTC. Higher amounts get higher priority fees
+    | for faster confirmation times.
+    |
+    */
+
+    'fee_tiers' => [
+        ['min' => 0.0001, 'max' => 0.001, 'rate' => 5],   // ~20-40 min (3-4 blocks)
+        ['min' => 0.001, 'max' => 0.01, 'rate' => 10],    // ~10-20 min (1-2 blocks)
+        ['min' => 0.01, 'max' => 0.1, 'rate' => 20],      // ~10-15 min (1 block)
+        ['min' => 0.1, 'max' => 1.0, 'rate' => 30],       // ~10 min (next block)
+        ['min' => 1.0, 'max' => null, 'rate' => 50],      // ~10 min (priority next block)
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Wallet Configuration
     |--------------------------------------------------------------------------
     */

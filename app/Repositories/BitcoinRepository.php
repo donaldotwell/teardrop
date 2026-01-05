@@ -197,6 +197,10 @@ class BitcoinRepository
 
         Log::debug("      Creating NEW transaction record: type={$type}, amount=" . abs($txData['amount']));
 
+        $confirmations = $txData['confirmations'] ?? 0;
+        $requiredConfirmations = config('bitcoinrpc.confirmations_required', 6);
+        $isConfirmed = $confirmations >= $requiredConfirmations;
+
         // Create transaction record
         $transaction = BtcTransaction::create([
             'btc_wallet_id' => $wallet->id,
@@ -205,11 +209,11 @@ class BitcoinRepository
             'type' => $type,
             'amount' => abs($txData['amount']),
             'fee' => abs($txData['fee'] ?? 0),
-            'confirmations' => $txData['confirmations'] ?? 0,
-            'status' => ($txData['confirmations'] ?? 0) > 0 ? 'confirmed' : 'pending',
+            'confirmations' => $confirmations,
+            'status' => $isConfirmed ? 'confirmed' : 'pending',
             'raw_transaction' => $txData,
             'block_hash' => $txData['blockhash'] ?? null,
-            'confirmed_at' => ($txData['confirmations'] ?? 0) > 0 ? now() : null
+            'confirmed_at' => $isConfirmed ? now() : null
         ]);
 
         Log::info("New BTC transaction detected: {$transaction->txid} ({$type}) for {$transaction->amount} BTC on wallet {$wallet->name}");
@@ -243,21 +247,37 @@ class BitcoinRepository
     {
         $oldConfirmations = $transaction->confirmations;
         $newConfirmations = $txData['confirmations'] ?? 0;
+        $requiredConfirmations = config('bitcoinrpc.confirmations_required', 6);
 
         // Only update if confirmations have changed
-        if ($oldConfirmations !== $newConfirmations) {
-            Log::debug("          Updating confirmations: {$oldConfirmations} -> {$newConfirmations}");
-
-            $transaction->updateConfirmations(
-                $newConfirmations,
-                $txData['blockhash'] ?? $transaction->block_hash,
-                $txData['blockheight'] ?? $transaction->block_height
-            );
-
-            Log::info("Updated BTC transaction {$transaction->txid}: {$newConfirmations} confirmations");
-        } else {
+        if ($oldConfirmations === $newConfirmations) {
             Log::debug("          No confirmation change ({$oldConfirmations} confirmations)");
+            return;
         }
+
+        // Always update confirmations count, but skip status change if below threshold
+        // This allows tracking of confirmation progress even before meeting threshold
+        if ($transaction->status === 'pending' && $newConfirmations < $requiredConfirmations) {
+            // Update confirmation count but keep pending status
+            $transaction->update([
+                'confirmations' => $newConfirmations,
+                'block_hash' => $txData['blockhash'] ?? $transaction->block_hash,
+                'block_height' => $txData['blockheight'] ?? $transaction->block_height,
+            ]);
+            Log::debug("          Updated confirmations ({$oldConfirmations} -> {$newConfirmations}) but keeping pending status (threshold: {$requiredConfirmations})");
+            return;
+        }
+
+        // Process full confirmation update (will trigger status change and balance update)
+        Log::debug("          Updating confirmations: {$oldConfirmations} -> {$newConfirmations}");
+
+        $transaction->updateConfirmations(
+            $newConfirmations,
+            $txData['blockhash'] ?? $transaction->block_hash,
+            $txData['blockheight'] ?? $transaction->block_height
+        );
+
+        Log::info("Updated BTC transaction {$transaction->txid}: {$newConfirmations} confirmations");
     }
 
     /**
@@ -348,11 +368,60 @@ class BitcoinRepository
     }
 
     /**
+     * Get wallet balance from Bitcoin node.
+     *
+     * @param string $walletName
+     * @return float|null Balance in BTC, null on failure
+     */
+    public function getWalletBalance(string $walletName): ?float
+    {
+        try {
+            $wallet = $this->client->wallet($walletName);
+            $balanceResponse = $wallet->getBalance();
+            $balance = is_object($balanceResponse) && method_exists($balanceResponse, 'result')
+                ? (float) $balanceResponse->result()
+                : (float) $balanceResponse;
+
+            return $balance;
+        } catch (\Exception $e) {
+            Log::error("Failed to get balance for wallet {$walletName}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get appropriate fee rate (sat/vB) based on transaction amount.
+     *
+     * @param float $amount Amount in BTC
+     * @return int Fee rate in satoshis per virtual byte
+     */
+    public static function getFeeRateForAmount(float $amount): int
+    {
+        $feeTiers = config('bitcoinrpc.fee_tiers', [
+            ['min' => 0.0001, 'max' => 0.001, 'rate' => 5],
+            ['min' => 0.001, 'max' => 0.01, 'rate' => 10],
+            ['min' => 0.01, 'max' => 0.1, 'rate' => 20],
+            ['min' => 0.1, 'max' => 1.0, 'rate' => 30],
+            ['min' => 1.0, 'max' => null, 'rate' => 50],
+        ]);
+
+        foreach ($feeTiers as $tier) {
+            if ($amount >= $tier['min'] && ($tier['max'] === null || $amount < $tier['max'])) {
+                return $tier['rate'];
+            }
+        }
+
+        // Default fallback (should never reach here with proper config)
+        return 10;
+    }
+
+    /**
      * Send Bitcoin from user's wallet to address.
      *
      * @param string $walletName User's wallet name (username_pri)
      * @param string $address Recipient Bitcoin address
      * @param float $amount Amount in BTC
+     * @param bool $subtractFeeFromAmount If true, fee is deducted from amount (sender pays less)
      * @return string|null Transaction ID or null on failure
      */
     /**
@@ -361,9 +430,10 @@ class BitcoinRepository
      * @param string $walletName
      * @param string $address
      * @param float $amount
+     * @param bool $subtractFeeFromAmount If true, deduct fee from amount instead of adding on top
      * @return string|null Transaction ID on success, null on failure
      */
-    public static function sendBitcoin(string $walletName, string $address, float $amount): ?string
+    public static function sendBitcoin(string $walletName, string $address, float $amount, bool $subtractFeeFromAmount = false): ?string
     {
         $repository = new self();
 
@@ -388,8 +458,23 @@ class BitcoinRepository
                 return null;
             }
 
-            // Send transaction (let Bitcoin Core calculate fee automatically)
-            $txidResponse = $wallet->sendToAddress($address, $amount);
+            // Calculate fee rate based on transaction amount using fee tiers
+            $feeRate = static::getFeeRateForAmount($amount);
+
+            // Send transaction with calculated fee rate
+            // Parameters: address, amount, comment, comment_to, subtractFee, replaceable, conf_target, estimate_mode, avoid_reuse, fee_rate
+            $txidResponse = $wallet->sendToAddress(
+                $address,
+                $amount,
+                '',                      // comment
+                '',                      // comment_to
+                $subtractFeeFromAmount,  // subtractfeefromamount - deduct fee from amount if true
+                true,                    // replaceable (BIP125)
+                null,                    // conf_target
+                'unset',                 // estimate_mode
+                null,                    // avoid_reuse
+                $feeRate                 // fee_rate in sat/vB
+            );
             $txid = is_object($txidResponse) && method_exists($txidResponse, 'result')
                 ? $txidResponse->result()
                 : $txidResponse;
@@ -403,6 +488,7 @@ class BitcoinRepository
                 'wallet' => $walletName,
                 'to' => $address,
                 'amount' => $amount,
+                'fee_rate' => $feeRate,
                 'txid' => $txid,
             ]);
 
