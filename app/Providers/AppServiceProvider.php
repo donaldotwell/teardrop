@@ -48,7 +48,7 @@ class AppServiceProvider extends ServiceProvider
                     'Harm Reduction' => '#'
                 ];
 
-                if ($user->hasRole('vendor')) {
+                if ($user->hasRole('user')) {
                     $navigation_links['Start Selling'] = route('vendor.convert');
                 }
 
