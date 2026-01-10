@@ -198,4 +198,29 @@ class Listing extends Model
 
         return true;
     }
+
+    /**
+     * Check if this listing can use early finalization.
+     *
+     * @return bool
+     */
+    public function canUseEarlyFinalization(): bool
+    {
+        if ($this->payment_method !== 'direct') {
+            return false;
+        }
+
+        $category = $this->product->productCategory;
+        return $category->canVendorUseEarlyFinalization($this->user);
+    }
+
+    /**
+     * Get the finalization window for this listing.
+     *
+     * @return \App\Models\FinalizationWindow|null
+     */
+    public function getFinalizationWindow(): ?\App\Models\FinalizationWindow
+    {
+        return $this->product->productCategory->finalizationWindow;
+    }
 }

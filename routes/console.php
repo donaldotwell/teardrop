@@ -4,6 +4,8 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\CheckExpiredDisputeWindows;
+use App\Jobs\UpdateVendorEarlyFinalizationStats;
 
 Schedule::command('bitcoin:sync')
     ->everyMinute()
@@ -24,4 +26,18 @@ Schedule::command('exchange:update')
     ->withoutOverlapping()
     ->onFailure(function () {
         Log::error('Exchange update command failed');
+    });
+
+Schedule::job(new CheckExpiredDisputeWindows)
+    ->hourly()
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        Log::error('Check expired dispute windows job failed');
+    });
+
+Schedule::job(new UpdateVendorEarlyFinalizationStats)
+    ->daily()
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        Log::error('Update vendor early finalization stats job failed');
     });

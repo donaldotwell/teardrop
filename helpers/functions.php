@@ -103,3 +103,80 @@ if (!function_exists('estimate_btc_transaction_fee')) {
         return round($feeBtc, 8);
     }
 }
+
+if (!function_exists('format_dispute_window_duration')) {
+    /**
+     * Format dispute window duration in human-readable format.
+     *
+     * @param int $minutes
+     * @return string
+     */
+    function format_dispute_window_duration(int $minutes): string
+    {
+        if ($minutes === 0) {
+            return 'No dispute window';
+        }
+
+        if ($minutes < 60) {
+            return $minutes . ' minute' . ($minutes > 1 ? 's' : '');
+        }
+
+        if ($minutes < 1440) {
+            $hours = round($minutes / 60, 1);
+            return $hours . ' hour' . ($hours > 1 ? 's' : '');
+        }
+
+        if ($minutes < 10080) {
+            $days = round($minutes / 1440, 1);
+            return $days . ' day' . ($days > 1 ? 's' : '');
+        }
+
+        $weeks = round($minutes / 10080, 1);
+        return $weeks . ' week' . ($weeks > 1 ? 's' : '');
+    }
+}
+
+if (!function_exists('is_dispute_window_expiring_soon')) {
+    /**
+     * Check if dispute window is expiring soon.
+     *
+     * @param \Carbon\Carbon $expiresAt
+     * @param int $thresholdMinutes
+     * @return bool
+     */
+    function is_dispute_window_expiring_soon(\Carbon\Carbon $expiresAt, int $thresholdMinutes = 60): bool
+    {
+        if (now()->greaterThanOrEqualTo($expiresAt)) {
+            return false;
+        }
+
+        $minutesRemaining = now()->diffInMinutes($expiresAt);
+        return $minutesRemaining <= $thresholdMinutes;
+    }
+}
+
+if (!function_exists('can_vendor_use_early_finalization')) {
+    /**
+     * Check if vendor can use early finalization.
+     *
+     * @param \App\Models\User $vendor
+     * @return bool
+     */
+    function can_vendor_use_early_finalization(\App\Models\User $vendor): bool
+    {
+        return $vendor->canUseEarlyFinalization();
+    }
+}
+
+if (!function_exists('get_category_finalization_window')) {
+    /**
+     * Get finalization window for a product category.
+     *
+     * @param \App\Models\ProductCategory $category
+     * @return \App\Models\FinalizationWindow|null
+     */
+    function get_category_finalization_window(\App\Models\ProductCategory $category): ?\App\Models\FinalizationWindow
+    {
+        return $category->finalizationWindow;
+    }
+}

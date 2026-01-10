@@ -50,6 +50,45 @@
                 </div>
             </div>
 
+            <!-- Early Finalization Banner -->
+            @if($order->is_early_finalized)
+                <div class="mb-8 overflow-hidden bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl shadow-lg border border-green-200">
+                    <div class="p-6">
+                        <div class="flex items-start space-x-3">
+                            <span class="flex-shrink-0 inline-flex items-center px-3 py-1 rounded-md text-sm font-bold bg-green-100 text-green-800">
+                                INSTANT PAYMENT
+                            </span>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-green-900">This order used early finalization</h3>
+                                <p class="mt-1 text-sm text-green-700">
+                                    Payment was sent directly to the vendor at purchase time on {{ $order->early_finalized_at->format('M d, Y \a\t h:i A') }}
+                                </p>
+
+                                @if($order->dispute_window_expires_at)
+                                    <div class="mt-4 p-3 bg-white rounded-lg border border-green-200">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm font-medium text-gray-700">Dispute Window:</span>
+                                            @if($order->isDisputeWindowExpired())
+                                                <span class="text-sm font-semibold text-gray-500">Expired on {{ $order->dispute_window_expires_at->format('M d, Y') }}</span>
+                                            @else
+                                                <span class="text-sm font-semibold text-amber-700">
+                                                    Expires {{ $order->dispute_window_expires_at->diffForHumans() }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        @if(!$order->isDisputeWindowExpired())
+                                            <p class="mt-2 text-xs text-gray-600">
+                                                You can file a dispute until {{ $order->dispute_window_expires_at->format('M d, Y \a\t h:i A') }}
+                                            </p>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- Main Content Grid -->
             <div class="grid gap-8 lg:grid-cols-3">
                 <!-- Left Column -->

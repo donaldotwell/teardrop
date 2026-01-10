@@ -43,4 +43,18 @@ return [
     |
     */
     'admin_xmr_wallet_name' => env('ADMIN_XMR_WALLET_NAME', 'admin_xmr'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Early Finalization Settings
+    |--------------------------------------------------------------------------
+    |
+    | Settings for the early finalization feature.
+    |
+    */
+    'early_finalization' => [
+        'min_vendor_level' => env('EARLY_FINALIZATION_MIN_VENDOR_LEVEL', 8),
+        'max_dispute_rate_percentage' => env('EARLY_FINALIZATION_MAX_DISPUTE_RATE', 20.0),
+        'require_pgp_key' => env('EARLY_FINALIZATION_REQUIRE_PGP', true),
+    ],
 ];

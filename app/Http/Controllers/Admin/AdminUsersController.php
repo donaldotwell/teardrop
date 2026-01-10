@@ -36,6 +36,12 @@ class AdminUsersController extends Controller
             $query->where('trust_level', $request->get('trust_level'));
         }
 
+        if ($request->filled('role')) {
+            $query->whereHas('roles', function ($q) use ($request) {
+                $q->where('name', $request->get('role'));
+            });
+        }
+
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->get('date_from'));
         }
@@ -311,5 +317,31 @@ class AdminUsersController extends Controller
 
         return redirect()->back()
             ->with('success', "Successfully {$action} {$validated['amount']} {$validated['currency']} to {$user->username_pub}'s wallet.");
+    }
+
+    /**
+     * Toggle early finalization access for vendor
+     */
+    public function toggleEarlyFinalizationAccess(User $user)
+    {
+        if ($user->vendor_level < 1) {
+            return redirect()->back()->withErrors([
+                'error' => 'User must be a vendor to have early finalization access.'
+            ]);
+        }
+
+        $newStatus = !$user->early_finalization_enabled;
+        $user->update(['early_finalization_enabled' => $newStatus]);
+
+        // Create audit log
+        \App\Models\AuditLog::log('early_finalization_toggled', $user->id, [
+            'enabled' => $newStatus,
+            'toggled_by' => auth()->id(),
+        ]);
+
+        $status = $newStatus ? 'enabled' : 'disabled';
+
+        return redirect()->back()
+            ->with('success', "Early finalization access {$status} for {$user->username_pub}.");
     }
 }

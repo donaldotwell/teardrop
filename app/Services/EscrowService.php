@@ -616,4 +616,207 @@ class EscrowService
         $suffix = $order->currency === 'xmr' ? '.wallet' : '';
         return "escrow_order_{$order->id}_{$order->currency}{$suffix}";
     }
+
+    /**
+     * Process direct payment to vendor (early finalization).
+     *
+     * @param \App\Models\Order $order
+     * @param \App\Models\User $vendor
+     * @return array ['vendor_txid' => string, 'admin_txid' => string]
+     * @throws \Exception
+     */
+    public function processDirectPayment(Order $order, User $vendor): array
+    {
+        if ($order->currency === 'btc') {
+            return $this->processDirectBitcoinPayment($order, $vendor);
+        } elseif ($order->currency === 'xmr') {
+            return $this->processDirectMoneroPayment($order, $vendor);
+        }
+
+        throw new \Exception("Unsupported currency: {$order->currency}");
+    }
+
+    /**
+     * Process direct Bitcoin payment.
+     */
+    private function processDirectBitcoinPayment(Order $order, User $vendor): array
+    {
+        $buyer = $order->user;
+        $repository = new BitcoinRepository();
+
+        // Calculate amounts
+        $adminFeePercentage = config('fees.order_completion_percentage', 3);
+        $adminFee = $order->crypto_value * ($adminFeePercentage / 100);
+        $vendorAmount = $order->crypto_value - $adminFee;
+
+        // Get wallets
+        $buyerWallet = $buyer->btcWallet;
+        $vendorWallet = $vendor->btcWallet;
+
+        if (!$buyerWallet || !$vendorWallet) {
+            throw new \Exception("Buyer or vendor does not have a Bitcoin wallet");
+        }
+
+        // Lock buyer wallet
+        $buyerWallet = BtcWallet::where('id', $buyerWallet->id)->lockForUpdate()->first();
+
+        // Verify balance
+        if ($buyerWallet->balance < $order->crypto_value) {
+            throw new \Exception("Insufficient buyer balance");
+        }
+
+        // Get addresses
+        $vendorAddress = $vendorWallet->getCurrentAddress();
+        if (!$vendorAddress) {
+            $vendorAddress = $vendorWallet->generateNewAddress();
+        }
+
+        // Get admin wallet
+        $adminWalletName = config('fees.admin_btc_wallet_name', 'admin');
+        $adminBtcWallet = BtcWallet::where('name', $adminWalletName)->first();
+        if (!$adminBtcWallet) {
+            throw new \Exception("Admin Bitcoin wallet not found");
+        }
+
+        $adminAddress = $adminBtcWallet->getCurrentAddress();
+        if (!$adminAddress) {
+            $adminAddress = $adminBtcWallet->generateNewAddress();
+        }
+
+        // Send to vendor
+        $vendorTxid = $repository->sendToAddress(
+            $buyerWallet->name,
+            $vendorAddress->address,
+            $vendorAmount
+        );
+
+        if (!$vendorTxid) {
+            throw new \Exception("Failed to send Bitcoin to vendor");
+        }
+
+        // Send admin fee
+        $adminTxid = $repository->sendToAddress(
+            $buyerWallet->name,
+            $adminAddress->address,
+            $adminFee
+        );
+
+        if (!$adminTxid) {
+            throw new \Exception("Failed to send admin fee");
+        }
+
+        // Deduct from buyer wallet
+        $buyerWallet->decrement('balance', $order->crypto_value);
+
+        // Create transaction records
+        $buyerWallet->transactions()->create([
+            'amount' => -$order->crypto_value,
+            'type' => 'direct_order',
+            'txid' => $vendorTxid,
+            'comment' => "Direct payment for order #{$order->id}",
+        ]);
+
+        Log::info("Direct Bitcoin payment processed", [
+            'order_id' => $order->id,
+            'vendor_txid' => $vendorTxid,
+            'admin_txid' => $adminTxid,
+            'vendor_amount' => $vendorAmount,
+            'admin_fee' => $adminFee,
+        ]);
+
+        return [
+            'vendor_txid' => $vendorTxid,
+            'admin_txid' => $adminTxid,
+        ];
+    }
+
+    /**
+     * Process direct Monero payment.
+     */
+    private function processDirectMoneroPayment(Order $order, User $vendor): array
+    {
+        $buyer = $order->user;
+        $repository = new MoneroRepository();
+
+        // Calculate amounts
+        $adminFeePercentage = config('fees.order_completion_percentage', 3);
+        $adminFee = $order->crypto_value * ($adminFeePercentage / 100);
+        $vendorAmount = $order->crypto_value - $adminFee;
+
+        // Get buyer wallet
+        $buyerWallet = $buyer->wallets()->where('currency', 'xmr')->lockForUpdate()->first();
+        if (!$buyerWallet) {
+            throw new \Exception("Buyer does not have a Monero wallet");
+        }
+
+        // Verify balance
+        if ($buyerWallet->balance < $order->crypto_value) {
+            throw new \Exception("Insufficient buyer balance");
+        }
+
+        // Get vendor XMR wallet
+        $vendorXmrWallet = $vendor->xmrWallet;
+        if (!$vendorXmrWallet) {
+            throw new \Exception("Vendor does not have a Monero wallet");
+        }
+
+        $vendorAddress = $vendorXmrWallet->getCurrentAddress();
+        if (!$vendorAddress) {
+            $vendorAddress = $vendorXmrWallet->generateNewAddress();
+        }
+
+        // Get admin wallet (for future implementation)
+        // For now, use placeholder - admin XMR wallet needs to be set up
+        $adminAddress = config('monero.admin_address');
+        if (!$adminAddress) {
+            throw new \Exception("Admin Monero address not configured");
+        }
+
+        // Send to vendor
+        $buyerXmrWallet = $buyer->xmrWallet;
+        $vendorTxid = $repository->transfer(
+            $buyerXmrWallet->wallet_name,
+            $vendorAddress->address,
+            $vendorAmount
+        );
+
+        if (!$vendorTxid) {
+            throw new \Exception("Failed to send Monero to vendor");
+        }
+
+        // Send admin fee
+        $adminTxid = $repository->transfer(
+            $buyerXmrWallet->wallet_name,
+            $adminAddress,
+            $adminFee
+        );
+
+        if (!$adminTxid) {
+            throw new \Exception("Failed to send admin fee");
+        }
+
+        // Deduct from buyer wallet
+        $buyerWallet->decrement('balance', $order->crypto_value);
+
+        // Create transaction records
+        $buyerWallet->transactions()->create([
+            'amount' => -$order->crypto_value,
+            'type' => 'direct_order',
+            'txid' => $vendorTxid,
+            'comment' => "Direct payment for order #{$order->id}",
+        ]);
+
+        Log::info("Direct Monero payment processed", [
+            'order_id' => $order->id,
+            'vendor_txid' => $vendorTxid,
+            'admin_txid' => $adminTxid,
+            'vendor_amount' => $vendorAmount,
+            'admin_fee' => $adminFee,
+        ]);
+
+        return [
+            'vendor_txid' => $vendorTxid,
+            'admin_txid' => $adminTxid,
+        ];
+    }
 }

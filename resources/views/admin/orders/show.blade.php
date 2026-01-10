@@ -61,6 +61,42 @@
                 </div>
             </div>
 
+            {{-- Early Finalization Info --}}
+            @if($order->is_early_finalized)
+                <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-start space-x-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-bold bg-green-100 text-green-800">
+                            EARLY FINALIZED
+                        </span>
+                        <div class="flex-1">
+                            <h3 class="text-sm font-semibold text-green-900">Direct Payment to Vendor</h3>
+                            <div class="mt-2 space-y-1 text-sm text-green-700">
+                                <div><strong>Finalized:</strong> {{ $order->early_finalized_at->format('M d, Y \a\t h:i A') }}</div>
+                                @if($order->finalizationWindow)
+                                    <div><strong>Window:</strong> {{ $order->finalizationWindow->name }} ({{ $order->finalizationWindow->getHumanReadableDuration() }})</div>
+                                @endif
+                                @if($order->dispute_window_expires_at)
+                                    <div>
+                                        <strong>Dispute Window:</strong>
+                                        @if($order->isDisputeWindowExpired())
+                                            <span class="text-gray-600">Expired {{ $order->dispute_window_expires_at->format('M d, Y') }}</span>
+                                        @else
+                                            <span class="text-amber-700">Expires {{ $order->dispute_window_expires_at->diffForHumans() }}</span>
+                                        @endif
+                                    </div>
+                                @endif
+                                @if($order->direct_payment_txid)
+                                    <div><strong>Vendor TX:</strong> <code class="text-xs bg-white px-2 py-0.5 rounded">{{ substr($order->direct_payment_txid, 0, 16) }}...</code></div>
+                                @endif
+                                @if($order->admin_fee_txid)
+                                    <div><strong>Admin Fee TX:</strong> <code class="text-xs bg-white px-2 py-0.5 rounded">{{ substr($order->admin_fee_txid, 0, 16) }}...</code></div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             {{-- Order Stats --}}
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6 border-t border-gray-100">
                 <div class="text-center">

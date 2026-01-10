@@ -98,6 +98,22 @@ class DisputeController extends Controller
                 ->with('error', 'This order cannot have a dispute created.');
         }
 
+        // Additional validation for early finalized orders
+        if ($order->is_early_finalized) {
+            if ($order->isDisputeWindowExpired()) {
+                return redirect()->route('orders.show', $order)->withErrors([
+                    'error' => 'The dispute window for this order has expired. Disputes can no longer be filed.'
+                ]);
+            }
+
+            // Show time remaining warning if expiring soon
+            $finalizationService = new \App\Services\FinalizationService();
+            if ($finalizationService->isDisputeWindowExpiringSoon($order, 60)) {
+                $timeRemaining = $finalizationService->getDisputeWindowTimeRemaining($order);
+                session()->flash('warning', "Warning: Dispute window expires soon ({$timeRemaining}). Please file your dispute promptly.");
+            }
+        }
+
         $validated = $request->validate([
             'type' => ['required', Rule::in([
                 'item_not_received', 'item_not_as_described', 'damaged_item',

@@ -6,6 +6,7 @@ use App\Models\Listing;
 use App\Models\Order;
 use App\Models\UserMessage;
 use App\Services\EscrowService;
+use App\Services\FinalizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -175,6 +176,13 @@ class OrderController extends Controller
         $user = $request->user();
         if ($order->user_id !== $user->id) {
             abort(403, 'Only the buyer can complete the order and release escrow');
+        }
+
+        // Check if order was early finalized
+        if ($order->is_early_finalized) {
+            return redirect()->back()->withErrors([
+                'error' => 'This order was finalized instantly at purchase time and cannot be completed again.'
+            ]);
         }
 
         // Check if order is in valid state
@@ -369,9 +377,36 @@ class OrderController extends Controller
             }
         }
 
-        // Create order and escrow wallet in transaction
+        // Check if order qualifies for early finalization
+        $finalizationService = new FinalizationService();
+        $vendor = $listing->user;
+        $useEarlyFinalization = false;
+        $finalizationWindow = null;
+
+        if ($listing->payment_method === 'direct' && config('finalization.enabled', true)) {
+            $eligibility = $finalizationService->canOrderUseEarlyFinalization($listing, $vendor, $user);
+
+            if ($eligibility['eligible']) {
+                $useEarlyFinalization = true;
+                $finalizationWindow = $listing->product->productCategory->finalizationWindow;
+
+                Log::info("Order qualifies for early finalization", [
+                    'listing_id' => $listing->id,
+                    'vendor_id' => $vendor->id,
+                    'vendor_level' => $vendor->vendor_level,
+                    'window' => $finalizationWindow->name,
+                ]);
+            } else {
+                Log::info("Order does not qualify for early finalization", [
+                    'listing_id' => $listing->id,
+                    'reason' => $eligibility['reason'],
+                ]);
+            }
+        }
+
+        // Create order and process payment in transaction
         try {
-            DB::transaction(function () use ($user, $listing, $data, $crypto_value, $usd_price, $encryptedAddress) {
+            DB::transaction(function () use ($user, $listing, $data, $crypto_value, $usd_price, $encryptedAddress, $useEarlyFinalization, $finalizationWindow, $finalizationService) {
                 // 1. Create order with encrypted delivery address
                 $order = $user->orders()->create([
                     'listing_id' => $listing->id,
@@ -383,56 +418,120 @@ class OrderController extends Controller
                     'encrypted_delivery_address' => $encryptedAddress,
                 ]);
 
-                // 2. Create escrow wallet
                 $escrowService = new EscrowService();
-                $escrowWallet = $escrowService->createEscrowForOrder($order);
 
-                // 3. Fund escrow from buyer's wallet
-                $txid = $escrowService->fundEscrow($escrowWallet, $order);
+                if ($useEarlyFinalization && $finalizationWindow) {
+                    // EARLY FINALIZATION PATH: Direct payment to vendor
 
-                if (!$txid) {
-                    throw new \Exception("Failed to fund escrow wallet");
+                    // 2. Process direct payment to vendor
+                    $txids = $escrowService->processDirectPayment($order, $listing->user);
+
+                    // 3. Calculate dispute window expiry
+                    $disputeWindowExpiry = $finalizationService->calculateDisputeWindowExpiry(
+                        $finalizationWindow,
+                        now()
+                    );
+
+                    // 4. Update order with early finalization details
+                    $order->update([
+                        'is_early_finalized' => true,
+                        'early_finalized_at' => now(),
+                        'dispute_window_expires_at' => $disputeWindowExpiry,
+                        'finalization_window_id' => $finalizationWindow->id,
+                        'direct_payment_txid' => $txids['vendor_txid'],
+                        'admin_fee_txid' => $txids['admin_txid'],
+                        'status' => 'completed',
+                        'completed_at' => now(),
+                    ]);
+
+                    // 5. Update vendor stats
+                    $vendor = $listing->user;
+                    $vendor->increment('total_early_finalized_orders');
+
+                    // 6. Create message to vendor
+                    $messageContent = "New order #{$order->id} (INSTANT FINALIZATION):\n";
+                    $messageContent .= "Quantity: {$data['quantity']}\n";
+                    $messageContent .= "Amount: {$crypto_value} ".strtoupper($data['currency'])."\n";
+                    $messageContent .= "Payment sent directly to your wallet.\n";
+                    $messageContent .= "Vendor TXID: {$txids['vendor_txid']}\n";
+                    $messageContent .= "Dispute window: {$finalizationWindow->name}\n";
+                    if ($finalizationWindow->duration_minutes > 0) {
+                        $messageContent .= "Expires: {$disputeWindowExpiry->format('Y-m-d H:i:s')}\n";
+                    }
+                    $messageContent .= "Note: ".(($data['note'] ?? 'No message provided'));
+
+                    UserMessage::create([
+                        'sender_id' => $user->id,
+                        'receiver_id' => $listing->user_id,
+                        'message' => $messageContent,
+                        'order_id' => $order->id,
+                    ]);
+
+                    Log::info("Order created with early finalization", [
+                        'order_id' => $order->id,
+                        'vendor_txid' => $txids['vendor_txid'],
+                        'admin_txid' => $txids['admin_txid'],
+                        'window' => $finalizationWindow->name,
+                        'expires_at' => $disputeWindowExpiry,
+                    ]);
+
+                } else {
+                    // STANDARD ESCROW PATH
+
+                    // 2. Create escrow wallet
+                    $escrowWallet = $escrowService->createEscrowForOrder($order);
+
+                    // 3. Fund escrow from buyer's wallet
+                    $txid = $escrowService->fundEscrow($escrowWallet, $order);
+
+                    if (!$txid) {
+                        throw new \Exception("Failed to fund escrow wallet");
+                    }
+
+                    // 4. Update order with escrow info
+                    $order->update([
+                        'escrow_wallet_id' => $escrowWallet->id,
+                        'txid' => $txid, // Store initial funding transaction
+                    ]);
+
+                    // 5. Create wallet transaction record for buyer (for balance tracking)
+                    $wallet = $user->wallets()->where('currency', $data['currency'])->firstOrFail();
+                    $wallet->transactions()->create([
+                        'amount' => -$crypto_value,
+                        'type' => 'order_escrow',
+                        'comment' => "Sent to escrow for order #{$order->id}",
+                    ]);
+
+                    // 6. Update buyer's wallet balance
+                    $wallet->decrement('balance', $crypto_value);
+
+                    // 7. Create message to vendor
+                    $messageContent = "New order #{$order->id}:\n";
+                    $messageContent .= "Quantity: {$data['quantity']}\n";
+                    $messageContent .= "Amount: {$crypto_value} ".strtoupper($data['currency'])."\n";
+                    $messageContent .= "Escrow Address: {$escrowWallet->address}\n";
+                    $messageContent .= "Note: ".(($data['note'] ?? 'No message provided'));
+
+                    UserMessage::create([
+                        'sender_id' => $user->id,
+                        'receiver_id' => $listing->user_id,
+                        'message' => $messageContent,
+                        'order_id' => $order->id,
+                    ]);
+
+                    Log::info("Order created with escrow", [
+                        'order_id' => $order->id,
+                        'escrow_wallet' => $escrowWallet->wallet_name,
+                        'funding_txid' => $txid,
+                    ]);
                 }
-
-                // 4. Update order with escrow info
-                $order->update([
-                    'escrow_wallet_id' => $escrowWallet->id,
-                    'txid' => $txid, // Store initial funding transaction
-                ]);
-
-                // 5. Create wallet transaction record for buyer (for balance tracking)
-                $wallet = $user->wallets()->where('currency', $data['currency'])->firstOrFail();
-                $wallet->transactions()->create([
-                    'amount' => -$crypto_value,
-                    'type' => 'order_escrow',
-                    'comment' => "Sent to escrow for order #{$order->id}",
-                ]);
-
-                // 6. Update buyer's wallet balance
-                $wallet->decrement('balance', $crypto_value);
-
-                // 7. Create message to vendor
-                $messageContent = "New order #{$order->id}:\n";
-                $messageContent .= "Quantity: {$data['quantity']}\n";
-                $messageContent .= "Amount: {$crypto_value} ".strtoupper($data['currency'])."\n";
-                $messageContent .= "Escrow Address: {$escrowWallet->address}\n";
-                $messageContent .= "Note: ".(($data['note'] ?? 'No message provided'));
-
-                UserMessage::create([
-                    'sender_id' => $user->id,
-                    'receiver_id' => $listing->user_id,
-                    'message' => $messageContent,
-                    'order_id' => $order->id,
-                ]);
-
-                Log::info("Order created with escrow", [
-                    'order_id' => $order->id,
-                    'escrow_wallet' => $escrowWallet->wallet_name,
-                    'funding_txid' => $txid,
-                ]);
             });
 
-            return redirect()->route('orders.index')->with('success', 'Order placed successfully! Funds sent to escrow.');
+            $successMessage = $useEarlyFinalization
+                ? 'Order finalized instantly! Payment sent directly to vendor.'
+                : 'Order placed successfully! Funds sent to escrow.';
+
+            return redirect()->route('orders.index')->with('success', $successMessage);
 
         } catch (\Exception $e) {
             Log::error("Failed to create order with escrow", [

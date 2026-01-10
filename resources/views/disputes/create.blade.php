@@ -15,6 +15,51 @@
 
 @section('content')
     <div class="max-w-3xl mx-auto">
+        {{-- Early Finalization Warning --}}
+        @if($order->is_early_finalized && $order->dispute_window_expires_at)
+            @if($order->isDisputeWindowExpired())
+                <div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+                    <div class="flex items-start space-x-3">
+                        <span class="text-red-600 text-2xl">⚠️</span>
+                        <div>
+                            <h3 class="text-lg font-semibold text-red-900">Dispute Window Expired</h3>
+                            <p class="mt-2 text-sm text-red-700">
+                                The dispute window for this early finalized order expired on {{ $order->dispute_window_expires_at->format('M d, Y \a\t h:i A') }}.
+                                You can no longer file a dispute for this order.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            @elseif(is_dispute_window_expiring_soon($order->dispute_window_expires_at))
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-6">
+                    <div class="flex items-start space-x-3">
+                        <span class="text-amber-600 text-2xl">⏰</span>
+                        <div>
+                            <h3 class="text-lg font-semibold text-amber-900">Dispute Window Expiring Soon</h3>
+                            <p class="mt-2 text-sm text-amber-700">
+                                This order used early finalization. Your dispute window expires {{ $order->dispute_window_expires_at->diffForHumans() }}
+                                ({{ $order->dispute_window_expires_at->format('M d, Y \a\t h:i A') }}).
+                                File your dispute now if needed.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            @else
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                    <div class="flex items-start space-x-3">
+                        <span class="text-blue-600 text-xl">ℹ️</span>
+                        <div>
+                            <h3 class="text-sm font-semibold text-blue-900">Early Finalized Order</h3>
+                            <p class="mt-1 text-sm text-blue-700">
+                                Dispute window expires {{ $order->dispute_window_expires_at->diffForHumans() }}
+                                ({{ $order->dispute_window_expires_at->format('M d, Y') }})
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        @endif
+
         {{-- Order Information --}}
         <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Order Details</h3>

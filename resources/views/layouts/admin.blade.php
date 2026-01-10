@@ -163,6 +163,11 @@
                               {{ request()->routeIs('admin.reports') ? 'bg-yellow-100 text-yellow-700' : '' }}">
                         Reports
                     </a>
+                    <a href="{{ route('admin.finalization-windows.index') }}"
+                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                              {{ request()->routeIs('admin.finalization-windows.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                        Finalization Windows
+                    </a>
                     <a href="{{ route('admin.settings') }}"
                        class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
                               {{ request()->routeIs('admin.settings') ? 'bg-yellow-100 text-yellow-700' : '' }}">

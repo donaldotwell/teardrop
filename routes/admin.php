@@ -5,6 +5,8 @@ use App\Http\Controllers\Admin\AdminListingsController;
 use App\Http\Controllers\Admin\AdminSupportTicketController;
 use App\Http\Controllers\Admin\AdminUsersController;
 use App\Http\Controllers\Admin\AdminOrdersController;
+use App\Http\Controllers\Admin\AdminFinalizationWindowController;
+use App\Http\Controllers\Admin\AdminProductCategoryController;
 use Illuminate\Support\Facades\Route;
 
 // Admin routes - protected by admin middleware
@@ -26,6 +28,7 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
         Route::get('/{user}/wallet-transactions', [AdminUsersController::class, 'walletTransactions'])->name('wallet-transactions');
         Route::post('/{user}/adjust-balance', [AdminUsersController::class, 'adjustBalance'])->name('adjust-balance');
         Route::post('/{user}/promote-to-vendor', [AdminUsersController::class, 'promoteToVendor'])->name('promote-to-vendor');
+        Route::post('/{user}/toggle-early-finalization', [AdminUsersController::class, 'toggleEarlyFinalizationAccess'])->name('toggle-early-finalization');
     });
 
     // Orders Management
@@ -109,5 +112,24 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
     // Maintenance
     Route::post('/maintenance/enable', [AdminController::class, 'enableMaintenance'])->name('maintenance.enable');
     Route::post('/data/purge', [AdminController::class, 'purgeOldData'])->name('data.purge');
+
+    // Finalization Windows Management
+    Route::prefix('finalization-windows')->name('finalization-windows.')->group(function () {
+        Route::get('/', [AdminFinalizationWindowController::class, 'index'])->name('index');
+        Route::get('/create', [AdminFinalizationWindowController::class, 'create'])->name('create');
+        Route::post('/', [AdminFinalizationWindowController::class, 'store'])->name('store');
+        Route::get('/{finalizationWindow}/edit', [AdminFinalizationWindowController::class, 'edit'])->name('edit');
+        Route::put('/{finalizationWindow}', [AdminFinalizationWindowController::class, 'update'])->name('update');
+        Route::delete('/{finalizationWindow}', [AdminFinalizationWindowController::class, 'destroy'])->name('destroy');
+        Route::post('/{finalizationWindow}/toggle-status', [AdminFinalizationWindowController::class, 'toggleStatus'])->name('toggle-status');
+    });
+
+    // Product Categories Management
+    Route::prefix('product-categories')->name('product-categories.')->group(function () {
+        Route::get('/', [AdminProductCategoryController::class, 'index'])->name('index');
+        Route::get('/{productCategory}/edit', [AdminProductCategoryController::class, 'edit'])->name('edit');
+        Route::put('/{productCategory}', [AdminProductCategoryController::class, 'update'])->name('update');
+        Route::post('/{productCategory}/toggle-early-finalization', [AdminProductCategoryController::class, 'toggleEarlyFinalization'])->name('toggle-early-finalization');
+    });
 
 });

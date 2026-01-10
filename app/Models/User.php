@@ -651,4 +651,66 @@ class User extends Authenticatable
                 $query->whereIn('name', $permissions);
             })->exists();
     }
+
+    /**
+     * Check if vendor can use early finalization.
+     *
+     * @return bool
+     */
+    public function canUseEarlyFinalization(): bool
+    {
+        return $this->vendor_level >= config('fees.early_finalization.min_vendor_level', 8) &&
+               $this->early_finalization_enabled &&
+               $this->status === 'active';
+    }
+
+    /**
+     * Update early finalization statistics for this vendor.
+     *
+     * @return void
+     */
+    public function updateEarlyFinalizationStats(): void
+    {
+        $totalEarlyFinalized = $this->orders()
+            ->where('is_early_finalized', true)
+            ->count();
+
+        $successfulEarlyFinalized = $this->orders()
+            ->where('is_early_finalized', true)
+            ->whereDoesntHave('dispute')
+            ->count();
+
+        $this->update([
+            'total_early_finalized_orders' => $totalEarlyFinalized,
+            'successful_early_finalized_orders' => $successfulEarlyFinalized,
+        ]);
+    }
+
+    /**
+     * Get early finalization dispute rate as percentage.
+     *
+     * @return float
+     */
+    public function getEarlyFinalizationDisputeRate(): float
+    {
+        if ($this->total_early_finalized_orders === 0) {
+            return 0.0;
+        }
+
+        $disputedOrders = $this->total_early_finalized_orders - $this->successful_early_finalized_orders;
+        return round(($disputedOrders / $this->total_early_finalized_orders) * 100, 2);
+    }
+
+    /**
+     * Scope for vendors eligible for early finalization.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeEligibleForEarlyFinalization($query)
+    {
+        return $query->where('vendor_level', '>=', config('fees.early_finalization.min_vendor_level', 8))
+                     ->where('early_finalization_enabled', true)
+                     ->where('status', 'active');
+    }
 }

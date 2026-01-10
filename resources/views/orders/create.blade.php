@@ -24,6 +24,26 @@
             <p class="mt-3 text-gray-500 text-base">
                 Review your order details and confirm your purchase.
             </p>
+
+            @if($listing->payment_method === 'direct' && $listing->canUseEarlyFinalization())
+                <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div class="flex items-start space-x-3">
+                        <span class="flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-green-100 text-green-800">
+                            INSTANT PAYMENT
+                        </span>
+                        <div class="flex-1">
+                            <p class="text-sm text-green-900 font-medium">
+                                This vendor accepts early finalization - you'll receive your order immediately!
+                            </p>
+                            @if($window = $listing->getFinalizationWindow())
+                                <p class="text-sm text-green-700 mt-1">
+                                    Dispute window: {{ $window->getHumanReadableDuration() }} from purchase
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- Order Summary -->

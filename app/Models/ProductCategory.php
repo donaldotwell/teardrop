@@ -38,6 +38,60 @@ class ProductCategory extends Model
     }
 
     /**
+     * Get the finalization window for this category.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function finalizationWindow(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(FinalizationWindow::class);
+    }
+
+    /**
+     * Check if this category allows early finalization.
+     *
+     * @return bool
+     */
+    public function allowsEarlyFinalization(): bool
+    {
+        return $this->allows_early_finalization &&
+               $this->finalization_window_id !== null &&
+               $this->finalizationWindow &&
+               $this->finalizationWindow->is_active;
+    }
+
+    /**
+     * Check if a vendor can use early finalization for this category.
+     *
+     * @param \App\Models\User $vendor
+     * @return bool
+     */
+    public function canVendorUseEarlyFinalization(User $vendor): bool
+    {
+        if (!$this->allowsEarlyFinalization()) {
+            return false;
+        }
+
+        return $vendor->vendor_level >= $this->min_vendor_level_for_early &&
+               $vendor->early_finalization_enabled &&
+               $vendor->status === 'active';
+    }
+
+    /**
+     * Get the finalization window duration in minutes.
+     *
+     * @return int|null
+     */
+    public function getFinalizationWindowDuration(): ?int
+    {
+        if (!$this->finalizationWindow) {
+            return null;
+        }
+
+        return $this->finalizationWindow->duration_minutes;
+    }
+
+    /**
      * The "booting" method of the model.
      *
      * @return void

@@ -109,6 +109,16 @@ class Order extends Model
     }
 
     /**
+     * Get the finalization window for this order.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function finalizationWindow(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(FinalizationWindow::class);
+    }
+
+    /**
      * Check if this order has an active dispute.
      *
      * @return bool
@@ -125,8 +135,104 @@ class Order extends Model
      */
     public function canCreateDispute(): bool
     {
-        // Can only dispute completed orders that don't already have a dispute
+        // Early finalized orders can only be disputed within the dispute window
+        if ($this->is_early_finalized) {
+            return $this->isWithinDisputeWindow() && !$this->dispute()->exists();
+        }
+
+        // Regular orders: can only dispute completed orders that don't already have a dispute
         return $this->status === 'completed' && !$this->dispute()->exists();
+    }
+
+    /**
+     * Check if order qualifies for early finalization.
+     *
+     * @return bool
+     */
+    public function canUseEarlyFinalization(): bool
+    {
+        if ($this->listing->payment_method !== 'direct') {
+            return false;
+        }
+
+        $category = $this->listing->product->productCategory;
+        $vendor = $this->listing->user;
+
+        return $category->canVendorUseEarlyFinalization($vendor);
+    }
+
+    /**
+     * Check if order is within dispute window.
+     *
+     * @return bool
+     */
+    public function isWithinDisputeWindow(): bool
+    {
+        if (!$this->is_early_finalized || !$this->dispute_window_expires_at) {
+            return false;
+        }
+
+        return now()->lessThan($this->dispute_window_expires_at);
+    }
+
+    /**
+     * Check if dispute window has expired.
+     *
+     * @return bool
+     */
+    public function isDisputeWindowExpired(): bool
+    {
+        if (!$this->is_early_finalized || !$this->dispute_window_expires_at) {
+            return false;
+        }
+
+        return now()->greaterThanOrEqualTo($this->dispute_window_expires_at);
+    }
+
+    /**
+     * Calculate dispute window expiry time.
+     *
+     * @param \App\Models\FinalizationWindow $window
+     * @return \Carbon\Carbon
+     */
+    public function calculateDisputeWindowExpiry(FinalizationWindow $window): \Carbon\Carbon
+    {
+        return now()->addMinutes($window->duration_minutes);
+    }
+
+    /**
+     * Scope for early finalized orders.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeEarlyFinalized($query)
+    {
+        return $query->where('is_early_finalized', true);
+    }
+
+    /**
+     * Scope for orders with active dispute window.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeDisputeWindowActive($query)
+    {
+        return $query->where('is_early_finalized', true)
+                     ->where('dispute_window_expires_at', '>', now());
+    }
+
+    /**
+     * Scope for orders with expired dispute window.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeDisputeWindowExpired($query)
+    {
+        return $query->where('is_early_finalized', true)
+                     ->where('dispute_window_expires_at', '<=', now());
     }
 
     /**

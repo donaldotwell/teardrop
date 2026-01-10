@@ -77,7 +77,7 @@ class AdminOrdersController extends Controller
      */
     public function show(Order $order)
     {
-        $order->load(['user', 'listing.user', 'messages']);
+        $order->load(['user', 'listing.user', 'messages', 'finalizationWindow']);
 
         return view('admin.orders.show', compact('order'));
     }
