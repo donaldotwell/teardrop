@@ -128,10 +128,11 @@
                     <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trust Level</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Early Finalization</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Seen</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -149,6 +150,25 @@
                                         <div class="text-sm text-gray-500">ID: {{ $user->id }}</div>
                                     </div>
                                 </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if($user->hasRole('admin'))
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        Admin
+                                    </span>
+                                @elseif($user->hasRole('moderator'))
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                        Moderator
+                                    </span>
+                                @elseif($user->hasRole('vendor'))
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                        Vendor
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        User
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -170,11 +190,23 @@
                                         </span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $user->created_at->format('M d, Y') }}
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if($user->hasRole('vendor'))
+                                    <form action="{{ route('admin.users.toggle-early-finalization', $user) }}" method="POST" class="inline">
+                                        @csrf
+                                        <button type="submit" class="text-xs px-2 py-1 rounded {{ $user->early_finalization_enabled ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200' }}">
+                                            {{ $user->early_finalization_enabled ? 'Enabled' : 'Disabled' }}
+                                        </button>
+                                    </form>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        {{ $user->successful_early_finalized_orders }}/{{ $user->total_early_finalized_orders }} successful
+                                    </div>
+                                @else
+                                    <span class="text-xs text-gray-400">N/A</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $user->last_seen ? $user->last_seen->diffForHumans() : 'Never' }}
+                                {{ $user->created_at->format('M d, Y') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ $user->orders_count ?? 0 }}
@@ -221,7 +253,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                            <td colspan="9" class="px-6 py-8 text-center text-gray-500">
                                 No users found matching your criteria.
                             </td>
                         </tr>

@@ -16,7 +16,7 @@ class AdminUsersController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::query()->withCount('orders');
+        $query = User::query()->withCount('orders')->with('roles');
 
         // Apply filters
         if ($request->filled('search')) {

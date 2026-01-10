@@ -150,7 +150,41 @@
                             <dd class="text-sm font-medium text-gray-900">{{ $user->vendor_since->format('M d, Y') }}</dd>
                         </div>
                     @endif
+                    @if($user->hasRole('vendor'))
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-600">Early Finalization:</dt>
+                            <dd class="text-sm font-medium">
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs {{ $user->early_finalization_enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                    {{ $user->early_finalization_enabled ? 'Enabled' : 'Disabled' }}
+                                </span>
+                            </dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-600">Early Finalization Stats:</dt>
+                            <dd class="text-sm font-medium text-gray-900">
+                                {{ $user->successful_early_finalized_orders }}/{{ $user->total_early_finalized_orders }} successful
+                            </dd>
+                        </div>
+                    @endif
                 </dl>
+
+                {{-- Early Finalization Toggle for Vendors --}}
+                @if($user->hasRole('vendor'))
+                    <div class="mt-6 pt-6 border-t border-gray-100">
+                        <form action="{{ route('admin.users.toggle-early-finalization', $user) }}" method="POST">
+                            @csrf
+                            <button type="submit"
+                                    class="w-full px-4 py-2 rounded {{ $user->early_finalization_enabled ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200' }}">
+                                {{ $user->early_finalization_enabled ? 'Disable Early Finalization' : 'Enable Early Finalization' }}
+                            </button>
+                        </form>
+                        @if($user->total_early_finalized_orders > 0)
+                            <div class="mt-2 text-xs text-gray-500 text-center">
+                                Success Rate: {{ $user->total_early_finalized_orders > 0 ? round(($user->successful_early_finalized_orders / $user->total_early_finalized_orders) * 100, 1) : 0 }}%
+                            </div>
+                        @endif
+                    </div>
+                @endif
             </div>
 
             {{-- Wallet Information --}}
