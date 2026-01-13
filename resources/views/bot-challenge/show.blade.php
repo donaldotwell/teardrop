@@ -25,7 +25,7 @@
             {{-- Header --}}
             <div class="text-center mb-6">
                 <h2 class="text-xl font-bold text-gray-900 mb-2">Security Verification</h2>
-                <p class="text-sm text-gray-600">Please solve the challenge below to continue</p>
+                <p class="text-sm text-gray-600">Verify the URL to prove you're human</p>
             </div>
 
             {{-- Error Messages --}}
@@ -46,18 +46,25 @@
                 </div>
             @endif
 
-            {{-- Math Challenge --}}
+            {{-- URL Verification Challenge --}}
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-3 text-center">
-                    Solve this problem:
+                    URL Verification Challenge
                 </label>
+
+                <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
+                    <p class="text-xs text-blue-800 text-center">
+                        <strong>Verify the URL below matches the image</strong><br>
+                        Fill in the missing characters (marked with _) in order from left to right
+                    </p>
+                </div>
 
                 <div class="flex justify-center mb-4">
                     <img src="{{ route('bot-challenge.image') }}"
-                         alt="Math Challenge"
+                         alt="URL Challenge"
                          class="border-2 border-gray-300 rounded"
-                         width="200"
-                         height="80">
+                         width="600"
+                         height="100">
                 </div>
 
                 <p class="text-xs text-gray-500 text-center mb-4">
@@ -70,21 +77,54 @@
                 @csrf
 
                 <div class="mb-6">
-                    <label for="answer" class="block text-sm font-medium text-gray-700 mb-2">
-                        Your Answer:
+                    <label class="block text-sm font-medium text-gray-700 mb-4 text-center">
+                        Enter the 6 missing characters:
                     </label>
-                    <input type="number"
-                           name="answer"
-                           id="answer"
-                           class="block w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-lg text-center"
-                           placeholder="Enter answer"
-                           required
-                           autofocus>
+
+                    <div class="flex justify-center gap-3">
+                        <input type="text"
+                               name="char_0"
+                               id="char_0"
+                               maxlength="1"
+                               class="w-12 h-14 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-400 text-2xl text-center font-bold lowercase bg-white"
+                               required
+                               autofocus>
+                        <input type="text"
+                               name="char_1"
+                               id="char_1"
+                               maxlength="1"
+                               class="w-12 h-14 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-400 text-2xl text-center font-bold lowercase bg-white"
+                               required>
+                        <input type="text"
+                               name="char_2"
+                               id="char_2"
+                               maxlength="1"
+                               class="w-12 h-14 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-400 text-2xl text-center font-bold lowercase bg-white"
+                               required>
+                        <input type="text"
+                               name="char_3"
+                               id="char_3"
+                               maxlength="1"
+                               class="w-12 h-14 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-400 text-2xl text-center font-bold lowercase bg-white"
+                               required>
+                        <input type="text"
+                               name="char_4"
+                               id="char_4"
+                               maxlength="1"
+                               class="w-12 h-14 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-400 text-2xl text-center font-bold lowercase bg-white"
+                               required>
+                        <input type="text"
+                               name="char_5"
+                               id="char_5"
+                               maxlength="1"
+                               class="w-12 h-14 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-400 text-2xl text-center font-bold lowercase bg-white"
+                               required>
+                    </div>
                 </div>
 
                 <button type="submit"
                         class="w-full px-6 py-3 bg-yellow-600 text-white font-semibold rounded hover:bg-yellow-700 transition">
-                    Verify
+                    Verify URL
                 </button>
             </form>
         </div>

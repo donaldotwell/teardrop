@@ -10,7 +10,7 @@ class BotChallengeController extends Controller
     /**
      * Show the bot challenge page
      */
-    public function show()
+    public function show(Request $request)
     {
         // Check if locked out
         $lockedUntil = session('bot_challenge_locked_until');
@@ -19,8 +19,8 @@ class BotChallengeController extends Controller
             return view('bot-challenge.locked', compact('remainingMinutes'));
         }
 
-        // Generate new math challenge
-        $this->generateMathChallenge();
+        // Generate new URL challenge
+        $this->generateUrlChallenge($request);
 
         $failedAttempts = session('bot_challenge_failed_attempts', 0);
         $remainingAttempts = 3 - $failedAttempts;
@@ -57,33 +57,48 @@ class BotChallengeController extends Controller
         }
 
         $validated = $request->validate([
-            'answer' => 'required|integer',
+            'char_0' => 'required|string|size:1',
+            'char_1' => 'required|string|size:1',
+            'char_2' => 'required|string|size:1',
+            'char_3' => 'required|string|size:1',
+            'char_4' => 'required|string|size:1',
+            'char_5' => 'required|string|size:1',
         ]);
 
-        $answer = (int) $validated['answer'];
-        $correctAnswer = session('bot_challenge_answer');
+        $correctAnswers = session('bot_challenge_answers');
         $challengeStartedAt = session('bot_challenge_started_at');
 
         // Validate challenge exists
-        if (!$correctAnswer || !$challengeStartedAt) {
-            return back()->withErrors(['answer' => 'Challenge expired. Please try again.']);
+        if (!$correctAnswers || !$challengeStartedAt || count($correctAnswers) !== 6) {
+            return back()->withErrors(['error' => 'Challenge expired. Please try again.']);
         }
 
-        // Check minimum time (anti-bot: at least 2 seconds)
+        // Check minimum time (anti-bot: at least 3 seconds)
         $timeTaken = time() - $challengeStartedAt;
-        if ($timeTaken < 2) {
+        if ($timeTaken < 3) {
             $this->recordFailedAttempt();
-            return back()->withErrors(['answer' => 'Too fast! Please take your time.']);
+            return back()->withErrors(['error' => 'Too fast! Please take your time.']);
         }
 
-        // Check maximum time (challenge expires after 5 minutes)
-        if ($timeTaken > 300) {
-            session()->forget(['bot_challenge_answer', 'bot_challenge_started_at', 'bot_challenge_num1', 'bot_challenge_num2']);
-            return back()->withErrors(['answer' => 'Challenge expired. Please try again.']);
+        // Verify all answers (case-insensitive)
+        $userAnswers = [
+            strtolower($validated['char_0']),
+            strtolower($validated['char_1']),
+            strtolower($validated['char_2']),
+            strtolower($validated['char_3']),
+            strtolower($validated['char_4']),
+            strtolower($validated['char_5']),
+        ];
+
+        $allCorrect = true;
+        foreach ($userAnswers as $index => $userAnswer) {
+            if ($userAnswer !== strtolower($correctAnswers[$index])) {
+                $allCorrect = false;
+                break;
+            }
         }
 
-        // Verify answer
-        if ($answer !== $correctAnswer) {
+        if (!$allCorrect) {
             $this->recordFailedAttempt();
 
             $failedAttempts = session('bot_challenge_failed_attempts', 0);
@@ -93,20 +108,20 @@ class BotChallengeController extends Controller
                 return redirect()->route('bot-challenge.locked');
             }
 
-            return back()->withErrors(['answer' => "Incorrect answer. You have {$remainingAttempts} attempts remaining."]);
+            return back()->withErrors(['error' => "Incorrect answer. You have {$remainingAttempts} attempts remaining."]);
         }
 
-        // Success! Mark as passed
+        // Success! Mark as passed (session-based, no expiry)
         session([
-            'bot_challenge_passed_at' => time(),
+            'bot_challenge_passed' => true,
         ]);
 
         // Clear challenge data
         session()->forget([
-            'bot_challenge_answer',
+            'bot_challenge_url',
+            'bot_challenge_positions',
+            'bot_challenge_answers',
             'bot_challenge_started_at',
-            'bot_challenge_num1',
-            'bot_challenge_num2',
             'bot_challenge_failed_attempts',
         ]);
 
@@ -117,61 +132,56 @@ class BotChallengeController extends Controller
     }
 
     /**
-     * Generate the math challenge image
+     * Generate the URL challenge image
      */
     public function image()
     {
-        $num1 = session('bot_challenge_num1');
-        $num2 = session('bot_challenge_num2');
+        $url = session('bot_challenge_url');
+        $positions = session('bot_challenge_positions');
 
-        if (!$num1 || !$num2) {
+        if (!$url || !$positions || count($positions) !== 6) {
             abort(404);
         }
 
-        // Create image
-        $width = 200;
-        $height = 80;
+        // Create masked URL for display
+        $maskedUrl = $this->createMaskedUrl($url, $positions);
 
-        $image = imagecreate($width, $height);
+        // Create image
+        $width = 600;
+        $height = 100;
+
+        $image = imagecreatetruecolor($width, $height);
 
         // Colors
-        $bgColor = imagecolorallocate($image, 255, 255, 255);
-        $textColor = imagecolorallocate($image, 50, 50, 50);
-        $lineColor = imagecolorallocate($image, 200, 200, 200);
-        $dotColor = imagecolorallocate($image, 150, 150, 150);
+        $bgColor = imagecolorallocate($image, 245, 245, 245);
+        $textColor = imagecolorallocate($image, 30, 30, 30);
+        $maskColor = imagecolorallocate($image, 200, 50, 50);
+        $borderColor = imagecolorallocate($image, 180, 180, 180);
 
-        // Add noise - random lines
-        for ($i = 0; $i < 5; $i++) {
-            imageline($image,
-                rand(0, $width), rand(0, $height),
-                rand(0, $width), rand(0, $height),
-                $lineColor
-            );
-        }
+        // Fill background
+        imagefilledrectangle($image, 0, 0, $width, $height, $bgColor);
 
-        // Add noise - random dots
-        for ($i = 0; $i < 100; $i++) {
-            imagesetpixel($image, rand(0, $width), rand(0, $height), $dotColor);
-        }
-
-        // Generate the math question text
-        $text = "{$num1} + {$num2} = ?";
+        // Add border
+        imagerectangle($image, 0, 0, $width - 1, $height - 1, $borderColor);
+        imagerectangle($image, 1, 1, $width - 2, $height - 2, $borderColor);
 
         // Use built-in font (font 5 is largest built-in)
         $font = 5;
-        $textWidth = imagefontwidth($font) * strlen($text);
-        $textHeight = imagefontheight($font);
+        $charWidth = imagefontwidth($font);
+        $charHeight = imagefontheight($font);
 
-        // Center the text
-        $x = ($width - $textWidth) / 2;
-        $y = ($height - $textHeight) / 2;
+        // Calculate starting position to center the text
+        $totalWidth = $charWidth * strlen($maskedUrl);
+        $startX = ($width - $totalWidth) / 2;
+        $y = ($height - $charHeight) / 2;
 
-        // Draw text with slight offset for each character (distortion effect)
-        $currentX = $x;
-        foreach (str_split($text) as $char) {
-            $offsetY = rand(-3, 3);
-            imagestring($image, $font, $currentX, $y + $offsetY, $char, $textColor);
-            $currentX += imagefontwidth($font);
+        // Draw each character
+        $currentX = $startX;
+        foreach (str_split($maskedUrl) as $char) {
+            $color = ($char === '_') ? $maskColor : $textColor;
+            $offsetY = rand(-2, 2); // Slight vertical randomness
+            imagestring($image, $font, $currentX, $y + $offsetY, $char, $color);
+            $currentX += $charWidth;
         }
 
         // Output image
@@ -186,20 +196,85 @@ class BotChallengeController extends Controller
     }
 
     /**
-     * Generate a new math challenge and store in session
+     * Generate a new URL challenge and store in session
      */
-    protected function generateMathChallenge()
+    protected function generateUrlChallenge(Request $request)
     {
-        $num1 = rand(1, 15);
-        $num2 = rand(1, 15);
-        $answer = $num1 + $num2;
+        // Get the host from request
+        $host = $request->getHost();
+
+        // Fallback to config app name if host is localhost or empty
+        if (empty($host) || str_starts_with($host, '127.0.0.1')) {
+            $host = strtolower(config('app.name', 'marketplace')) . '.onion';
+        }
+
+        // Pick 6 random positions from the URL
+        $urlLength = strlen($host);
+
+        // Ensure we have enough characters
+        if ($urlLength < 6) {
+            // Pad with .onion if too short
+            $host = $host . '.onion';
+            $urlLength = strlen($host);
+        }
+
+        // Generate 6 unique random positions
+        $positions = [];
+        $attempts = 0;
+        $maxAttempts = 100;
+
+        while (count($positions) < 6 && $attempts < $maxAttempts) {
+            $pos = rand(0, $urlLength - 1);
+            $char = $host[$pos];
+
+            // Only pick alphanumeric characters
+            if (ctype_alnum($char) && !in_array($pos, $positions)) {
+                $positions[] = $pos;
+            }
+            $attempts++;
+        }
+
+        // If we couldn't get 6 positions, fallback to first 6 alphanumeric chars
+        if (count($positions) < 6) {
+            $positions = [];
+            for ($i = 0; $i < $urlLength && count($positions) < 6; $i++) {
+                if (ctype_alnum($host[$i])) {
+                    $positions[] = $i;
+                }
+            }
+        }
+
+        // Sort positions for easier verification
+        sort($positions);
+
+        // Extract the characters at these positions
+        $answers = [];
+        foreach ($positions as $pos) {
+            $answers[] = $host[$pos];
+        }
 
         session([
-            'bot_challenge_num1' => $num1,
-            'bot_challenge_num2' => $num2,
-            'bot_challenge_answer' => $answer,
+            'bot_challenge_url' => $host,
+            'bot_challenge_positions' => $positions,
+            'bot_challenge_answers' => $answers,
             'bot_challenge_started_at' => time(),
         ]);
+    }
+
+    /**
+     * Create a masked URL string for display
+     */
+    protected function createMaskedUrl(string $url, array $positions): string
+    {
+        $masked = '';
+        for ($i = 0; $i < strlen($url); $i++) {
+            if (in_array($i, $positions)) {
+                $masked .= '_';
+            } else {
+                $masked .= $url[$i];
+            }
+        }
+        return $masked;
     }
 
     /**

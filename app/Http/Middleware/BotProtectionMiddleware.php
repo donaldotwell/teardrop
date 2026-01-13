@@ -65,22 +65,8 @@ class BotProtectionMiddleware
      */
     protected function hasPassedChallenge(Request $request): bool
     {
-        $passedAt = session('bot_challenge_passed_at');
-
-        if (!$passedAt) {
-            return false;
-        }
-
-        // Challenge expires after 30 minutes
-        $expiresAt = $passedAt + (30 * 60);
-
-        if (time() > $expiresAt) {
-            // Expired - clear session
-            session()->forget('bot_challenge_passed_at');
-            return false;
-        }
-
-        return true;
+        // Session-based only, no expiry
+        return session('bot_challenge_passed', false);
     }
 
     /**
