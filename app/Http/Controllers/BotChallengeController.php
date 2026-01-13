@@ -146,8 +146,10 @@ class BotChallengeController extends Controller
         // Create masked URL for display
         $maskedUrl = $this->createMaskedUrl($url, $positions);
 
-        // Create image
-        $width = 600;
+        // Create image - adjust width based on URL length
+        $baseWidth = 800;
+        $urlLength = strlen($maskedUrl);
+        $width = max($baseWidth, $urlLength * 14); // 14px per character minimum
         $height = 100;
 
         $image = imagecreatetruecolor($width, $height);

@@ -11,7 +11,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
-    <div class="max-w-md w-full">
+    <div class="max-w-3xl w-full">
 
         {{-- Platform Branding --}}
         <div class="text-center mb-8">
@@ -62,9 +62,8 @@
                 <div class="flex justify-center mb-4">
                     <img src="{{ route('bot-challenge.image') }}"
                          alt="URL Challenge"
-                         class="border-2 border-gray-300 rounded"
-                         width="600"
-                         height="100">
+                         class="border-2 border-gray-300 rounded max-w-full h-auto"
+                         style="min-width: 300px;">
                 </div>
 
                 <p class="text-xs text-gray-500 text-center mb-4">
