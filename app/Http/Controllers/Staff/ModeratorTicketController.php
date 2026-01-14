@@ -589,12 +589,16 @@ class ModeratorTicketController extends Controller
      */
     private function getAverageResponseTime($moderatorId)
     {
-        $avgMinutes = SupportTicket::where('assigned_to', $moderatorId)
+        $tickets = SupportTicket::where('assigned_to', $moderatorId)
             ->whereNotNull('first_response_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, first_response_at)) as avg_time')
-            ->value('avg_time');
+            ->select('created_at', 'first_response_at')
+            ->get();
 
-        if (!$avgMinutes) return 'N/A';
+        if ($tickets->isEmpty()) return 'N/A';
+
+        $avgMinutes = $tickets->avg(function ($ticket) {
+            return $ticket->created_at->diffInMinutes($ticket->first_response_at);
+        });
 
         if ($avgMinutes < 60) {
             return round($avgMinutes) . ' min';

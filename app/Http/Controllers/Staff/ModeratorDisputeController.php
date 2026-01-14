@@ -564,12 +564,16 @@ class ModeratorDisputeController extends Controller
      */
     private function getAverageResolutionTime()
     {
-        $avgMinutes = Dispute::where('status', 'resolved')
+        $disputes = Dispute::where('status', 'resolved')
             ->whereNotNull('resolved_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, resolved_at)) as avg_time')
-            ->value('avg_time');
+            ->select('created_at', 'resolved_at')
+            ->get();
 
-        if (!$avgMinutes) return 'N/A';
+        if ($disputes->isEmpty()) return 'N/A';
+
+        $avgMinutes = $disputes->avg(function ($dispute) {
+            return $dispute->created_at->diffInMinutes($dispute->resolved_at);
+        });
 
         if ($avgMinutes < 60) {
             return round($avgMinutes) . ' min';
