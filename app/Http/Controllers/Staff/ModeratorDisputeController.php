@@ -227,8 +227,8 @@ class ModeratorDisputeController extends Controller
         }
 
         // Verify the target user is actually a moderator
-        $newModerator = User::find($validated['moderator_id']);
-        if (!$newModerator->hasRole('moderator')) {
+        $newModerator = User::with('roles')->find($validated['moderator_id']);
+        if (!$newModerator->hasRole('moderator') && !$newModerator->hasRole('admin')) {
             return redirect()->back()
                 ->with('error', 'Selected user is not a moderator.');
         }

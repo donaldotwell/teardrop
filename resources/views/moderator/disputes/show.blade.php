@@ -41,6 +41,7 @@
                     <div class="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 p-4">
                         <form method="POST" action="{{ route('moderator.disputes.reassign-moderator', $dispute) }}">
                             @csrf
+                            @method('POST')
                             <div class="space-y-2">
                                 <label class="block text-sm font-medium text-gray-700">
                                     Transfer to Moderator
@@ -263,13 +264,13 @@
         @if($dispute->order)
             <div class="bg-white border border-gray-200 rounded-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Order Information</h3>
-                
+
                 {{-- Listing Image and Title --}}
                 @if($dispute->order->listing)
                     <div class="flex items-center space-x-4 mb-6 pb-6 border-b border-gray-100">
                         <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                             @if($dispute->order->listing->media->isNotEmpty())
-                                <img src="{{ $dispute->order->listing->media->first()->data_uri }}" 
+                                <img src="{{ $dispute->order->listing->media->first()->data_uri }}"
                                      alt="{{ $dispute->order->listing->title }}"
                                      class="w-full h-full object-cover">
                             @else
@@ -284,7 +285,7 @@
                         </div>
                     </div>
                 @endif
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <dl class="space-y-2">
