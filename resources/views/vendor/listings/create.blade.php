@@ -69,13 +69,15 @@
                             class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                         <option value="">Select Product</option>
                         @foreach($productCategories as $category)
-                            @foreach($category->products as $product)
-                                <option value="{{ $product->id }}" data-category="{{ $category->id }}"
-                                        {{ old('product_id') == $product->id ? 'selected' : '' }}
-                                        class="product-option hidden">
-                                    {{ $product->name }}
-                                </option>
-                            @endforeach
+                            @if($category->products->count() > 0)
+                                <optgroup label="{{ $category->name }}">
+                                    @foreach($category->products as $product)
+                                        <option value="{{ $product->id }}" {{ old('product_id') == $product->id ? 'selected' : '' }}>
+                                            {{ $product->name }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
                         @endforeach
                     </select>
                     @error('product_id')
