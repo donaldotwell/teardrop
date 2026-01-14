@@ -16,6 +16,7 @@ class BtcTransaction extends Model
         'txid',
         'type',
         'amount',
+        'usd_value',
         'fee',
         'confirmations',
         'status',
@@ -27,6 +28,7 @@ class BtcTransaction extends Model
 
     protected $casts = [
         'amount' => 'decimal:8',
+        'usd_value' => 'decimal:2',
         'fee' => 'decimal:8',
         'confirmations' => 'integer',
         'block_height' => 'integer',

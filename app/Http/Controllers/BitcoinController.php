@@ -51,7 +51,7 @@ class BitcoinController extends Controller
 
         // Get or automatically generate current receiving address
         $currentAddress = $btcWallet->getCurrentAddress();
-        
+
         // If no unused address exists, automatically generate one
         if (!$currentAddress) {
             try {
@@ -59,7 +59,7 @@ class BitcoinController extends Controller
             } catch (\Exception $e) {
                 // Log error and show user-friendly message
                 \Log::error("Failed to generate Bitcoin address for user {$user->id}", ['exception' => $e]);
-                
+
                 return back()->with('error', 'Unable to generate Bitcoin address. Please contact support.');
             }
         }
@@ -74,7 +74,7 @@ class BitcoinController extends Controller
                 ->size(250)
                 ->margin(10)
                 ->build();
-            
+
             // Convert to base64 data URI for inline display
             $qrCodeDataUri = 'data:' . $result->getMimeType() . ';base64,' . base64_encode($result->getString());
         } catch (\Exception $e) {
@@ -150,10 +150,10 @@ class BitcoinController extends Controller
         try {
             // Use database transaction with pessimistic locking to prevent race conditions
             DB::beginTransaction();
-            
+
             // Lock the wallet row to prevent concurrent withdrawals
             $btcWallet = BtcWallet::where('id', $btcWallet->id)->lockForUpdate()->first();
-            
+
             // Re-validate balance after acquiring lock
             if ($btcWallet->balance < $validated['amount']) {
                 DB::rollBack();
@@ -161,13 +161,25 @@ class BitcoinController extends Controller
                     ->withInput()
                     ->withErrors(['amount' => 'Insufficient balance. Another withdrawal may be in progress.']);
             }
-            
+
+            // Calculate USD value at time of withdrawal
+            $usdValue = null;
+            try {
+                $btcRate = \App\Models\ExchangeRate::where('crypto_shortname', 'btc')->first();
+                if ($btcRate) {
+                    $usdValue = $validated['amount'] * $btcRate->usd_rate;
+                }
+            } catch (\Exception $e) {
+                \Log::warning("Failed to calculate USD value for withdrawal: " . $e->getMessage());
+            }
+
             // Create withdrawal transaction record FIRST (prevents double-spend)
             $withdrawal = $btcWallet->transactions()->create([
                 'btc_address_id' => null, // Withdrawal has no receiving address in our system
                 'txid' => null, // Will be set after blockchain broadcast
                 'type' => 'withdrawal',
                 'amount' => $validated['amount'],
+                'usd_value' => $usdValue,
                 'fee' => 0, // Will be updated from actual transaction
                 'confirmations' => 0,
                 'status' => 'pending',
@@ -180,7 +192,7 @@ class BitcoinController extends Controller
 
             // Update balance to reflect pending withdrawal
             $btcWallet->updateBalance();
-            
+
             DB::commit();
 
             DB::commit();

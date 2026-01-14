@@ -60,18 +60,18 @@
         <!-- Withdraw Bitcoin -->
         <div class="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-xl">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Withdraw Bitcoin</h3>
-            
+
             <form method="POST" action="{{ route('bitcoin.withdraw') }}" class="max-w-2xl">
                 @csrf
-                
+
                 <div class="grid gap-4 md:grid-cols-2 mb-4">
                     <div>
                         <label for="address" class="block text-sm font-medium text-gray-700 mb-2">
                             Recipient Address <span class="text-red-600">*</span>
                         </label>
-                        <input type="text" 
-                               id="address" 
-                               name="address" 
+                        <input type="text"
+                               id="address"
+                               name="address"
                                value="{{ old('address') }}"
                                required
                                placeholder="bc1..."
@@ -86,9 +86,9 @@
                         <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">
                             Amount (BTC) <span class="text-red-600">*</span>
                         </label>
-                        <input type="number" 
-                               id="amount" 
-                               name="amount" 
+                        <input type="number"
+                               id="amount"
+                               name="amount"
                                value="{{ old('amount') }}"
                                required
                                step="0.00000001"
@@ -110,9 +110,9 @@
                     <label for="pin" class="block text-sm font-medium text-gray-700 mb-2">
                         Security PIN <span class="text-red-600">*</span>
                     </label>
-                    <input type="password" 
-                           id="pin" 
-                           name="pin" 
+                    <input type="password"
+                           id="pin"
+                           name="pin"
                            required
                            maxlength="6"
                            placeholder="Enter your 6-digit PIN"
@@ -128,7 +128,7 @@
                         <p class="font-medium">Minimum: 0.00001 BTC</p>
                         <p>Network fees will be deducted from your balance</p>
                     </div>
-                    <button type="submit" 
+                    <button type="submit"
                             class="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg transition-colors">
                         Withdraw Bitcoin
                     </button>
@@ -153,7 +153,10 @@
                                     Type
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Amount
+                                    Amount (BTC)
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    USD Value
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Status
@@ -179,7 +182,16 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-mono text-gray-900">
-                                            {{ number_format($tx->amount, 8) }} BTC
+                                            {{ number_format($tx->amount, 8) }}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">
+                                            @if($tx->usd_value)
+                                                ${{ number_format($tx->usd_value, 2) }}
+                                            @else
+                                                <span class="text-gray-400">N/A</span>
+                                            @endif
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">

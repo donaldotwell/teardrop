@@ -201,13 +201,27 @@ class BitcoinRepository
         $requiredConfirmations = config('bitcoinrpc.confirmations_required', 6);
         $isConfirmed = $confirmations >= $requiredConfirmations;
 
+        // Calculate USD value at time of transaction
+        $btcAmount = abs($txData['amount']);
+        $usdValue = null;
+        try {
+            $btcRate = \App\Models\ExchangeRate::where('crypto_shortname', 'btc')->first();
+            if ($btcRate) {
+                $usdValue = $btcAmount * $btcRate->usd_rate;
+                Log::debug("      Calculated USD value: \${$usdValue} (rate: \${$btcRate->usd_rate} per BTC)");
+            }
+        } catch (\Exception $e) {
+            Log::warning("      Failed to calculate USD value: " . $e->getMessage());
+        }
+
         // Create transaction record
         $transaction = BtcTransaction::create([
             'btc_wallet_id' => $wallet->id,
             'btc_address_id' => $btcAddressId,
             'txid' => $txData['txid'],
             'type' => $type,
-            'amount' => abs($txData['amount']),
+            'amount' => $btcAmount,
+            'usd_value' => $usdValue,
             'fee' => abs($txData['fee'] ?? 0),
             'confirmations' => $confirmations,
             'status' => $isConfirmed ? 'confirmed' : 'pending',
