@@ -6,10 +6,16 @@
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold text-gray-900">Product Categories</h1>
-        <div class="text-sm text-gray-600">
-            Configure early finalization settings per category
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Product Categories</h1>
+            <div class="text-sm text-gray-600 mt-1">
+                Configure early finalization settings per category
+            </div>
         </div>
+        <a href="{{ route('admin.product-categories.create') }}"
+           class="px-6 py-2 bg-yellow-600 text-white font-medium rounded-lg hover:bg-yellow-700">
+            Create Category
+        </a>
     </div>
 
     @if(session('success'))

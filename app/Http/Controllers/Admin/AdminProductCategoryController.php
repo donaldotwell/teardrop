@@ -23,6 +23,29 @@ class AdminProductCategoryController extends Controller
     }
 
     /**
+     * Show form to create a new category
+     */
+    public function create()
+    {
+        return view('admin.product-categories.create');
+    }
+
+    /**
+     * Store a new category
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:50|unique:product_categories,name',
+        ]);
+
+        ProductCategory::create($validated);
+
+        return redirect()->route('admin.product-categories.index')
+            ->with('success', 'Category created successfully.');
+    }
+
+    /**
      * Show edit form for category finalization settings
      */
     public function edit(ProductCategory $productCategory)
@@ -91,5 +114,25 @@ class AdminProductCategoryController extends Controller
 
         return redirect()->back()
             ->with('success', "Early finalization {$status} for category {$productCategory->name}.");
+    }
+
+    /**
+     * Delete a category
+     */
+    public function destroy(ProductCategory $productCategory)
+    {
+        // Check if category has products
+        $productsCount = $productCategory->products()->count();
+
+        if ($productsCount > 0) {
+            return redirect()->back()
+                ->withErrors(['error' => "Cannot delete category. It has {$productsCount} product(s)."]);
+        }
+
+        $categoryName = $productCategory->name;
+        $productCategory->delete();
+
+        return redirect()->route('admin.product-categories.index')
+            ->with('success', "Category '{$categoryName}' deleted successfully.");
     }
 }

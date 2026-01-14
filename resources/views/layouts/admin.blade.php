@@ -158,6 +158,16 @@
                               {{ request()->routeIs('admin.support.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
                         Tickets
                     </a>
+                    <a href="{{ route('admin.product-categories.index') }}"
+                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                              {{ request()->routeIs('admin.product-categories.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                        Categories
+                    </a>
+                    <a href="{{ route('admin.products.index') }}"
+                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                              {{ request()->routeIs('admin.products.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                        Products
+                    </a>
                     <a href="{{ route('admin.reports') }}"
                        class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
                               {{ request()->routeIs('admin.reports') ? 'bg-yellow-100 text-yellow-700' : '' }}">
@@ -201,6 +211,14 @@
                         <a href="{{ route('admin.listings.index') }}"
                            class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
                             Listings
+                        </a>
+                        <a href="{{ route('admin.product-categories.index') }}"
+                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
+                            Categories
+                        </a>
+                        <a href="{{ route('admin.products.index') }}"
+                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
+                            Products
                         </a>
                         <a href="{{ route('admin.reports') }}"
                            class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">

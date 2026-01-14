@@ -127,9 +127,22 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
     // Product Categories Management
     Route::prefix('product-categories')->name('product-categories.')->group(function () {
         Route::get('/', [AdminProductCategoryController::class, 'index'])->name('index');
+        Route::get('/create', [AdminProductCategoryController::class, 'create'])->name('create');
+        Route::post('/', [AdminProductCategoryController::class, 'store'])->name('store');
         Route::get('/{productCategory}/edit', [AdminProductCategoryController::class, 'edit'])->name('edit');
         Route::put('/{productCategory}', [AdminProductCategoryController::class, 'update'])->name('update');
+        Route::delete('/{productCategory}', [AdminProductCategoryController::class, 'destroy'])->name('destroy');
         Route::post('/{productCategory}/toggle-early-finalization', [AdminProductCategoryController::class, 'toggleEarlyFinalization'])->name('toggle-early-finalization');
+    });
+
+    // Products Management
+    Route::prefix('products')->name('products.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\AdminProductController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Admin\AdminProductController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Admin\AdminProductController::class, 'store'])->name('store');
+        Route::get('/{product}/edit', [\App\Http\Controllers\Admin\AdminProductController::class, 'edit'])->name('edit');
+        Route::put('/{product}', [\App\Http\Controllers\Admin\AdminProductController::class, 'update'])->name('update');
+        Route::delete('/{product}', [\App\Http\Controllers\Admin\AdminProductController::class, 'destroy'])->name('destroy');
     });
 
 });
