@@ -174,11 +174,15 @@ class ModeratorController extends Controller
      */
     private function getAverageResponseTime()
     {
-        $avgMinutes = ForumReport::whereNotNull('reviewed_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, reviewed_at)) as avg_time')
-            ->value('avg_time');
+        $reports = ForumReport::whereNotNull('reviewed_at')
+            ->select('created_at', 'reviewed_at')
+            ->get();
 
-        if (!$avgMinutes) return 'N/A';
+        if ($reports->isEmpty()) return 'N/A';
+
+        $avgMinutes = $reports->avg(function ($report) {
+            return $report->created_at->diffInMinutes($report->reviewed_at);
+        });
 
         if ($avgMinutes < 60) {
             return round($avgMinutes) . 'min';
@@ -192,12 +196,16 @@ class ModeratorController extends Controller
      */
     private function getMyAverageReviewTime()
     {
-        $avgMinutes = ForumReport::where('reviewed_by', auth()->id())
+        $reports = ForumReport::where('reviewed_by', auth()->id())
             ->whereNotNull('reviewed_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, reviewed_at)) as avg_time')
-            ->value('avg_time');
+            ->select('created_at', 'reviewed_at')
+            ->get();
 
-        if (!$avgMinutes) return 'N/A';
+        if ($reports->isEmpty()) return 'N/A';
+
+        $avgMinutes = $reports->avg(function ($report) {
+            return $report->created_at->diffInMinutes($report->reviewed_at);
+        });
 
         if ($avgMinutes < 60) {
             return round($avgMinutes) . 'min';
