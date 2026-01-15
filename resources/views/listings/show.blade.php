@@ -132,40 +132,48 @@
                                         <span class="text-sm text-gray-600">USD</span>
                                     </div>
 
-                                    <form action="{{ route('orders.create', $listing) }}" method="get" class="space-y-4">
-                                        @csrf
-                                        <input type="hidden" name="listing_id" value="{{ $listing->id }}">
-
-                                        <div class="space-y-4">
-                                            <div>
-                                                <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
-                                                <input type="number"
-                                                       name="quantity"
-                                                       id="quantity"
-                                                       min="1"
-                                                       value="1"
-                                                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
-                                            </div>
-
-                                            <div>
-                                                <label class="block text-sm font-medium text-gray-700 mb-2">Payment Currency</label>
-                                                <select name="currency"
-                                                        id="currency"
-                                                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
-                                                    <option value="btc">Bitcoin (BTC) - {{ $btcAmount }} BTC</option>
-                                                    <option value="xmr">Monero (XMR) - {{ $xmrAmount }} XMR</option>
-                                                </select>
-                                                @error('currency')
-                                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                                                @enderror
-                                            </div>
+                                    @if($listing->user_id === auth()->id())
+                                        <!-- Message for vendor viewing their own listing -->
+                                        <div class="bg-amber-100 border border-amber-300 rounded-lg p-4">
+                                            <p class="text-sm text-amber-900 font-medium">This is your listing</p>
+                                            <p class="text-sm text-amber-700 mt-1">You cannot purchase your own products.</p>
                                         </div>
+                                    @else
+                                        <form action="{{ route('orders.create', $listing) }}" method="get" class="space-y-4">
+                                            @csrf
+                                            <input type="hidden" name="listing_id" value="{{ $listing->id }}">
 
-                                        <button type="submit"
-                                                class="w-full py-3 bg-yellow-600 text-white font-semibold rounded-lg hover:bg-yellow-700 transition-colors duration-200">
-                                            Purchase Now
-                                        </button>
-                                    </form>
+                                            <div class="space-y-4">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                                                    <input type="number"
+                                                           name="quantity"
+                                                           id="quantity"
+                                                           min="1"
+                                                           value="1"
+                                                           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
+                                                </div>
+
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Payment Currency</label>
+                                                    <select name="currency"
+                                                            id="currency"
+                                                            class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
+                                                        <option value="btc">Bitcoin (BTC) - {{ $btcAmount }} BTC</option>
+                                                        <option value="xmr">Monero (XMR) - {{ $xmrAmount }} XMR</option>
+                                                    </select>
+                                                    @error('currency')
+                                                    <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                                    @enderror
+                                                </div>
+                                            </div>
+
+                                            <button type="submit"
+                                                    class="w-full py-3 bg-yellow-600 text-white font-semibold rounded-lg hover:bg-yellow-700 transition-colors duration-200">
+                                                Purchase Now
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </div>
 

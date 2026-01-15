@@ -68,6 +68,7 @@ class AdminProductCategoryController extends Controller
     public function update(Request $request, ProductCategory $productCategory)
     {
         $validated = $request->validate([
+            'name' => 'required|string|max:50|unique:product_categories,name,' . $productCategory->id,
             'allows_early_finalization' => 'required|boolean',
             'finalization_window_id' => 'nullable|exists:finalization_windows,id',
             'min_vendor_level_for_early' => 'required|integer|min:1|max:100',
@@ -89,7 +90,24 @@ class AdminProductCategoryController extends Controller
         $productCategory->update($validated);
 
         return redirect()->route('admin.product-categories.index')
-            ->with('success', 'Category finalization settings updated successfully.');
+            ->with('success', 'Category updated successfully.');
+    }
+
+    /**
+     * Toggle active status for category
+     */
+    public function toggleStatus(ProductCategory $productCategory)
+    {
+        $newStatus = !$productCategory->is_active;
+
+        $productCategory->update([
+            'is_active' => $newStatus
+        ]);
+
+        $status = $newStatus ? 'activated' : 'deactivated';
+
+        return redirect()->back()
+            ->with('success', "Category '{$productCategory->name}' {$status} successfully.");
     }
 
     /**

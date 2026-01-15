@@ -81,6 +81,13 @@ class OrderController extends Controller
 
     public function create(Request $request, Listing $listing)
     {
+        // Check if user is trying to purchase their own listing
+        if ($listing->user_id === $request->user()->id) {
+            return redirect()->back()->withErrors([
+                'error' => 'You cannot purchase your own product.',
+            ]);
+        }
+
         // Check if vendor has PGP public key configured
         if (empty($listing->user->pgp_pub_key)) {
             return redirect()->back()->withErrors([
@@ -322,6 +329,13 @@ class OrderController extends Controller
      */
     public function store(Request $request, Listing $listing) : \Illuminate\Http\RedirectResponse
     {
+        // Check if user is trying to purchase their own listing
+        if ($listing->user_id === $request->user()->id) {
+            return redirect()->back()->withErrors([
+                'error' => 'You cannot purchase your own product.',
+            ]);
+        }
+
         // Validate request
         $data = $request->validate([
             'currency' => 'required|in:btc,xmr',

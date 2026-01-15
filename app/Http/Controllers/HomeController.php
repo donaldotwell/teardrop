@@ -45,25 +45,25 @@ class HomeController extends Controller
             // Apply category filter
             if ($categoryUuid) {
                 $allListingsQuery->whereHas('product.productCategory', function ($query) use ($categoryUuid) {
-                    $query->where('uuid', $categoryUuid);
+                    $query->where('uuid', $categoryUuid)->where('is_active', true);
                 });
             }
 
             // Apply subcategory filter
             if ($subcategoryUuid) {
                 $allListingsQuery->whereHas('product', function ($query) use ($subcategoryUuid) {
-                    $query->where('uuid', $subcategoryUuid);
+                    $query->where('uuid', $subcategoryUuid)->where('is_active', true);
                 });
             }
 
             $all_listings = $allListingsQuery
                 ->orderBy('is_featured', 'desc')
-                ->orderBy('created_at', 'desc')
+                ->inRandomOrder()
                 ->paginate(20);
 
             $featured_listings = collect();
             $regular_listings = collect();
-            
+
         } elseif ($filter === 'featured') {
             // Show only featured listings
             $featuredQuery = Listing::with([
@@ -90,24 +90,24 @@ class HomeController extends Controller
             // Apply category filter
             if ($categoryUuid) {
                 $featuredQuery->whereHas('product.productCategory', function ($query) use ($categoryUuid) {
-                    $query->where('uuid', $categoryUuid);
+                    $query->where('uuid', $categoryUuid)->where('is_active', true);
                 });
             }
 
             // Apply subcategory filter
             if ($subcategoryUuid) {
                 $featuredQuery->whereHas('product', function ($query) use ($subcategoryUuid) {
-                    $query->where('uuid', $subcategoryUuid);
+                    $query->where('uuid', $subcategoryUuid)->where('is_active', true);
                 });
             }
 
             $all_listings = $featuredQuery
-                ->orderBy('created_at', 'desc')
+                ->inRandomOrder()
                 ->paginate(20);
 
             $featured_listings = collect();
             $regular_listings = collect();
-            
+
         } else {
             // Default: Show featured section + regular section separately
             // Default: Show featured section + regular section separately
@@ -144,7 +144,7 @@ class HomeController extends Controller
                         ->orWhere('short_description', 'like', "%{$searchQuery}%")
                         ->orWhere('description', 'like', "%{$searchQuery}%");
                 });
-                
+
                 $regularQuery->where(function ($query) use ($searchQuery) {
                     $query->where('title', 'like', "%{$searchQuery}%")
                         ->orWhere('short_description', 'like', "%{$searchQuery}%")
@@ -155,52 +155,54 @@ class HomeController extends Controller
             // Apply category filter if provided
             if ($categoryUuid) {
                 $featuredQuery->whereHas('product.productCategory', function ($query) use ($categoryUuid) {
-                    $query->where('uuid', $categoryUuid);
+                    $query->where('uuid', $categoryUuid)->where('is_active', true);
                 });
-                
+
                 $regularQuery->whereHas('product.productCategory', function ($query) use ($categoryUuid) {
-                    $query->where('uuid', $categoryUuid);
+                    $query->where('uuid', $categoryUuid)->where('is_active', true);
                 });
             }
 
             // Apply subcategory (product) filter if provided
             if ($subcategoryUuid) {
                 $featuredQuery->whereHas('product', function ($query) use ($subcategoryUuid) {
-                    $query->where('uuid', $subcategoryUuid);
+                    $query->where('uuid', $subcategoryUuid)->where('is_active', true);
                 });
-                
+
                 $regularQuery->whereHas('product', function ($query) use ($subcategoryUuid) {
-                    $query->where('uuid', $subcategoryUuid);
+                    $query->where('uuid', $subcategoryUuid)->where('is_active', true);
                 });
             }
 
             // Get featured listings (sponsored)
             $featured_listings = $featuredQuery
-                ->orderBy('created_at', 'desc')
+                ->inRandomOrder()
                 ->limit(20)
                 ->get();
 
             // Get regular listings (not sponsored)
             $regular_listings = $regularQuery
-                ->orderBy('created_at', 'desc')
+                ->inRandomOrder()
                 ->paginate(20);
 
             $all_listings = collect();
         }
 
         // Get product categories with their products and listing counts for sidebar
-        $productCategories = ProductCategory::with([
-            'products' => function ($query) {
-                $query->withCount(['listings' => function ($q) {
-                    $q->where('is_active', true);
-                }]);
-            }
-        ])
-        ->withCount(['listings' => function ($query) {
-            $query->where('is_active', true);
-        }])
-        ->orderBy('name')
-        ->get();
+        $productCategories = ProductCategory::where('is_active', true)
+            ->with([
+                'products' => function ($query) {
+                    $query->where('is_active', true)
+                        ->withCount(['listings' => function ($q) {
+                            $q->where('is_active', true);
+                        }]);
+                }
+            ])
+            ->withCount(['listings' => function ($query) {
+                $query->where('is_active', true);
+            }])
+            ->orderBy('name')
+            ->get();
 
         return view('home', [
             'featured_listings' => $featured_listings,

@@ -19,6 +19,16 @@ class ProductCategory extends Model
     ];
 
     /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'is_active' => 'boolean',
+        'allows_early_finalization' => 'boolean',
+    ];
+
+    /**
      * Get the products associated with the product category.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany

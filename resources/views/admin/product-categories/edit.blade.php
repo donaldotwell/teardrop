@@ -44,6 +44,27 @@
         @method('PUT')
 
         <div class="border-b border-gray-200 pb-4">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Category Settings</h2>
+        </div>
+
+        <!-- Category Name -->
+        <div>
+            <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                Category Name *
+            </label>
+            <input type="text"
+                   name="name"
+                   id="name"
+                   value="{{ old('name', $productCategory->name) }}"
+                   maxlength="50"
+                   required
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500">
+            @error('name')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div class="border-b border-gray-200 pb-4 pt-4">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Early Finalization Settings</h2>
             <p class="text-sm text-gray-600 mb-4">
                 Configure whether vendors can use early finalization (direct payment) for listings in this category.

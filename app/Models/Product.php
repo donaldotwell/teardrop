@@ -19,6 +19,15 @@ class Product extends Model
     ];
 
     /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    /**
      * Get the product category associated with the product.
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

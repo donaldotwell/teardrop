@@ -36,6 +36,7 @@
             <thead class="bg-amber-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Category</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Products</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Active Listings</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Early Finalization</th>
@@ -49,6 +50,15 @@
                     <tr class="{{ $category->allows_early_finalization ? 'bg-amber-50' : '' }}">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">{{ $category->name }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <form action="{{ route('admin.product-categories.toggle-status', $category) }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit"
+                                        class="px-2 py-1 text-xs rounded {{ $category->is_active ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-gray-100 text-gray-800 hover:bg-gray-200' }}">
+                                    {{ $category->is_active ? 'Active' : 'Inactive' }}
+                                </button>
+                            </form>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {{ $category->products->count() }}
@@ -73,12 +83,12 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                             <a href="{{ route('admin.product-categories.edit', $category) }}"
-                               class="text-amber-600 hover:text-amber-900 font-medium">Configure</a>
+                               class="text-amber-600 hover:text-amber-900 font-medium">Edit</a>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">
                             No product categories found.
                         </td>
                     </tr>

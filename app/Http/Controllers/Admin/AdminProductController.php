@@ -130,4 +130,21 @@ class AdminProductController extends Controller
         return redirect()->route('admin.products.index')
             ->with('success', "Product '{$productName}' deleted successfully.");
     }
+
+    /**
+     * Toggle active status for product
+     */
+    public function toggleStatus(Product $product)
+    {
+        $newStatus = !$product->is_active;
+
+        $product->update([
+            'is_active' => $newStatus
+        ]);
+
+        $status = $newStatus ? 'activated' : 'deactivated';
+
+        return redirect()->back()
+            ->with('success', "Product '{$product->name}' {$status} successfully.");
+    }
 }
