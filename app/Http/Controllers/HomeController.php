@@ -45,14 +45,16 @@ class HomeController extends Controller
             // Apply category filter
             if ($categoryUuid) {
                 $allListingsQuery->whereHas('product.productCategory', function ($query) use ($categoryUuid) {
-                    $query->where('uuid', $categoryUuid)->where('is_active', true);
+                    $query->where('product_categories.uuid', $categoryUuid)
+                          ->where('product_categories.is_active', true);
                 });
             }
 
             // Apply subcategory filter
             if ($subcategoryUuid) {
                 $allListingsQuery->whereHas('product', function ($query) use ($subcategoryUuid) {
-                    $query->where('uuid', $subcategoryUuid)->where('is_active', true);
+                    $query->where('products.uuid', $subcategoryUuid)
+                          ->where('products.is_active', true);
                 });
             }
 
@@ -90,14 +92,16 @@ class HomeController extends Controller
             // Apply category filter
             if ($categoryUuid) {
                 $featuredQuery->whereHas('product.productCategory', function ($query) use ($categoryUuid) {
-                    $query->where('uuid', $categoryUuid)->where('is_active', true);
+                    $query->where('product_categories.uuid', $categoryUuid)
+                          ->where('product_categories.is_active', true);
                 });
             }
 
             // Apply subcategory filter
             if ($subcategoryUuid) {
                 $featuredQuery->whereHas('product', function ($query) use ($subcategoryUuid) {
-                    $query->where('uuid', $subcategoryUuid)->where('is_active', true);
+                    $query->where('products.uuid', $subcategoryUuid)
+                          ->where('products.is_active', true);
                 });
             }
 
@@ -155,22 +159,26 @@ class HomeController extends Controller
             // Apply category filter if provided
             if ($categoryUuid) {
                 $featuredQuery->whereHas('product.productCategory', function ($query) use ($categoryUuid) {
-                    $query->where('uuid', $categoryUuid)->where('is_active', true);
+                    $query->where('product_categories.uuid', $categoryUuid)
+                          ->where('product_categories.is_active', true);
                 });
 
                 $regularQuery->whereHas('product.productCategory', function ($query) use ($categoryUuid) {
-                    $query->where('uuid', $categoryUuid)->where('is_active', true);
+                    $query->where('product_categories.uuid', $categoryUuid)
+                          ->where('product_categories.is_active', true);
                 });
             }
 
             // Apply subcategory (product) filter if provided
             if ($subcategoryUuid) {
                 $featuredQuery->whereHas('product', function ($query) use ($subcategoryUuid) {
-                    $query->where('uuid', $subcategoryUuid)->where('is_active', true);
+                    $query->where('products.uuid', $subcategoryUuid)
+                          ->where('products.is_active', true);
                 });
 
                 $regularQuery->whereHas('product', function ($query) use ($subcategoryUuid) {
-                    $query->where('uuid', $subcategoryUuid)->where('is_active', true);
+                    $query->where('products.uuid', $subcategoryUuid)
+                          ->where('products.is_active', true);
                 });
             }
 
@@ -189,17 +197,17 @@ class HomeController extends Controller
         }
 
         // Get product categories with their products and listing counts for sidebar
-        $productCategories = ProductCategory::where('is_active', true)
+        $productCategories = ProductCategory::where('product_categories.is_active', true)
             ->with([
                 'products' => function ($query) {
-                    $query->where('is_active', true)
+                    $query->where('products.is_active', true)
                         ->withCount(['listings' => function ($q) {
-                            $q->where('is_active', true);
+                            $q->where('listings.is_active', true);
                         }]);
                 }
             ])
             ->withCount(['listings' => function ($query) {
-                $query->where('is_active', true);
+                $query->where('listings.is_active', true);
             }])
             ->orderBy('name')
             ->get();
