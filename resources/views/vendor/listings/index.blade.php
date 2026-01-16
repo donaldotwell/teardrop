@@ -45,7 +45,19 @@
 
                         <div class="flex items-center justify-between mb-3">
                             <div class="text-xl font-bold text-purple-700">${{ number_format($listing->price, 2) }}</div>
-                            <div class="text-sm text-gray-500">Qty: {{ $listing->quantity }}</div>
+                            <div class="text-sm text-gray-500">
+                                @if($listing->quantity === null)
+                                    <span class="text-green-600">Unlimited</span>
+                                @else
+                                    @php $availableStock = $listing->getAvailableStock(); @endphp
+                                    Stock: {{ $availableStock }}
+                                    @if($availableStock <= 0)
+                                        <span class="text-red-600">(OUT)</span>
+                                    @elseif($availableStock <= 5)
+                                        <span class="text-orange-600">(Low)</span>
+                                    @endif
+                                @endif
+                            </div>
                         </div>
 
                         <div class="flex items-center gap-2 mb-3 text-xs">

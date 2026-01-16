@@ -127,9 +127,39 @@
                             <!-- Pricing Card -->
                             <div class="bg-yellow-50 rounded-xl p-6 border border-yellow-200">
                                 <div class="space-y-6">
-                                    <div class="flex items-baseline gap-2">
-                                        <span class="text-3xl font-bold text-yellow-700">${{ number_format($listing->price, 2) }}</span>
-                                        <span class="text-sm text-gray-600">USD</span>
+                                    <div>
+                                        <div class="flex items-baseline gap-2 mb-2">
+                                            <span class="text-3xl font-bold text-yellow-700">${{ number_format($listing->price, 2) }}</span>
+                                            <span class="text-sm text-gray-600">USD</span>
+                                        </div>
+                                        @if($listing->price_shipping > 0)
+                                            <div class="text-sm text-gray-600">
+                                                <span class="font-medium">+ Shipping:</span> ${{ number_format($listing->price_shipping, 2) }} USD
+                                            </div>
+                                            <div class="pt-2 mt-2 border-t border-yellow-300">
+                                                <div class="flex items-baseline gap-2">
+                                                    <span class="text-lg font-bold text-yellow-800">Total: ${{ number_format($totalPrice, 2) }}</span>
+                                                    <span class="text-xs text-gray-600">USD (per unit)</span>
+                                                </div>
+                                            </div>
+                                        @endif
+                                        @php
+                                            $availableStock = $listing->getAvailableStock();
+                                        @endphp
+                                        @if($listing->quantity !== null)
+                                            <div class="text-sm text-gray-600 mt-1">
+                                                <span class="font-medium">In Stock:</span> {{ $availableStock }} {{ $availableStock == 1 ? 'unit' : 'units' }}
+                                                @if($availableStock <= 0)
+                                                    <span class="text-red-600 font-semibold ml-2">OUT OF STOCK</span>
+                                                @elseif($availableStock <= 5)
+                                                    <span class="text-orange-600 ml-2">(Low stock)</span>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <div class="text-sm text-green-600 mt-1">
+                                                <span class="font-medium">Unlimited quantity available</span>
+                                            </div>
+                                        @endif
                                     </div>
 
                                     @if($listing->user_id === auth()->id())
@@ -150,8 +180,12 @@
                                                            name="quantity"
                                                            id="quantity"
                                                            min="1"
+                                                           @if($listing->quantity !== null) max="{{ $availableStock }}" @endif
                                                            value="1"
                                                            class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
+                                                    @if($listing->quantity !== null)
+                                                        <p class="mt-1 text-xs text-gray-500">In stock: {{ $availableStock }}</p>
+                                                    @endif
                                                 </div>
 
                                                 <div>
@@ -159,9 +193,10 @@
                                                     <select name="currency"
                                                             id="currency"
                                                             class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
-                                                        <option value="btc">Bitcoin (BTC) - {{ $btcAmount }} BTC</option>
-                                                        <option value="xmr">Monero (XMR) - {{ $xmrAmount }} XMR</option>
+                                                        <option value="btc">Bitcoin (BTC) - {{ $btcAmount }} BTC (incl. shipping)</option>
+                                                        <option value="xmr">Monero (XMR) - {{ $xmrAmount }} XMR (incl. shipping)</option>
                                                     </select>
+                                                    <p class="mt-1 text-xs text-gray-500">Prices shown include shipping cost per unit</p>
                                                     @error('currency')
                                                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                                                     @enderror

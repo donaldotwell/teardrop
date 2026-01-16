@@ -55,7 +55,8 @@ class VendorListingController extends Controller
             'price' => 'required|numeric|min:0',
             'price_shipping' => 'required|numeric|min:0',
             'end_date' => 'nullable|date',
-            'quantity' => 'required|numeric|min:1',
+            'quantity' => 'nullable|numeric|min:1',
+            'is_unlimited' => 'nullable|boolean',
             'origin_country_id' => 'required|exists:countries,id',
             'destination_country_id' => 'required|exists:countries,id',
             'tags' => 'nullable|string',
@@ -73,6 +74,9 @@ class VendorListingController extends Controller
             ->where('product_category_id', $data['product_category_id'])
             ->firstOrFail();
 
+        // Handle unlimited quantity (null means unlimited)
+        $quantity = $request->boolean('is_unlimited') ? null : $data['quantity'];
+
         $listing = Listing::create([
             'product_id' => $product->id,
             'user_id' => $request->user()->id,
@@ -84,7 +88,7 @@ class VendorListingController extends Controller
             'shipping_method' => $data['shipping_method'],
             'payment_method' => $data['payment_method'],
             'end_date' => $data['end_date'],
-            'quantity' => $data['quantity'],
+            'quantity' => $quantity,
             'origin_country_id' => $data['origin_country_id'],
             'destination_country_id' => $data['destination_country_id'],
             'tags' => !empty($data['tags']) ? array_map('trim', explode(',', $data['tags'])) : null,
@@ -146,9 +150,13 @@ class VendorListingController extends Controller
             'description' => 'required',
             'price' => 'required|numeric|min:0',
             'price_shipping' => 'required|numeric|min:0',
-            'quantity' => 'required|numeric|min:1',
+            'quantity' => 'nullable|numeric|min:1',
+            'is_unlimited' => 'nullable|boolean',
             'is_active' => 'boolean',
         ]);
+
+        // Handle unlimited quantity (null means unlimited)
+        $data['quantity'] = $request->boolean('is_unlimited') ? null : $data['quantity'];
 
         $listing->update($data);
 

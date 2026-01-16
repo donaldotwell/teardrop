@@ -84,10 +84,17 @@
                 </div>
 
                 <div>
-                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-2">Quantity <span class="text-red-600">*</span></label>
-                    <input type="number" name="quantity" id="quantity" min="1" required
+                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                    <input type="number" name="quantity" id="quantity" min="1"
                            value="{{ old('quantity', $listing->quantity) }}"
-                           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                           @if($listing->quantity === null) disabled @endif>
+                    <div class="flex items-center gap-2 mt-2">
+                        <input type="checkbox" name="is_unlimited" id="is_unlimited" value="1"
+                               @if($listing->quantity === null) checked @endif
+                               class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                        <label for="is_unlimited" class="text-sm text-gray-700">Unlimited quantity</label>
+                    </div>
                     @error('quantity')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror

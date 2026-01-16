@@ -101,8 +101,25 @@
                     <div class="text-sm text-gray-600">Shipping Price</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-2xl font-semibold text-blue-600">{{ $listing->quantity }}</div>
-                    <div class="text-sm text-gray-600">Available Quantity</div>
+                    <div class="text-2xl font-semibold text-blue-600">
+                        @php $availableStock = $listing->getAvailableStock(); @endphp
+                        @if($listing->quantity === null)
+                            <span class="text-green-600">Unlimited</span>
+                        @else
+                            {{ $availableStock }}
+                            @if($availableStock <= 0)
+                                <span class="text-red-600 text-sm">(OUT OF STOCK)</span>
+                            @elseif($availableStock <= 5)
+                                <span class="text-orange-600 text-sm">(Low)</span>
+                            @endif
+                        @endif
+                    </div>
+                    <div class="text-sm text-gray-600">Available Stock</div>
+                    @if($listing->quantity !== null)
+                        <div class="text-xs text-gray-500 mt-1">
+                            Total: {{ $listing->quantity }} | Sold: {{ $listing->getSoldQuantity() }}
+                        </div>
+                    @endif
                 </div>
                 <div class="text-center">
                     <div class="text-2xl font-semibold text-green-600">

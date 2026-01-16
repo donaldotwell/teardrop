@@ -101,11 +101,26 @@ class OrderController extends Controller
             'quantity' => 'required|numeric|min:1',
         ]);
 
+        // Check if listing is in stock
+        if (!$listing->isInStock()) {
+            return redirect()->route('listings.show', $listing)
+                ->with('error', 'This item is currently out of stock.');
+        }
+
+        // Check if requested quantity is available
+        if (!$listing->hasAvailableStock($data['quantity'])) {
+            $available = $listing->getAvailableStock();
+            return redirect()->back()->withErrors([
+                'quantity' => "Requested quantity exceeds available stock. Available: {$available}",
+            ])->withInput();
+        }
+
         $user = $request->user();
 
         $user_balance = $user->getBalance();
 
-        $usd_price = $listing->price * $data['quantity'];
+        // Calculate total price including shipping
+        $usd_price = ($listing->price * $data['quantity']) + $listing->price_shipping;
 
         $crypto_value = convert_usd_to_crypto($usd_price, $data['currency']);
 
@@ -129,6 +144,8 @@ class OrderController extends Controller
         return view('orders.create', [
             'listing'       => $listing,
             'usd_price'     => $usd_price,
+            'usd_subtotal'  => $listing->price * $data['quantity'],
+            'usd_shipping'  => $listing->price_shipping,
             'crypto_value' => $crypto_value,
             'currency'      => $data['currency'],
             'quantity'      => $data['quantity'],
@@ -344,6 +361,20 @@ class OrderController extends Controller
             'note' => 'nullable|string|max:1000',
         ]);
 
+        // Check if listing is in stock
+        if (!$listing->isInStock()) {
+            return redirect()->route('listings.show', $listing)
+                ->with('error', 'This item is currently out of stock.');
+        }
+
+        // Check if requested quantity is available (with locking to prevent race conditions)
+        if (!$listing->hasAvailableStock($data['quantity'])) {
+            $available = $listing->getAvailableStock();
+            return redirect()->back()->withErrors([
+                'quantity' => "Requested quantity exceeds available stock. Available: {$available}",
+            ])->withInput();
+        }
+
         // Verify vendor has PGP public key
         if (empty($listing->user->pgp_pub_key)) {
             return redirect()->back()->withErrors([
@@ -355,7 +386,8 @@ class OrderController extends Controller
 
         // Recheck balance including transaction fees
         $user_balance = $user->getBalance();
-        $usd_price = $listing->price * $data['quantity'];
+        // Calculate total price including shipping
+        $usd_price = ($listing->price * $data['quantity']) + $listing->price_shipping;
         $crypto_value = convert_usd_to_crypto($usd_price, $data['currency']);
 
         // Calculate estimated transaction fee (only for BTC)

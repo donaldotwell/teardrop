@@ -46,15 +46,19 @@ class ListingController extends Controller
         $btcRate = \App\Models\ExchangeRate::where('crypto_shortname', 'btc')->first();
         $xmrRate = \App\Models\ExchangeRate::where('crypto_shortname', 'xmr')->first();
 
-        // Calculate crypto amounts
-        $btcAmount = $btcRate ? number_format($listing->price / $btcRate->usd_rate, 8) : 'N/A';
-        $xmrAmount = $xmrRate ? number_format($listing->price / $xmrRate->usd_rate, 8) : 'N/A';
+        // Calculate total price including shipping
+        $totalPrice = $listing->price + $listing->price_shipping;
+
+        // Calculate crypto amounts based on total price (including shipping)
+        $btcAmount = $btcRate ? number_format($totalPrice / $btcRate->usd_rate, 8) : 'N/A';
+        $xmrAmount = $xmrRate ? number_format($totalPrice / $xmrRate->usd_rate, 8) : 'N/A';
 
         return view('listings.show', [
             'listing' => $listing,
             'productCategories' => $productCategories,
             'btcAmount' => $btcAmount,
             'xmrAmount' => $xmrAmount,
+            'totalPrice' => $totalPrice,
         ]);
     }
 

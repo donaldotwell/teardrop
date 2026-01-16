@@ -51,7 +51,7 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
             <div class="grid gap-4 sm:grid-cols-3">
                 <div class="p-4 border border-gray-100 rounded-xl">
-                    <div class="text-sm text-gray-500 mb-1">Price</div>
+                    <div class="text-sm text-gray-500 mb-1">Price per Unit</div>
                     <div class="flex items-baseline space-x-1">
                         <span class="text-xl font-semibold text-amber-700">{{ $listing->price }}</span>
                         <span class="text-sm text-gray-500">USD</span>
@@ -61,17 +61,41 @@
                 <div class="p-4 border border-gray-100 rounded-xl">
                     <div class="text-sm text-gray-500 mb-1">Quantity</div>
                     <div class="text-xl font-semibold text-amber-700">{{ $quantity }}</div>
+                    @php
+                        $availableStock = $listing->getAvailableStock();
+                    @endphp
+                    @if($availableStock !== null)
+                        <div class="text-xs text-gray-500 mt-1">
+                            ({{ $availableStock }} in stock)
+                        </div>
+                    @endif
                 </div>
 
                 <div class="p-4 border border-gray-100 rounded-xl">
-                    <div class="text-sm text-gray-500 mb-1">Total</div>
+                    <div class="text-sm text-gray-500 mb-1">Subtotal</div>
                     <div class="space-y-1">
                         <div class="text-xl font-semibold text-amber-700">
-                            {{ number_format($usd_price, 8) }} USD
+                            {{ number_format($usd_subtotal, 2) }} USD
                         </div>
-                        <div class="text-sm text-gray-500">
-                            ≈ {{ $crypto_value }} {{ strtoupper($currency) }}
-                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if($usd_shipping > 0)
+            <div class="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-blue-700 font-medium">Shipping Cost:</span>
+                    <span class="text-blue-900 font-semibold">${{ number_format($usd_shipping, 2) }} USD</span>
+                </div>
+            </div>
+            @endif
+
+            <div class="mt-4 p-4 bg-green-50 border border-green-100 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="text-green-700 font-semibold">Order Total:</span>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-green-900">${{ number_format($usd_price, 2) }} USD</div>
+                        <div class="text-sm text-green-700">≈ {{ $crypto_value }} {{ strtoupper($currency) }}</div>
                     </div>
                 </div>
             </div>

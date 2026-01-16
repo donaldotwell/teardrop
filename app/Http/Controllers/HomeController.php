@@ -61,7 +61,21 @@ class HomeController extends Controller
             $all_listings = $allListingsQuery
                 ->orderBy('is_featured', 'desc')
                 ->inRandomOrder()
-                ->paginate(20);
+                ->get()
+                ->filter(function ($listing) {
+                    return $listing->isInStock();
+                });
+
+            // Paginate manually after filtering
+            $page = request()->get('page', 1);
+            $perPage = 20;
+            $all_listings = new \Illuminate\Pagination\LengthAwarePaginator(
+                $all_listings->forPage($page, $perPage),
+                $all_listings->count(),
+                $perPage,
+                $page,
+                ['path' => request()->url(), 'query' => request()->query()]
+            );
 
             $featured_listings = collect();
             $regular_listings = collect();
@@ -107,7 +121,21 @@ class HomeController extends Controller
 
             $all_listings = $featuredQuery
                 ->inRandomOrder()
-                ->paginate(20);
+                ->get()
+                ->filter(function ($listing) {
+                    return $listing->isInStock();
+                });
+
+            // Paginate manually after filtering
+            $page = request()->get('page', 1);
+            $perPage = 20;
+            $all_listings = new \Illuminate\Pagination\LengthAwarePaginator(
+                $all_listings->forPage($page, $perPage),
+                $all_listings->count(),
+                $perPage,
+                $page,
+                ['path' => request()->url(), 'query' => request()->query()]
+            );
 
             $featured_listings = collect();
             $regular_listings = collect();
@@ -182,16 +210,34 @@ class HomeController extends Controller
                 });
             }
 
-            // Get featured listings (sponsored)
+            // Get featured listings (sponsored) - filter for stock
             $featured_listings = $featuredQuery
                 ->inRandomOrder()
-                ->limit(20)
-                ->get();
+                ->limit(50) // Get more than needed before filtering
+                ->get()
+                ->filter(function ($listing) {
+                    return $listing->isInStock();
+                })
+                ->take(20); // Take 20 after filtering
 
-            // Get regular listings (not sponsored)
-            $regular_listings = $regularQuery
+            // Get regular listings (not sponsored) - filter for stock
+            $regular_listings_query = $regularQuery
                 ->inRandomOrder()
-                ->paginate(20);
+                ->get()
+                ->filter(function ($listing) {
+                    return $listing->isInStock();
+                });
+
+            // Paginate manually after filtering
+            $page = request()->get('page', 1);
+            $perPage = 20;
+            $regular_listings = new \Illuminate\Pagination\LengthAwarePaginator(
+                $regular_listings_query->forPage($page, $perPage),
+                $regular_listings_query->count(),
+                $perPage,
+                $page,
+                ['path' => request()->url(), 'query' => request()->query()]
+            );
 
             $all_listings = collect();
         }

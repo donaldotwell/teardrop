@@ -226,11 +226,13 @@
                                             <div class="text-2xl font-bold text-yellow-700">
                                                 ${{ number_format($listing->price, 2) }}
                                             </div>
-                                            @if($listing->quantity)
-                                                <div class="text-xs text-gray-600">
-                                                    {{ $listing->quantity }} available
-                                                </div>
-                                            @endif
+                                            <div class="text-xs text-gray-600">
+                                                @if($listing->quantity === null)
+                                                    Unlimited
+                                                @else
+                                                    {{ $listing->getAvailableStock() }} in stock
+                                                @endif
+                                            </div>
                                         </div>
                                         <div class="text-right">
                                             <div class="text-xs text-gray-500">Shipping</div>
@@ -346,11 +348,13 @@
                                             <div class="text-2xl font-bold {{ $listing->is_featured ? 'text-yellow-700' : 'text-yellow-600' }}">
                                                 ${{ number_format($listing->price, 2) }}
                                             </div>
-                                            @if($listing->quantity)
-                                                <div class="text-xs text-gray-500">
-                                                    {{ $listing->quantity }} available
-                                                </div>
-                                            @endif
+                                            <div class="text-xs text-gray-500">
+                                                @if($listing->quantity === null)
+                                                    Unlimited
+                                                @else
+                                                    {{ $listing->getAvailableStock() }} in stock
+                                                @endif
+                                            </div>
                                         </div>
                                         <div class="text-right">
                                             <div class="text-xs text-gray-500">Shipping</div>
@@ -473,11 +477,13 @@
                                             <div class="text-2xl font-bold text-yellow-700">
                                                 ${{ number_format($listing->price, 2) }}
                                             </div>
-                                            @if($listing->quantity)
-                                                <div class="text-xs text-gray-600">
-                                                    {{ $listing->quantity }} available
-                                                </div>
-                                            @endif
+                                            <div class="text-xs text-gray-600">
+                                                @if($listing->quantity === null)
+                                                    Unlimited
+                                                @else
+                                                    {{ $listing->getAvailableStock() }} in stock
+                                                @endif
+                                            </div>
                                         </div>
                                         <div class="text-right">
                                             <div class="text-xs text-gray-500">Shipping</div>
@@ -594,11 +600,13 @@
                                         <div class="text-2xl font-bold text-yellow-600">
                                             ${{ number_format($listing->price, 2) }}
                                         </div>
-                                        @if($listing->quantity)
-                                            <div class="text-xs text-gray-500">
-                                                {{ $listing->quantity }} available
-                                            </div>
-                                        @endif
+                                        <div class="text-xs text-gray-600">
+                                            @if($listing->quantity === null)
+                                                Unlimited
+                                            @else
+                                                {{ $listing->getAvailableStock() }} in stock
+                                            @endif
+                                        </div>
                                     </div>
                                     <div class="text-right">
                                         <div class="text-xs text-gray-500">Shipping</div>

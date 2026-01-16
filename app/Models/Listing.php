@@ -223,4 +223,67 @@ class Listing extends Model
     {
         return $this->product->productCategory->finalizationWindow;
     }
+
+    /**
+     * Calculate total quantity sold (from completed orders only).
+     *
+     * @return int
+     */
+    public function getSoldQuantity(): int
+    {
+        return $this->orders()
+            ->where('status', 'completed')
+            ->sum('quantity');
+    }
+
+    /**
+     * Calculate available stock (quantity - sold).
+     * Returns null if unlimited quantity.
+     *
+     * @return int|null
+     */
+    public function getAvailableStock(): ?int
+    {
+        // Unlimited quantity
+        if ($this->quantity === null) {
+            return null;
+        }
+
+        $sold = $this->getSoldQuantity();
+        $available = $this->quantity - $sold;
+
+        return max(0, $available); // Never return negative
+    }
+
+    /**
+     * Check if listing is in stock.
+     *
+     * @return bool
+     */
+    public function isInStock(): bool
+    {
+        // Unlimited stock always available
+        if ($this->quantity === null) {
+            return true;
+        }
+
+        return $this->getAvailableStock() > 0;
+    }
+
+    /**
+     * Check if a specific quantity is available.
+     *
+     * @param int $requestedQuantity
+     * @return bool
+     */
+    public function hasAvailableStock(int $requestedQuantity): bool
+    {
+        // Unlimited stock always available
+        if ($this->quantity === null) {
+            return true;
+        }
+
+        $available = $this->getAvailableStock();
+        return $available >= $requestedQuantity;
+    }
 }
