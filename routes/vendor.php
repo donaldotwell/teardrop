@@ -35,6 +35,7 @@ Route::middleware(['auth', 'role:vendor'])->name('vendor.')->group(function () {
         Route::get('/', [VendorController::class, 'orders'])->name('index');
         Route::get('/{order}', [VendorController::class, 'showOrder'])->name('show');
         Route::post('/{order}/ship', [VendorController::class, 'shipOrder'])->name('ship');
+        Route::post('/{order}/cancel', [VendorController::class, 'cancelOrder'])->name('cancel');
         Route::post('/{order}/message', [VendorController::class, 'sendOrderMessage'])->name('message');
     });
 

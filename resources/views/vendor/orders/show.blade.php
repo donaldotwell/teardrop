@@ -296,10 +296,49 @@
                         </form>
                     @endif
 
+                    {{-- Cancel Order (Vendor Only) --}}
+                    @if(in_array($order->status, ['pending', 'shipped']))
+                        <button type="button" onclick="document.getElementById('cancel-order-form').classList.toggle('hidden')" class="w-full px-6 py-3 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                            Cancel Order & Refund Buyer
+                        </button>
+                        
+                        {{-- Cancel Order Form (Hidden by default) --}}
+                        <form id="cancel-order-form" action="{{ route('vendor.orders.cancel', $order) }}" method="POST" class="hidden mt-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            @csrf
+                            <label for="cancellation_reason" class="block text-sm font-medium text-gray-700 mb-2">
+                                Reason for Cancellation <span class="text-red-600">*</span>
+                            </label>
+                            <textarea name="cancellation_reason" id="cancellation_reason" rows="4" required maxlength="1000" placeholder="Please explain why you're cancelling this order..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"></textarea>
+                            <p class="text-xs text-gray-600 mt-1">Buyer will be refunded minus network transaction fees.</p>
+                            
+                            <div class="flex gap-2 mt-3">
+                                <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors">
+                                    Confirm Cancellation
+                                </button>
+                                <button type="button" onclick="document.getElementById('cancel-order-form').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
+                                    Nevermind
+                                </button>
+                            </div>
+                        </form>
+                    @endif
+
                     {{-- Order Shipped Info --}}
                     @if($order->status === 'shipped')
                         <div class="w-full px-6 py-3 text-sm text-center text-blue-700 bg-blue-50 rounded-md border border-blue-200">
                             Order marked as shipped. Funds will be released when buyer confirms receipt.
+                        </div>
+                    @endif
+
+                    {{-- Order Cancelled Info --}}
+                    @if($order->status === 'cancelled')
+                        <div class="w-full px-6 py-3 text-sm text-center text-red-700 bg-red-50 rounded-md border border-red-200">
+                            <div class="font-semibold mb-1">Order Cancelled</div>
+                            @if($order->cancellation_reason)
+                                <div class="text-xs mt-2 text-left">
+                                    <strong>Reason:</strong> {{ $order->cancellation_reason }}
+                                </div>
+                            @endif
                         </div>
                     @endif
 
@@ -308,6 +347,7 @@
                         <div class="w-full px-6 py-3 text-sm text-center text-yellow-700 bg-yellow-100 rounded-md border border-yellow-200">
                             Dispute is active for this order
                         </div>
+                    @endif
                     @endif
                 </div>
             </div>

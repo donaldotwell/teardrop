@@ -213,6 +213,109 @@ class VendorController extends Controller
     }
 
     /**
+     * Cancel an order and refund buyer (minus transaction fees).
+     */
+    public function cancelOrder(Request $request, Order $order)
+    {
+        $vendor = auth()->user();
+
+        // Verify vendor owns this order's listing
+        if ($order->listing->user_id !== $vendor->id) {
+            abort(403, 'Only the vendor can cancel this order');
+        }
+
+        // Check if order can be cancelled
+        if (!in_array($order->status, ['pending', 'shipped'])) {
+            return redirect()->back()->withErrors([
+                'error' => 'This order cannot be cancelled. Current status: ' . $order->status
+            ]);
+        }
+
+        // Validate cancellation reason
+        $data = $request->validate([
+            'cancellation_reason' => 'required|string|max:1000',
+        ]);
+
+        try {
+            DB::transaction(function () use ($order, $data, $vendor) {
+                // Check if order has escrow wallet
+                if ($order->escrow_wallet_id) {
+                    $escrowWallet = $order->escrowWallet;
+                    
+                    if (!$escrowWallet) {
+                        throw new \Exception("Escrow wallet not found for order #{$order->id}");
+                    }
+
+                    // Refund to buyer (EscrowService handles transaction fees automatically)
+                    $escrowService = new EscrowService();
+                    $refundTxid = $escrowService->refundEscrow($escrowWallet, $order);
+
+                    // Record the refund transaction for the buyer
+                    $buyer = $order->user;
+                    $wallet = $buyer->wallets()->where('currency', $order->currency)->first();
+                    
+                    if ($wallet) {
+                        // The actual refunded amount (escrow balance minus network fees)
+                        $refundedAmount = $escrowWallet->balance;
+                        
+                        $wallet->transactions()->create([
+                            'amount' => $refundedAmount,
+                            'type' => 'order_refund',
+                            'comment' => "Refund for cancelled order #{$order->id}. Vendor reason: " . substr($data['cancellation_reason'], 0, 100),
+                        ]);
+
+                        // Update buyer's wallet balance
+                        $wallet->increment('balance', $refundedAmount);
+                    }
+
+                    Log::info("Order #{$order->id} refunded to buyer", [
+                        'refund_txid' => $refundTxid,
+                        'amount' => $refundedAmount ?? 'N/A',
+                        'currency' => $order->currency,
+                    ]);
+                }
+
+                // Update order status
+                $order->update([
+                    'status' => 'cancelled',
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => $data['cancellation_reason'],
+                ]);
+
+                // Notify buyer
+                \App\Models\UserMessage::create([
+                    'sender_id' => $vendor->id,
+                    'receiver_id' => $order->user_id,
+                    'message' => "Your order #{$order->id} has been cancelled by the vendor.\n\nReason: {$data['cancellation_reason']}\n\n" .
+                                ($order->escrow_wallet_id ? "Funds have been refunded to your wallet (minus network transaction fees)." : ""),
+                    'order_id' => $order->id,
+                ]);
+
+                Log::info("Order #{$order->id} cancelled by vendor", [
+                    'vendor_id' => $vendor->id,
+                    'buyer_id' => $order->user_id,
+                    'reason' => $data['cancellation_reason'],
+                ]);
+            });
+
+            return redirect()->route('vendor.orders.show', $order)
+                ->with('success', 'Order cancelled successfully. Buyer has been refunded.');
+
+        } catch (\Exception $e) {
+            Log::error("Failed to cancel order #{$order->id}", [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'order_id' => $order->id,
+                'vendor_id' => $vendor->id,
+            ]);
+            
+            return redirect()->back()->withErrors([
+                'error' => 'Failed to cancel order: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Send message to buyer about order.
      */
     public function sendOrderMessage(Request $request, Order $order)
