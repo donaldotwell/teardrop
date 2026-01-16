@@ -105,7 +105,7 @@
                     <div class="overflow-hidden bg-white rounded-xl shadow-lg">
                         <div class="p-6">
                             <h2 class="text-xl font-semibold text-gray-900 mb-6">Vendor Ratings</h2>
-                            
+
                             @if($totalReviews > 0)
                                 <!-- Overall Rating -->
                                 <div class="mb-6 p-4 bg-amber-50 rounded-lg border-2 border-amber-200">
@@ -163,7 +163,7 @@
                     <div class="overflow-hidden bg-white rounded-xl shadow-lg">
                         <div class="p-6">
                             <h2 class="text-xl font-semibold text-gray-900 mb-6">Dispute History</h2>
-                            
+
                             @if($disputeStats['total'] > 0)
                                 <!-- Total Disputes Overview -->
                                 <div class="mb-6 p-4 {{ $disputedOrders > 0 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200' }} rounded-lg border-2">
@@ -266,7 +266,7 @@
                         <div class="overflow-hidden bg-white rounded-xl shadow-lg">
                             <div class="p-6">
                                 <h2 class="text-xl font-semibold text-gray-900 mb-6">Recent Reviews</h2>
-                                
+
                                 <div class="space-y-4">
                                     @foreach($user->receivedReviews as $review)
                                         <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -274,7 +274,7 @@
                                                 <span class="text-sm font-medium text-gray-700">Anonymous Buyer</span>
                                                 <span class="text-xs text-gray-500">{{ $review->created_at->diffForHumans() }}</span>
                                             </div>
-                                            
+
                                             <div class="grid grid-cols-3 gap-3 mb-3">
                                                 <div class="text-center">
                                                     <div class="text-xs text-gray-600 mb-1">Stealth</div>
@@ -289,7 +289,7 @@
                                                     <div class="text-sm font-semibold text-gray-900">{{ $review->rating_delivery }}/5</div>
                                                 </div>
                                             </div>
-                                            
+
                                             <p class="text-sm text-gray-700 italic">{{ $review->comment }}</p>
                                         </div>
                                     @endforeach
@@ -303,15 +303,15 @@
                         <div class="overflow-hidden bg-white rounded-xl shadow-lg">
                             <div class="p-6">
                                 <h2 class="text-xl font-semibold text-gray-900 mb-6">Active Listings</h2>
-                                
+
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     @foreach($user->listings as $listing)
-                                        <a href="{{ route('listings.show', $listing) }}" 
+                                        <a href="{{ route('listings.show', $listing) }}"
                                            class="block group bg-white border-2 border-gray-200 rounded-lg overflow-hidden hover:border-amber-400 transition-all">
                                             <div class="aspect-w-16 aspect-h-9 bg-gray-100">
                                                 @if($listing->media->first())
-                                                    <img src="{{ $listing->media->first()->data_uri }}" 
-                                                         alt="{{ $listing->title }}" 
+                                                    <img src="{{ $listing->media->first()->data_uri }}"
+                                                         alt="{{ $listing->title }}"
                                                          class="object-cover w-full h-48">
                                                 @else
                                                     <div class="flex items-center justify-center h-48 text-gray-400">

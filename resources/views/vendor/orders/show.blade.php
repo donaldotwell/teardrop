@@ -410,19 +410,19 @@
                     @if($order->shipped_at)
                     <div>
                         <div class="text-xs text-gray-500 mb-1">Shipped</div>
-                        <div class="text-sm text-gray-900">{{ $order->shipped_at->format('M d, Y h:i A') }}</div>
+                        <div class="text-sm text-gray-900">{{ is_string($order->shipped_at) ? $order->shipped_at : $order->shipped_at->format('M d, Y h:i A') }}</div>
                     </div>
                     @endif
                     @if($order->completed_at)
                     <div>
                         <div class="text-xs text-gray-500 mb-1">Completed</div>
-                        <div class="text-sm text-gray-900">{{ $order->completed_at->format('M d, Y h:i A') }}</div>
+                        <div class="text-sm text-gray-900">{{ is_string($order->completed_at) ? $order->completed_at : $order->completed_at->format('M d, Y h:i A') }}</div>
                     </div>
                     @endif
                     @if($order->cancelled_at)
                     <div>
                         <div class="text-xs text-gray-500 mb-1">Cancelled</div>
-                        <div class="text-sm text-gray-900">{{ $order->cancelled_at->format('M d, Y h:i A') }}</div>
+                        <div class="text-sm text-gray-900">{{ is_string($order->cancelled_at) ? $order->cancelled_at : $order->cancelled_at->format('M d, Y h:i A') }}</div>
                     </div>
                     @endif
                 </div>

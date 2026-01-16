@@ -71,7 +71,7 @@
                         <div class="flex-1">
                             <h3 class="text-sm font-semibold text-green-900">Direct Payment to Vendor</h3>
                             <div class="mt-2 space-y-1 text-sm text-green-700">
-                                <div><strong>Finalized:</strong> {{ $order->early_finalized_at->format('M d, Y \a\t h:i A') }}</div>
+                                <div><strong>Finalized:</strong> {{ is_string($order->early_finalized_at) ? $order->early_finalized_at : $order->early_finalized_at->format('M d, Y \a\t h:i A') }}</div>
                                 @if($order->finalizationWindow)
                                     <div><strong>Window:</strong> {{ $order->finalizationWindow->name }} ({{ $order->finalizationWindow->getHumanReadableDuration() }})</div>
                                 @endif
@@ -247,7 +247,7 @@
                         <div class="w-2 h-2 bg-green-500 rounded-full"></div>
                         <div class="flex-1">
                             <div class="text-sm font-medium text-gray-900">Order Completed</div>
-                            <div class="text-sm text-gray-500">{{ $order->completed_at->format('M d, Y g:i A') }}</div>
+                            <div class="text-sm text-gray-500">{{ is_string($order->completed_at) ? $order->completed_at : $order->completed_at->format('M d, Y g:i A') }}</div>
                         </div>
                     </div>
                 @endif
@@ -258,7 +258,7 @@
                         <div class="w-2 h-2 bg-red-500 rounded-full"></div>
                         <div class="flex-1">
                             <div class="text-sm font-medium text-gray-900">Order Cancelled</div>
-                            <div class="text-sm text-gray-500">{{ $order->cancelled_at->format('M d, Y g:i A') }}</div>
+                            <div class="text-sm text-gray-500">{{ is_string($order->cancelled_at) ? $order->cancelled_at : $order->cancelled_at->format('M d, Y g:i A') }}</div>
                         </div>
                     </div>
                 @endif

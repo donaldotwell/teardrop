@@ -16,6 +16,21 @@ class Order extends Model
     ];
 
     /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'completed_at' => 'datetime',
+        'shipped_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+        'early_finalized_at' => 'datetime',
+        'dispute_window_expires_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    /**
      * The booting method of the model.
      * Populate the uuid field before creating the model.
      * @return void
