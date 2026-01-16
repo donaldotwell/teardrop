@@ -41,13 +41,13 @@ class AuthController extends Controller
             // Role-based redirect with priority
             // Priority: admin > moderator > vendor > user
             if ($user->hasRole('admin')) {
-                return redirect()->intended(route('admin.dashboard'));
+                return redirect()->to(route('admin.dashboard'));
             } elseif ($user->hasRole('moderator')) {
-                return redirect()->intended(route('moderator.dashboard'));
+                return redirect()->to(route('moderator.dashboard'));
             } elseif ($user->hasRole('vendor')) {
-                return redirect()->intended(route('vendor.dashboard'));
+                return redirect()->to(route('vendor.dashboard'));
             } else {
-                return redirect()->intended(route('home'));
+                return redirect()->to(route('home'));
             }
         }
 
