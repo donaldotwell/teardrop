@@ -102,7 +102,12 @@ class VendorController extends Controller
 
     public function showConvertForm(Request $request)
     {
-        // TODO: policy to restrict access to this page if is already a vendor
+        // Check if user is already a vendor
+        if ($request->user()->hasRole('vendor')) {
+            return redirect()->route('home')
+                ->with('info', 'You are already a vendor.');
+        }
+
         return view('vendors.create', [
             'balance' => $request->user()->getBalance()
         ]);
@@ -110,8 +115,13 @@ class VendorController extends Controller
 
     public function convert(Request $request)
     {
-        // TODO: policy to restrict access to this page if is already a vendor
         $user = $request->user();
+
+        // Check if user is already a vendor
+        if ($user->hasRole('vendor')) {
+            return redirect()->route('home')
+                ->with('info', 'You are already a vendor.');
+        }
 
         $request->validate([
             'currency' => 'required|in:btc,xmr',
@@ -226,8 +236,10 @@ class VendorController extends Controller
                 'vendor_since' => now()
             ]);
 
-            // Assign vendor role
-            $user->assignRoleByName('vendor');
+            // Assign vendor role if not already assigned
+            if (!$user->hasRole('vendor')) {
+                $user->assignRoleByName('vendor');
+            }
 
             DB::commit();
 
@@ -345,8 +357,10 @@ class VendorController extends Controller
                 'vendor_since' => now()
             ]);
 
-            // Assign vendor role
-            $user->assignRoleByName('vendor');
+            // Assign vendor role if not already assigned
+            if (!$user->hasRole('vendor')) {
+                $user->assignRoleByName('vendor');
+            }
 
             DB::commit();
 
