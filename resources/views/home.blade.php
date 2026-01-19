@@ -220,9 +220,6 @@
                                         <h3 class="font-medium text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
                                             {{ $listing->title }}
                                         </h3>
-                                        <p class="text-sm text-gray-600 line-clamp-2 mb-3">
-                                            {{ $listing->short_description }}
-                                        </p>
                                         <div class="flex items-center justify-between text-sm">
                                             <div class="flex items-center space-x-2">
                                                 <span class="text-gray-500">Vendor:</span>
@@ -382,9 +379,6 @@
                                         <h3 class="font-medium text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
                                             {{ $listing->title }}
                                         </h3>
-                                        <p class="text-sm text-gray-600 line-clamp-2 mb-3">
-                                            {{ $listing->short_description }}
-                                        </p>
                                         <div class="flex items-center justify-between text-sm">
                                             <div class="flex items-center space-x-2">
                                                 <span class="text-gray-500">Vendor:</span>
@@ -553,9 +547,6 @@
                                         <h3 class="font-medium text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
                                             {{ $listing->title }}
                                         </h3>
-                                        <p class="text-sm text-gray-600 line-clamp-2 mb-3">
-                                            {{ $listing->short_description }}
-                                        </p>
                                         <div class="flex items-center justify-between text-sm">
                                             <div class="flex items-center space-x-2">
                                                 <span class="text-gray-500">Vendor:</span>
@@ -689,9 +680,6 @@
                                     <h3 class="font-medium text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
                                         {{ $listing->title }}
                                     </h3>
-                                    <p class="text-sm text-gray-600 line-clamp-2 mb-3">
-                                        {{ $listing->short_description }}
-                                    </p>
                                     <div class="flex items-center justify-between text-sm">
                                         <div class="flex items-center space-x-2">
                                             <span class="text-gray-500">Vendor:</span>
