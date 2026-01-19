@@ -43,9 +43,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            // last_login_at,  last_seen and vendor_since are timestamps
+            // last_login_at, last_seen_at and vendor_since are timestamps
             'last_login_at' => 'datetime',
-            'last_seen' => 'datetime',
+            'last_seen_at' => 'datetime',
             'vendor_since' => 'datetime',
         ];
     }

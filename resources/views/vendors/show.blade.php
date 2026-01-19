@@ -2,7 +2,7 @@
 @section('page-title', 'Vendor Profile - ' . $user->username_pub)
 
 @section('breadcrumbs')
-    <a href="{{ route('home') }}" class="text-amber-700 hover:text-amber-600">Marketplace</a>
+    <a href="{{ route('home') }}" class="text-yellow-700 hover:text-yellow-600">Marketplace</a>
     <span class="text-gray-300">/</span>
     <span class="text-gray-600">Vendors</span>
     <span class="text-gray-300">/</span>
@@ -13,30 +13,56 @@
     <div class="py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
         <div class="px-4 sm:px-0">
             <!-- Vendor Header -->
-            <div class="mb-8 overflow-hidden bg-white rounded-xl shadow-lg">
+            <div class="mb-8 overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200">
                 <div class="p-8">
-                    <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h1 class="text-4xl font-bold text-gray-900">{{ $user->username_pub }}</h1>
-                            <div class="flex flex-wrap items-center gap-3 mt-3">
-                                @if($user->vendor_since)
-                                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-amber-100 text-amber-800">
-                                        Vendor since {{ $user->vendor_since->format('M Y') }}
-                                    </span>
+                    <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+                        <div class="flex items-start gap-4">
+                            <div class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="text-yellow-700 font-bold text-2xl">{{ substr($user->username_pub, 0, 1) }}</span>
+                            </div>
+                            <div>
+                                <h1 class="text-3xl font-bold text-gray-900">{{ $user->username_pub }}</h1>
+                                @if($user->rating > 0)
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <span class="text-2xl font-bold text-yellow-600">{{ number_format($user->rating, 2) }}</span>
+                                        <span class="text-yellow-500">★★★★★</span>
+                                        <span class="text-sm text-gray-600">({{ $totalReviews }} {{ $totalReviews === 1 ? 'review' : 'reviews' }})</span>
+                                    </div>
+                                @else
+                                    <p class="text-sm text-gray-500 mt-2">No reviews yet</p>
                                 @endif
-                                <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800">
-                                    Trust Level {{ $user->trust_level }}
-                                </span>
-                                <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">
-                                    Vendor Level {{ $user->vendor_level }}
-                                </span>
+                                <div class="flex flex-wrap items-center gap-2 mt-3">
+                                    @if($user->vendor_since)
+                                        <span class="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                                            Member since {{ $user->vendor_since->format('M Y') }}
+                                        </span>
+                                    @endif
+                                    <span class="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                        Trust Level {{ $user->trust_level }}
+                                    </span>
+                                    <span class="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                        Vendor Level {{ $user->vendor_level }}
+                                    </span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2 mt-2">
+                                    @if($user->last_seen_at)
+                                        <span class="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
+                                            Last seen {{ $user->last_seen_at->diffForHumans() }}
+                                        </span>
+                                    @endif
+                                    @if($user->last_login_at)
+                                        <span class="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
+                                            Last login {{ $user->last_login_at->diffForHumans() }}
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {{-- Vendor Statistics Grid --}}
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                        <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
+                        <div class="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
                             <div class="text-sm text-gray-600 mb-1">Active Listings</div>
                             <div class="text-2xl font-bold text-gray-900">{{ $activeListingsCount }}</div>
                             <div class="text-xs text-gray-500 mt-1">of {{ $totalListingsCount }} total</div>
@@ -62,7 +88,7 @@
 
             {{-- PGP Key Section (if available) --}}
             @if($user->pgp_pub_key)
-                <div class="mb-8 overflow-hidden bg-white rounded-xl shadow-lg">
+                <div class="mb-8 overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200">
                     <div class="p-6">
                         <div class="flex items-center justify-between">
                             <div>
@@ -73,25 +99,22 @@
                                 id="pgpModal"
                                 title="Vendor PGP Public Key"
                                 triggerText="View PGP Key"
-                                triggerClass="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium"
+                                triggerClass="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
                             >
                                 <div class="space-y-4">
                                     <p class="text-sm text-gray-600">Use this public key to send encrypted messages to {{ $user->username_pub }}</p>
                                     <label class="block text-sm font-medium text-gray-700">PGP Public Key</label>
                                     <textarea
-                                        class="w-full h-64 p-3 border border-gray-300 rounded-lg font-mono text-xs focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                        class="w-full h-64 p-3 border border-gray-300 rounded-lg font-mono text-xs focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                                         readonly
                                     >{{ $user->pgp_pub_key }}</textarea>
                                 </div>
                                 <x-slot:footer>
-                                    <label for="pgpModal" class="block w-full px-4 py-2.5 text-center border-2 border-amber-700 text-amber-700 rounded-lg hover:bg-amber-700 hover:text-white transition-colors duration-200 cursor-pointer">
+                                    <label for="pgpModal" class="block w-full px-4 py-2.5 text-center border-2 border-yellow-700 text-yellow-700 rounded-lg hover:bg-yellow-700 hover:text-white transition-colors duration-200 cursor-pointer">
                                         Close
                                     </label>
                                 </x-slot:footer>
                             </x-modal>
-                        </div>
-                    </div>
-                </div>
                         </div>
                     </div>
                 </div>
@@ -102,15 +125,15 @@
                 <!-- Left Column - Stats -->
                 <div class="lg:col-span-1 space-y-8">
                     <!-- Rating Statistics Card -->
-                    <div class="overflow-hidden bg-white rounded-xl shadow-lg">
+                    <div class="overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200">
                         <div class="p-6">
                             <h2 class="text-xl font-semibold text-gray-900 mb-6">Vendor Ratings</h2>
 
                             @if($totalReviews > 0)
                                 <!-- Overall Rating -->
-                                <div class="mb-6 p-4 bg-amber-50 rounded-lg border-2 border-amber-200">
+                                <div class="mb-6 p-4 bg-yellow-50 rounded-lg border-2 border-yellow-200">
                                     <div class="text-center">
-                                        <div class="text-4xl font-bold text-gray-900">{{ $ratingBreakdown['overall'] }}</div>
+                                        <div class="text-4xl font-bold text-yellow-700">{{ $ratingBreakdown['overall'] }}</div>
                                         <div class="text-sm text-gray-600 mt-1">Overall Rating</div>
                                         <div class="text-xs text-gray-500 mt-2">Based on {{ $totalReviews }} {{ $totalReviews === 1 ? 'review' : 'reviews' }}</div>
                                     </div>
@@ -125,7 +148,7 @@
                                             <span class="text-sm font-semibold text-gray-900">{{ $ratingBreakdown['stealth'] }}/5.0</span>
                                         </div>
                                         <div class="w-full bg-gray-200 rounded-full h-3">
-                                            <div class="bg-amber-500 h-3 rounded-full transition-all" style="width: {{ ($ratingBreakdown['stealth'] / 5) * 100 }}%"></div>
+                                            <div class="bg-yellow-500 h-3 rounded-full transition-all" style="width: {{ ($ratingBreakdown['stealth'] / 5) * 100 }}%"></div>
                                         </div>
                                     </div>
 
@@ -136,7 +159,7 @@
                                             <span class="text-sm font-semibold text-gray-900">{{ $ratingBreakdown['quality'] }}/5.0</span>
                                         </div>
                                         <div class="w-full bg-gray-200 rounded-full h-3">
-                                            <div class="bg-amber-500 h-3 rounded-full transition-all" style="width: {{ ($ratingBreakdown['quality'] / 5) * 100 }}%"></div>
+                                            <div class="bg-yellow-500 h-3 rounded-full transition-all" style="width: {{ ($ratingBreakdown['quality'] / 5) * 100 }}%"></div>
                                         </div>
                                     </div>
 
@@ -147,7 +170,7 @@
                                             <span class="text-sm font-semibold text-gray-900">{{ $ratingBreakdown['delivery'] }}/5.0</span>
                                         </div>
                                         <div class="w-full bg-gray-200 rounded-full h-3">
-                                            <div class="bg-amber-500 h-3 rounded-full transition-all" style="width: {{ ($ratingBreakdown['delivery'] / 5) * 100 }}%"></div>
+                                            <div class="bg-yellow-500 h-3 rounded-full transition-all" style="width: {{ ($ratingBreakdown['delivery'] / 5) * 100 }}%"></div>
                                         </div>
                                     </div>
                                 </div>

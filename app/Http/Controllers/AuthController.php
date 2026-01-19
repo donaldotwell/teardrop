@@ -43,8 +43,11 @@ class AuthController extends Controller
                     'username' => 'Your account is ' . $user->status . '. Please contact support.',
                 ]);
             }
-            
+
             auth()->login($user);
+
+            // Update last login timestamp
+            $user->update(['last_login_at' => now()]);
 
             // Role-based redirect with priority
             // Priority: admin > moderator > vendor > user

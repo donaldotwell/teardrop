@@ -44,6 +44,30 @@
                     <div class="text-sm text-gray-600">Status</div>
                 </div>
             </div>
+
+            {{-- Activity Info --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                <div class="text-sm">
+                    <span class="font-medium text-gray-700">Last Login:</span>
+                    <span class="text-gray-600">
+                        @if($user->last_login_at)
+                            {{ $user->last_login_at->diffForHumans() }}
+                        @else
+                            Never
+                        @endif
+                    </span>
+                </div>
+                <div class="text-sm">
+                    <span class="font-medium text-gray-700">Last Activity:</span>
+                    <span class="text-gray-600">
+                        @if($user->last_seen_at)
+                            {{ $user->last_seen_at->diffForHumans() }}
+                        @else
+                            Never
+                        @endif
+                    </span>
+                </div>
+            </div>
         </div>
 
         {{-- General Information --}}

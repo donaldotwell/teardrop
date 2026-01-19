@@ -57,6 +57,9 @@ class AppServiceProvider extends ServiceProvider
                     $navigation_links['Vendor Dashboard'] = route('vendor.dashboard');
                 }
 
+                // update last_seen_at timestamp
+                $user->update(['last_seen_at' => now()]);
+
                 $view->with('productCategories', $productCategories)
                     ->with('user_balance', $user->getBalance())
                     ->with('navigation_links', $navigation_links);

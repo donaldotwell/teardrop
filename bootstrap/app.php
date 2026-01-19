@@ -35,9 +35,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'bot.protection' => \App\Http\Middleware\BotProtectionMiddleware::class,
         ]);
 
-        // Apply bot protection globally to web routes
+        // Apply bot protection and last seen tracking globally to web routes
         $middleware->web(append: [
             \App\Http\Middleware\BotProtectionMiddleware::class,
+            \App\Http\Middleware\UpdateLastSeenAt::class,
         ]);
 
         // TODO:  add user.status to global middleware stack
