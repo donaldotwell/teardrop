@@ -28,6 +28,13 @@ Schedule::command('exchange:update')
         Log::error('Exchange update command failed');
     });
 
+Schedule::command('ratings:aggregate')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        Log::error('Ratings aggregation command failed');
+    });
+
 Schedule::job(new CheckExpiredDisputeWindows)
     ->hourly()
     ->withoutOverlapping()

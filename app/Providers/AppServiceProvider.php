@@ -52,6 +52,11 @@ class AppServiceProvider extends ServiceProvider
                     $navigation_links['Start Selling'] = route('vendor.convert');
                 }
 
+                // If user has vendor role, add vendor dashboard link
+                if ($user->hasRole('vendor')) {
+                    $navigation_links['Vendor Dashboard'] = route('vendor.dashboard');
+                }
+
                 $view->with('productCategories', $productCategories)
                     ->with('user_balance', $user->getBalance())
                     ->with('navigation_links', $navigation_links);

@@ -301,7 +301,7 @@
                         <button type="button" onclick="document.getElementById('cancel-order-form').classList.toggle('hidden')" class="w-full px-6 py-3 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                             Cancel Order & Refund Buyer
                         </button>
-                        
+
                         {{-- Cancel Order Form (Hidden by default) --}}
                         <form id="cancel-order-form" action="{{ route('vendor.orders.cancel', $order) }}" method="POST" class="hidden mt-3 p-4 bg-red-50 border border-red-200 rounded-lg">
                             @csrf
@@ -311,7 +311,7 @@
                             <textarea name="cancellation_reason" id="cancellation_reason" rows="4" required maxlength="1000" placeholder="Please explain why you're cancelling this order..."
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"></textarea>
                             <p class="text-xs text-gray-600 mt-1">Buyer will be refunded minus network transaction fees.</p>
-                            
+
                             <div class="flex gap-2 mt-3">
                                 <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors">
                                     Confirm Cancellation

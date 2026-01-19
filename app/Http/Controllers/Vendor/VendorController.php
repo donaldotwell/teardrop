@@ -241,7 +241,7 @@ class VendorController extends Controller
                 // Check if order has escrow wallet
                 if ($order->escrow_wallet_id) {
                     $escrowWallet = $order->escrowWallet;
-                    
+
                     if (!$escrowWallet) {
                         throw new \Exception("Escrow wallet not found for order #{$order->id}");
                     }
@@ -253,11 +253,11 @@ class VendorController extends Controller
                     // Record the refund transaction for the buyer
                     $buyer = $order->user;
                     $wallet = $buyer->wallets()->where('currency', $order->currency)->first();
-                    
+
                     if ($wallet) {
                         // The actual refunded amount (escrow balance minus network fees)
                         $refundedAmount = $escrowWallet->balance;
-                        
+
                         $wallet->transactions()->create([
                             'amount' => $refundedAmount,
                             'type' => 'order_refund',
@@ -308,7 +308,7 @@ class VendorController extends Controller
                 'order_id' => $order->id,
                 'vendor_id' => $vendor->id,
             ]);
-            
+
             return redirect()->back()->withErrors([
                 'error' => 'Failed to cancel order: ' . $e->getMessage()
             ]);

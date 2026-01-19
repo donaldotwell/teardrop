@@ -36,6 +36,14 @@ class AuthController extends Controller
         $user = User::where('username_pri', $credentials['username'])->first();
 
         if ($user && Hash::check($credentials['password'], $user->password)) {
+
+            // If user is not active, deny login
+            if ($user->status !== 'active') {
+                return back()->withErrors([
+                    'username' => 'Your account is ' . $user->status . '. Please contact support.',
+                ]);
+            }
+            
             auth()->login($user);
 
             // Role-based redirect with priority
