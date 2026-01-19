@@ -247,15 +247,14 @@
                                 'label' => 'Description',
                                 'content' => $listing->description
                             ],
-                            'tab-reviews' => [
-                                'label' => 'Reviews (' . $listing->reviews->count() . ')',
-                                'content' => view('partials.listing-reviews', ['reviews' => $listing->reviews])->render()
-                            ],
                             'tab-return-policy' => [
                                 'label' => 'Return Policy',
                                 'content' => $listing->return_policy ?: 'No return policy specified.'
                             ],
-
+                            'tab-reviews' => [
+                                'label' => 'Reviews (' . $listing->reviews->count() . ')',
+                                'content' => view('partials.listing-reviews', ['reviews' => $listing->reviews])->render()
+                            ],
                         ]"/>
                     </div>
                 </div>
