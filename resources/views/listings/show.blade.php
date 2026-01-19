@@ -23,8 +23,12 @@
                                 </a>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Rating 4.5</span>
-                                <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Sales 100</span>
+                                @if($listing->user->rating > 0)
+                                    <span class="bg-yellow-200 text-yellow-900 text-xs px-2 py-1 rounded-full font-medium">★ {{ number_format($listing->user->rating, 2) }}</span>
+                                @else
+                                    <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">No rating yet</span>
+                                @endif
+                                <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">TL{{ $listing->user->trust_level }}</span>
                             </div>
                             <div class="text-sm">
                                 <span class="font-medium text-gray-600">Listings:</span>
@@ -239,6 +243,10 @@
                     <!-- Tabs Navigation -->
                     <div class="mt-8">
                         <x-tabs :tabs="[
+                            'tab-desc' => [
+                                'label' => 'Description',
+                                'content' => $listing->description
+                            ],
                             'tab-reviews' => [
                                 'label' => 'Reviews (' . $listing->reviews->count() . ')',
                                 'content' => view('partials.listing-reviews', ['reviews' => $listing->reviews])->render()
@@ -247,10 +255,7 @@
                                 'label' => 'Return Policy',
                                 'content' => $listing->return_policy ?: 'No return policy specified.'
                             ],
-                            'tab-desc' => [
-                                'label' => 'Description',
-                                'content' => $listing->description
-                            ]
+
                         ]"/>
                     </div>
                 </div>

@@ -204,7 +204,12 @@
                                                 <a href="{{ route('vendor.show', $listing->user) }}" class="font-medium text-yellow-700 hover:text-yellow-800 hover:underline">
                                                     {{ $listing->user->username_pub }}
                                                 </a>
-                                                <span class="bg-yellow-200 text-yellow-900 text-xs px-2 py-0.5 rounded">
+                                                @if($listing->user->rating > 0)
+                                                    <span class="bg-yellow-200 text-yellow-900 text-xs px-2 py-0.5 rounded">
+                                                        ★ {{ number_format($listing->user->rating, 2) }}
+                                                    </span>
+                                                @endif
+                                                <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded">
                                                     TL{{ $listing->user->trust_level }}
                                                 </span>
                                             </div>
@@ -326,6 +331,11 @@
                                                 <a href="{{ route('vendor.show', $listing->user) }}" class="font-medium {{ $listing->is_featured ? 'text-yellow-700 hover:text-yellow-800' : 'text-yellow-600 hover:text-yellow-700' }} hover:underline">
                                                     {{ $listing->user->username_pub }}
                                                 </a>
+                                                @if($listing->user->rating > 0)
+                                                    <span class="bg-yellow-200 text-yellow-900 text-xs px-2 py-0.5 rounded">
+                                                        ★ {{ number_format($listing->user->rating, 2) }}
+                                                    </span>
+                                                @endif
                                                 <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded">
                                                     TL{{ $listing->user->trust_level }}
                                                 </span>
@@ -457,7 +467,12 @@
                                                 <a href="{{ route('vendor.show', $listing->user) }}" class="font-medium text-yellow-700 hover:text-yellow-800 hover:underline">
                                                     {{ $listing->user->username_pub }}
                                                 </a>
-                                                <span class="bg-yellow-200 text-yellow-900 text-xs px-2 py-0.5 rounded">
+                                                @if($listing->user->rating > 0)
+                                                    <span class="bg-yellow-200 text-yellow-900 text-xs px-2 py-0.5 rounded">
+                                                        ★ {{ number_format($listing->user->rating, 2) }}
+                                                    </span>
+                                                @endif
+                                                <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded">
                                                     TL{{ $listing->user->trust_level }}
                                                 </span>
                                             </div>
@@ -578,6 +593,11 @@
                                             <a href="{{ route('vendor.show', $listing->user) }}" class="font-medium text-yellow-600 hover:text-yellow-700 hover:underline">
                                                 {{ $listing->user->username_pub }}
                                             </a>
+                                            @if($listing->user->rating > 0)
+                                                <span class="bg-yellow-200 text-yellow-900 text-xs px-2 py-0.5 rounded">
+                                                    ★ {{ number_format($listing->user->rating, 2) }}
+                                                </span>
+                                            @endif
                                             <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded">
                                                 TL{{ $listing->user->trust_level }}
                                             </span>
