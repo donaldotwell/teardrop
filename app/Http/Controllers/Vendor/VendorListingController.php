@@ -262,7 +262,7 @@ class VendorListingController extends Controller
         ]);
 
         $currency = $validated['currency'];
-        $feeUsd = 100; // $100 USD feature fee
+        $feeUsd = 10; // $10 USD feature fee
 
         try {
             DB::beginTransaction();

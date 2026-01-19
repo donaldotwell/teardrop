@@ -157,10 +157,35 @@
             {{-- Featured/Featured Listings --}}
             @if($filter !== 'all' && $filter !== 'featured')
                 <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    {{-- Category Breadcrumb --}}
+                    @if($selectedCategory || $selectedSubcategory)
+                        <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="text-gray-500">Filtering:</span>
+                                @if($selectedCategory)
+                                    <span class="font-medium text-yellow-700">{{ $selectedCategory->name }}</span>
+                                @endif
+                                @if($selectedSubcategory)
+                                    <span class="text-gray-400">→</span>
+                                    <span class="font-medium text-yellow-700">{{ $selectedSubcategory->name }}</span>
+                                @endif
+                                <a href="{{ route('home') }}" class="ml-auto text-yellow-600 hover:text-yellow-700 hover:underline text-xs">
+                                    Clear filters
+                                </a>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="flex items-center justify-between mb-6">
                         <div>
                             <h2 class="text-lg font-semibold text-gray-900">Featured Listings</h2>
-                            <p class="text-sm text-gray-500">Premium featured vendors</p>
+                            <p class="text-sm text-gray-500">
+                                @if($selectedCategory || $selectedSubcategory)
+                                    Premium featured products in this category
+                                @else
+                                    Premium featured vendors
+                                @endif
+                            </p>
                         </div>
                         <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
                             Featured
@@ -215,6 +240,16 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    {{-- Category Badge --}}
+                                    @if($listing->product && $listing->product->productCategory)
+                                        <div class="mb-3">
+                                            <a href="{{ route('home', ['cat' => $listing->product->productCategory->uuid]) }}"
+                                               class="inline-block text-xs px-2 py-1 bg-white border border-yellow-300 text-yellow-700 rounded hover:bg-yellow-50 transition-colors">
+                                                {{ $listing->product->productCategory->name }} › {{ $listing->product->name }}
+                                            </a>
+                                        </div>
+                                    @endif
 
                                     {{-- Shipping Route --}}
                                     <div class="mb-3 p-2 bg-white rounded text-sm">
@@ -283,10 +318,35 @@
             {{-- All Listings Combined (when filter=all) --}}
             @if($filter === 'all')
                 <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    {{-- Category Breadcrumb --}}
+                    @if($selectedCategory || $selectedSubcategory)
+                        <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="text-gray-500">Filtering:</span>
+                                @if($selectedCategory)
+                                    <span class="font-medium text-yellow-700">{{ $selectedCategory->name }}</span>
+                                @endif
+                                @if($selectedSubcategory)
+                                    <span class="text-gray-400">→</span>
+                                    <span class="font-medium text-yellow-700">{{ $selectedSubcategory->name }}</span>
+                                @endif
+                                <a href="{{ route('home', ['filter' => 'all']) }}" class="ml-auto text-yellow-600 hover:text-yellow-700 hover:underline text-xs">
+                                    Clear filters
+                                </a>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="flex items-center justify-between mb-6">
                         <div>
                             <h2 class="text-lg font-semibold text-gray-900">All Listings</h2>
-                            <p class="text-sm text-gray-500">All marketplace products combined</p>
+                            <p class="text-sm text-gray-500">
+                                @if($selectedCategory || $selectedSubcategory)
+                                    All products in this category
+                                @else
+                                    All marketplace products combined
+                                @endif
+                            </p>
                         </div>
                     </div>
 
@@ -342,6 +402,16 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    {{-- Category Badge --}}
+                                    @if($listing->product && $listing->product->productCategory)
+                                        <div class="mb-3">
+                                            <a href="{{ route('home', ['cat' => $listing->product->productCategory->uuid, 'filter' => 'all']) }}"
+                                               class="inline-block text-xs px-2 py-1 {{ $listing->is_featured ? 'bg-white border border-yellow-300' : 'bg-gray-100 border border-gray-300' }} text-yellow-700 rounded hover:bg-yellow-50 transition-colors">
+                                                {{ $listing->product->productCategory->name }} › {{ $listing->product->name }}
+                                            </a>
+                                        </div>
+                                    @endif
 
                                     {{-- Shipping Route --}}
                                     <div class="mb-3 p-2 {{ $listing->is_featured ? 'bg-white' : 'bg-gray-50' }} rounded text-sm">
@@ -420,10 +490,35 @@
             {{-- Featured Only View (when filter=featured) --}}
             @if($filter === 'featured')
                 <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    {{-- Category Breadcrumb --}}
+                    @if($selectedCategory || $selectedSubcategory)
+                        <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="text-gray-500">Filtering:</span>
+                                @if($selectedCategory)
+                                    <span class="font-medium text-yellow-700">{{ $selectedCategory->name }}</span>
+                                @endif
+                                @if($selectedSubcategory)
+                                    <span class="text-gray-400">→</span>
+                                    <span class="font-medium text-yellow-700">{{ $selectedSubcategory->name }}</span>
+                                @endif
+                                <a href="{{ route('home', ['filter' => 'featured']) }}" class="ml-auto text-yellow-600 hover:text-yellow-700 hover:underline text-xs">
+                                    Clear filters
+                                </a>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="flex items-center justify-between mb-6">
                         <div>
                             <h2 class="text-lg font-semibold text-gray-900">Featured Listings Only</h2>
-                            <p class="text-sm text-gray-500">Premium featured products</p>
+                            <p class="text-sm text-gray-500">
+                                @if($selectedCategory || $selectedSubcategory)
+                                    Premium featured products in this category
+                                @else
+                                    Premium featured products
+                                @endif
+                            </p>
                         </div>
                         <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
                             Featured
@@ -478,6 +573,16 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    {{-- Category Badge --}}
+                                    @if($listing->product && $listing->product->productCategory)
+                                        <div class="mb-3">
+                                            <a href="{{ route('home', ['cat' => $listing->product->productCategory->uuid, 'filter' => 'featured']) }}"
+                                               class="inline-block text-xs px-2 py-1 bg-white border border-yellow-300 text-yellow-700 rounded hover:bg-yellow-50 transition-colors">
+                                                {{ $listing->product->productCategory->name }} › {{ $listing->product->name }}
+                                            </a>
+                                        </div>
+                                    @endif
 
                                     <div class="mb-3 p-2 bg-white rounded text-sm">
                                         <div class="flex items-center justify-between">
@@ -604,6 +709,16 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                {{-- Category Badge --}}
+                                @if($listing->product && $listing->product->productCategory)
+                                    <div class="mb-3">
+                                        <a href="{{ route('home', ['cat' => $listing->product->productCategory->uuid]) }}"
+                                           class="inline-block text-xs px-2 py-1 bg-gray-100 border border-gray-300 text-yellow-700 rounded hover:bg-yellow-50 transition-colors">
+                                            {{ $listing->product->productCategory->name }} › {{ $listing->product->name }}
+                                        </a>
+                                    </div>
+                                @endif
 
                                 {{-- Shipping Route --}}
                                 <div class="mb-3 p-2 bg-gray-50 rounded text-sm">

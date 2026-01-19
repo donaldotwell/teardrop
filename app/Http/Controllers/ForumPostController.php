@@ -12,6 +12,7 @@ class ForumPostController extends Controller
     public function index(Request $request)
     {
         $query = ForumPost::with('user')
+            ->approved()
             ->orderByDesc('is_pinned')
             ->orderByDesc('last_activity_at');
 
@@ -39,7 +40,7 @@ class ForumPostController extends Controller
     {
         // Check if user has at least one completed order
         $hasCompletedOrder = auth()->user()->orders()->where('status', 'completed')->exists();
-        
+
         if (!$hasCompletedOrder) {
             return redirect()->back()->withErrors([
                 'error' => 'You must have at least one completed order before posting on the forum.'
@@ -61,21 +62,37 @@ class ForumPostController extends Controller
             ],
         ]);
 
+        // Auto-assign to a random moderator with the 'moderator' role
+        $moderator = \App\Models\User::whereHas('roles', function($q) {
+            $q->where('name', 'moderator');
+        })->inRandomOrder()->first();
+
         $post = auth()->user()->forumPosts()->create([
             'title' => $request->title,
             'body' => $request->body,
+            'status' => 'pending',
+            'assigned_moderator_id' => $moderator?->id,
             'last_activity_at' => now(),
         ]);
 
-        AuditLog::log('post_created', null, ['post_id' => $post->id, 'title' => $post->title]);
+        AuditLog::log('post_created', null, ['post_id' => $post->id, 'title' => $post->title, 'status' => 'pending']);
 
-        return redirect()->route('forum.posts.show', $post)->with('success', 'Post created successfully!');
+        return redirect()->route('forum.index')->with('success', 'Post submitted for moderation. It will appear after approval.');
     }
 
     public function show(ForumPost $post)
     {
+        // Only show approved posts to regular users (moderators/admins can see all)
+        if ($post->status !== 'approved' && !auth()->user()->hasAnyRole(['admin', 'moderator'])) {
+            abort(404, 'Post not found or pending approval.');
+        }
+
         $post->load(['user', 'comments.user', 'comments.replies.user']);
-        $post->incrementViews();
+
+        // Only increment views for approved posts
+        if ($post->status === 'approved') {
+            $post->incrementViews();
+        }
 
         return view('forum.posts.show', compact('post'));
     }

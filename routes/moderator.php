@@ -73,6 +73,12 @@ Route::middleware(['auth', 'moderator'])->name('moderator.')->group(function () 
     // Forum Moderation Routes
     Route::prefix('forum')->name('forum.')->group(function () {
         Route::prefix('moderate')->name('moderate.')->group(function () {
+            // Pending Posts Management
+            Route::get('/pending-posts', [ForumModerationController::class, 'pendingPosts'])->name('pending-posts');
+            Route::get('/all-posts', [ForumModerationController::class, 'allPosts'])->name('all-posts');
+            Route::post('/posts/{post}/approve', [ForumModerationController::class, 'approvePost'])->name('posts.approve');
+            Route::post('/posts/{post}/reject', [ForumModerationController::class, 'rejectPost'])->name('posts.reject');
+
             // Reports Management
             Route::get('/reports', [ForumModerationController::class, 'reports'])->name('reports');
             Route::post('/reports/{report}/review', [ForumModerationController::class, 'reviewReport'])->name('reports.review');

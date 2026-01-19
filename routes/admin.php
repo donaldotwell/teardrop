@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AdminUsersController;
 use App\Http\Controllers\Admin\AdminOrdersController;
 use App\Http\Controllers\Admin\AdminFinalizationWindowController;
 use App\Http\Controllers\Admin\AdminProductCategoryController;
+use App\Http\Controllers\Admin\AdminForumController;
 use Illuminate\Support\Facades\Route;
 
 // Admin routes - protected by admin middleware
@@ -87,6 +88,19 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
         Route::post('/auto-assign', [AdminSupportTicketController::class, 'autoAssign'])->name('auto-assign');
         Route::post('/bulk-action', [AdminSupportTicketController::class, 'bulkAction'])->name('bulk-action');
         Route::get('/stats', [AdminSupportTicketController::class, 'getStats'])->name('stats');
+    });
+
+    // Forum Management Routes
+    Route::prefix('forum')->name('forum.')->group(function () {
+        Route::get('/', [AdminForumController::class, 'index'])->name('index');
+        Route::post('/{post}/reassign-moderator', [AdminForumController::class, 'reassignModerator'])->name('reassign-moderator');
+        Route::post('/{post}/approve', [AdminForumController::class, 'approve'])->name('approve');
+        Route::post('/{post}/reject', [AdminForumController::class, 'reject'])->name('reject');
+        Route::post('/{post}/pin', [AdminForumController::class, 'pin'])->name('pin');
+        Route::post('/{post}/unpin', [AdminForumController::class, 'unpin'])->name('unpin');
+        Route::post('/{post}/lock', [AdminForumController::class, 'lock'])->name('lock');
+        Route::post('/{post}/unlock', [AdminForumController::class, 'unlock'])->name('unlock');
+        Route::delete('/{post}', [AdminForumController::class, 'destroy'])->name('destroy');
     });
 
     // Reports

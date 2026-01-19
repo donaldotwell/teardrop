@@ -258,12 +258,21 @@ class HomeController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Get selected category and subcategory for display
+        $selectedCategory = $categoryUuid ? $productCategories->firstWhere('uuid', $categoryUuid) : null;
+        $selectedSubcategory = null;
+        if ($selectedCategory && $subcategoryUuid) {
+            $selectedSubcategory = $selectedCategory->products->firstWhere('uuid', $subcategoryUuid);
+        }
+
         return view('home', [
             'featured_listings' => $featured_listings,
             'regular_listings' => $regular_listings,
             'all_listings' => $all_listings ?? collect(),
             'productCategories' => $productCategories,
             'filter' => $filter,
+            'selectedCategory' => $selectedCategory,
+            'selectedSubcategory' => $selectedSubcategory,
         ]);
     }
 }

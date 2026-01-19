@@ -117,13 +117,25 @@
                                             <span class="w-24 font-medium">Quantity:</span>
                                             <span>{{ $order->quantity }}</span>
                                         </div>
-                                        <div class="flex items-center text-sm text-gray-600">
-                                            <span class="w-24 font-medium">Price:</span>
-                                            <span class="font-semibold">${{ number_format($order->usd_price, 2) }}</span>
-                                        </div>
-                                        <div class="flex items-center text-sm text-gray-600">
-                                            <span class="w-24 font-medium">Crypto Value:</span>
-                                            <span>{{ number_format($order->crypto_value, 8) }} {{ strtoupper($order->currency) }}</span>
+                                        <div class="pt-3 mt-2 border-t border-gray-200">
+                                            <div class="space-y-2">
+                                                <div class="flex items-center justify-between text-sm text-gray-600">
+                                                    <span class="font-medium">Subtotal:</span>
+                                                    <span>${{ number_format($order->listing->price * $order->quantity, 2) }}</span>
+                                                </div>
+                                                <div class="flex items-center justify-between text-sm text-gray-600">
+                                                    <span class="font-medium">Shipping:</span>
+                                                    <span>${{ number_format($order->listing->price_shipping, 2) }}</span>
+                                                </div>
+                                                <div class="flex items-center justify-between text-base font-semibold text-gray-900 pt-2 border-t border-gray-200">
+                                                    <span>Total USD:</span>
+                                                    <span>${{ number_format($order->usd_price, 2) }}</span>
+                                                </div>
+                                                <div class="flex items-center justify-between text-sm text-amber-700 bg-amber-50 p-2 rounded">
+                                                    <span class="font-medium">Paid in {{ strtoupper($order->currency) }}:</span>
+                                                    <span class="font-mono">{{ number_format($order->crypto_value, 8) }}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

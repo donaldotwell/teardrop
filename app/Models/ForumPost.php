@@ -14,6 +14,11 @@ class ForumPost extends Model
         'user_id',
         'title',
         'body',
+        'status',
+        'assigned_moderator_id',
+        'moderated_by',
+        'moderated_at',
+        'moderation_notes',
         'is_locked',
         'is_pinned',
         'views_count',
@@ -24,11 +29,22 @@ class ForumPost extends Model
         'is_locked' => 'boolean',
         'is_pinned' => 'boolean',
         'last_activity_at' => 'datetime',
+        'moderated_at' => 'datetime',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function assignedModerator()
+    {
+        return $this->belongsTo(User::class, 'assigned_moderator_id');
+    }
+
+    public function moderatedBy()
+    {
+        return $this->belongsTo(User::class, 'moderated_by');
     }
 
     public function comments()
@@ -69,5 +85,20 @@ class ForumPost extends Model
         return $query->whereHas('user', function($q) use ($username) {
             $q->where('username_pub', $username);
         });
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('status', 'approved');
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    public function scopeRejected($query)
+    {
+        return $query->where('status', 'rejected');
     }
 }
