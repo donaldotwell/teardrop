@@ -130,7 +130,11 @@
 
         {{-- Platform Features - Subtle --}}
         <div class="bg-white rounded-lg shadow p-6 border border-gray-200 mb-6">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4 text-center">About This Marketplace</h3>
+            <h3 class="text-sm font-semibold text-gray-900 mb-4 text-center">About Us</h3>
+
+            <p class="text-sm text-gray-700 mb-6 text-center">
+                Welcome to our marketplace — where privacy meets performance. We offer a secure and anonymous environment for both vendors and buyers, ensuring your transactions remain confidential.
+            </p>
 
             <div class="grid grid-cols-2 gap-4 text-center">
                 <div>

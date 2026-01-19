@@ -22,7 +22,18 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         /**
-         * Share the product categories with the app layout.
+         * Share exchange rates globally (public data).
+         */
+        View::composer('*', function ($view) {
+            $btcRate = \App\Models\ExchangeRate::where('crypto_shortname', 'btc')->first();
+            $xmrRate = \App\Models\ExchangeRate::where('crypto_shortname', 'xmr')->first();
+
+            $view->with('btcRate', $btcRate)
+                ->with('xmrRate', $xmrRate);
+        });
+
+        /**
+         * Share authenticated user data with the app layout.
          */
         View::composer('*', function ($view) {
             if (auth()->check()) {
@@ -56,9 +67,6 @@ class AppServiceProvider extends ServiceProvider
                 if ($user->hasRole('vendor')) {
                     $navigation_links['Vendor Dashboard'] = route('vendor.dashboard');
                 }
-
-                // update last_seen_at timestamp
-                $user->update(['last_seen_at' => now()]);
 
                 $view->with('productCategories', $productCategories)
                     ->with('user_balance', $user->getBalance())

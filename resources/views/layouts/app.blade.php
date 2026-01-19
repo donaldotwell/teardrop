@@ -224,13 +224,7 @@
         <div class="max-w-7xl mx-auto px-4 py-6">
             <!-- Exchange Rates -->
             <div class="flex flex-col items-center justify-center gap-4 mb-6">
-                @php
-                    $btcRate = \App\Models\ExchangeRate::where('crypto_shortname', 'btc')->first();
-                    $xmrRate = \App\Models\ExchangeRate::where('crypto_shortname', 'xmr')->first();
-                    $hasRates = $btcRate && $xmrRate;
-                @endphp
-
-                @if($hasRates)
+                @if($btcRate && $xmrRate)
                     <div class="flex items-center gap-6">
                         <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
                             <span class="text-amber-400 font-bold text-sm">BTC</span>

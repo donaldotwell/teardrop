@@ -35,9 +35,11 @@
                 <p class="text-2xl font-mono font-bold text-amber-700">
                     {{ number_format($btcWallet->balance, 8) }} BTC
                 </p>
-                <p class="text-sm text-gray-600 mt-1">
-                    ≈ ${{ number_format(\App\Repositories\BitcoinRepository::convertToUsd($btcWallet->balance), 2) }} USD
-                </p>
+                @if($btcRate)
+                    <p class="text-sm text-gray-600 mt-1">
+                        ≈ ${{ number_format($btcWallet->balance * $btcRate->usd_rate, 2) }} USD
+                    </p>
+                @endif
             </div>
 
             <div class="p-6 bg-gray-50 rounded-xl">
@@ -45,7 +47,11 @@
                 <p class="text-2xl font-mono font-bold text-gray-900">
                     {{ number_format($btcWallet->total_received, 8) }} BTC
                 </p>
-                <p class="text-sm text-gray-600 mt-1">All-time deposits</p>
+                @if($btcRate)
+                    <p class="text-sm text-gray-600 mt-1">
+                        ≈ ${{ number_format($btcWallet->total_received * $btcRate->usd_rate, 2) }} USD
+                    </p>
+                @endif
             </div>
 
             <div class="p-6 bg-gray-50 rounded-xl">
@@ -53,7 +59,11 @@
                 <p class="text-2xl font-mono font-bold text-gray-900">
                     {{ number_format($btcWallet->total_sent, 8) }} BTC
                 </p>
-                <p class="text-sm text-gray-600 mt-1">All-time withdrawals</p>
+                @if($btcRate)
+                    <p class="text-sm text-gray-600 mt-1">
+                        ≈ ${{ number_format($btcWallet->total_sent * $btcRate->usd_rate, 2) }} USD
+                    </p>
+                @endif
             </div>
         </div>
 
@@ -102,6 +112,9 @@
                         @enderror
                         <p class="mt-1 text-xs text-gray-500">
                             Available: {{ number_format($btcWallet->balance, 8) }} BTC
+                            @if($btcRate)
+                                (≈ ${{ number_format($btcWallet->balance * $btcRate->usd_rate, 2) }} USD)
+                            @endif
                         </p>
                     </div>
                 </div>
