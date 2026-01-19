@@ -46,6 +46,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Featured Listing Fee
+    |--------------------------------------------------------------------------
+    |
+    | The amount in USD required to feature a listing for 30 days.
+    | This will be converted to BTC or XMR based on the currency selected.
+    |
+    */
+    'featured_listing_usd' => env('FEATURED_LISTING_FEE_USD', 10),
+
+    /*
+    |--------------------------------------------------------------------------
     | Early Finalization Settings
     |--------------------------------------------------------------------------
     |

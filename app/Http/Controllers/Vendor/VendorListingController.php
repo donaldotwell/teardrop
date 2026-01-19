@@ -213,7 +213,7 @@ class VendorListingController extends Controller
         }
 
         // Get feature fee from config (in USD)
-        $feeUsd = 100; // $100 USD to feature a listing
+        $feeUsd = config('fees.featured_listing_usd', 10); // $10 USD to feature a listing
 
         // Get exchange rates
         $btcRate = ExchangeRate::where('crypto_shortname', 'btc')->first();
@@ -262,7 +262,7 @@ class VendorListingController extends Controller
         ]);
 
         $currency = $validated['currency'];
-        $feeUsd = 10; // $10 USD feature fee
+        $feeUsd = config('fees.featured_listing_usd', 10); // $10 USD feature fee
 
         try {
             DB::beginTransaction();
