@@ -170,7 +170,7 @@ class StaffSupportTicketController extends Controller
 
         // Verify the target user is actually a staff member
         $newStaff = User::find($validated['staff_id']);
-        if (!$newStaff->hasAnyRole(['admin', 'support'])) {
+        if (!$newStaff->hasAnyRole(['admin', 'moderator'])) {
             return redirect()->back()
                 ->with('error', 'Selected user is not a staff member.');
         }

@@ -84,7 +84,7 @@ class AdminSupportTicketController extends Controller
 
         // Get staff members for assignment filter
         $staffMembers = User::whereHas('roles', function($q) {
-            $q->whereIn('name', ['admin', 'support']);
+            $q->whereIn('name', ['admin', 'moderator']);
         })->get();
 
         // Get ticket types for filtering
@@ -195,7 +195,7 @@ class AdminSupportTicketController extends Controller
 
         // Get staff members for assignment/reassignment
         $staffMembers = User::whereHas('roles', function($q) {
-            $q->whereIn('name', ['admin', 'support']);
+            $q->whereIn('name', ['admin', 'moderator']);
         })->where('status', 'active')
           ->orderBy('username_pub')
           ->get();
@@ -215,7 +215,7 @@ class AdminSupportTicketController extends Controller
         $staff = User::findOrFail($validated['assigned_to']);
 
         // Check if staff has proper role
-        if (!$staff->hasAnyRole(['admin', 'support'])) {
+        if (!$staff->hasAnyRole(['admin', 'moderator'])) {
             return redirect()->back()
                 ->with('error', 'Selected user is not a staff member.');
         }
@@ -258,7 +258,7 @@ class AdminSupportTicketController extends Controller
         $newStaff = User::find($validated['staff_id']);
 
         // Check if new staff has proper role
-        if (!$newStaff->hasAnyRole(['admin', 'support'])) {
+        if (!$newStaff->hasAnyRole(['admin', 'moderator'])) {
             return redirect()->back()
                 ->with('error', 'Selected user is not a staff member.');
         }
@@ -541,7 +541,7 @@ class AdminSupportTicketController extends Controller
             switch ($validated['action']) {
                 case 'assign':
                     $staff = User::findOrFail($validated['bulk_assigned_to']);
-                    if ($staff->hasAnyRole(['admin', 'support'])) {
+                    if ($staff->hasAnyRole(['admin', 'moderator'])) {
                         $ticket->assignTo($staff);
                         $updatedCount++;
                     }
@@ -631,7 +631,7 @@ class AdminSupportTicketController extends Controller
 
         // Get available staff (those with fewer than 10 open assigned tickets)
         $availableStaff = User::whereHas('roles', function($q) {
-            $q->whereIn('name', ['admin', 'support']);
+            $q->whereIn('name', ['admin', 'moderator']);
         })->whereHas('assignedSupportTickets', function($q) {
             $q->open();
         }, '<', 10)->get();

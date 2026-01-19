@@ -497,7 +497,7 @@ class SupportTicketController extends Controller
     {
         // Get all active support staff
         $staffMembers = User::whereHas('roles', function($q) {
-            $q->whereIn('name', ['admin', 'support']);
+            $q->whereIn('name', ['moderator']);
         })
             ->where('status', 'active')
             ->get();

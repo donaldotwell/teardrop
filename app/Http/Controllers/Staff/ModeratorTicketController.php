@@ -42,7 +42,7 @@ class ModeratorTicketController extends Controller
                 case 'team':
                     $query->whereHas('assignedTo', function($q) {
                         $q->whereHas('roles', function($roleQuery) {
-                            $roleQuery->whereIn('name', ['moderator', 'support']);
+                            $roleQuery->whereIn('name', ['moderator', 'admin']);
                         });
                     });
                     break;
@@ -432,7 +432,7 @@ class ModeratorTicketController extends Controller
                 ->count(),
             'team_tickets' => SupportTicket::whereHas('assignedTo', function($q) {
                 $q->whereHas('roles', function($roleQuery) {
-                    $roleQuery->whereIn('name', ['moderator', 'support']);
+                    $roleQuery->whereIn('name', ['moderator', 'admin']);
                 });
             })
                 ->whereIn('status', ['open', 'in_progress', 'pending_user'])
@@ -467,7 +467,7 @@ class ModeratorTicketController extends Controller
     private function getAvailableModerators()
     {
         return User::whereHas('roles', function($q) {
-            $q->whereIn('name', ['moderator', 'support']);
+            $q->whereIn('name', ['moderator']);
         })
             ->where('status', 'active')
             ->get()
@@ -492,7 +492,7 @@ class ModeratorTicketController extends Controller
     private function getTeamMembers()
     {
         return User::whereHas('roles', function($q) {
-            $q->whereIn('name', ['moderator', 'support', 'admin']);
+            $q->whereIn('name', ['moderator', 'admin']);
         })
             ->orderBy('username_pub')
             ->get(['id', 'username_pub']);
