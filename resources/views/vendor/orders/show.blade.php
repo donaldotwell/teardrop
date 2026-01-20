@@ -71,10 +71,10 @@
                 <div class="p-6">
                     <div class="flex items-start gap-4">
                         <div class="w-24 h-24 shrink-0">
-                            <x-image-gallery 
-                                :images="$order->listing->media" 
-                                :title="$order->listing->title" 
-                                :modal-id="'listing-gallery-vendor-order-' . $order->id" 
+                            <x-image-gallery
+                                :images="$order->listing->media"
+                                :title="$order->listing->title"
+                                :modal-id="'listing-gallery-vendor-order-' . $order->id"
                             />
                         </div>
                         <div class="flex-1">

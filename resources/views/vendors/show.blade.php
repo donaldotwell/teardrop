@@ -331,10 +331,10 @@
                                     @foreach($user->listings as $listing)
                                         <a href="{{ route('listings.show', $listing) }}"
                                            class="block group bg-white border-2 border-gray-200 rounded-lg overflow-hidden hover:border-amber-400 transition-all">
-                                            <x-image-gallery 
-                                                :images="$listing->media" 
-                                                :title="$listing->title" 
-                                                :modal-id="'listing-gallery-vendor-profile-' . $listing->id" 
+                                            <x-image-gallery
+                                                :images="$listing->media"
+                                                :title="$listing->title"
+                                                :modal-id="'listing-gallery-vendor-profile-' . $listing->id"
                                             />
                                             <div class="p-4">
                                                 <h3 class="font-semibold text-gray-900 group-hover:text-amber-600 transition-colors line-clamp-2 mb-2">

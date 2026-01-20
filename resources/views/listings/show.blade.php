@@ -32,7 +32,7 @@
                             </div>
                             <div class="text-sm">
                                 <span class="font-medium text-gray-600">Listings:</span>
-                                <span class="text-yellow-700">50 Active</span>
+                                <span class="text-yellow-700">{{ $listing->user->listings()->where('is_active', true)->count() }} Active</span>
                             </div>
                         </div>
                     </div>

@@ -22,10 +22,10 @@
             @foreach($listings as $listing)
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
                     <!-- Image Gallery -->
-                    <x-image-gallery 
-                        :images="$listing->media" 
-                        :title="$listing->title" 
-                        :modal-id="'listing-gallery-vendor-' . $listing->id" 
+                    <x-image-gallery
+                        :images="$listing->media"
+                        :title="$listing->title"
+                        :modal-id="'listing-gallery-vendor-' . $listing->id"
                     />
 
                     <!-- Content -->

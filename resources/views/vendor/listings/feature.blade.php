@@ -13,10 +13,10 @@
         <div class="p-6 border-b border-gray-200">
             <div class="flex items-start gap-4 bg-gray-50 rounded-lg p-4">
                 <div class="w-24 h-24 shrink-0">
-                    <x-image-gallery 
-                        :images="$listing->media" 
-                        :title="$listing->title" 
-                        :modal-id="'listing-gallery-feature-' . $listing->id" 
+                    <x-image-gallery
+                        :images="$listing->media"
+                        :title="$listing->title"
+                        :modal-id="'listing-gallery-feature-' . $listing->id"
                     />
                 </div>
                 <div class="flex-1">
