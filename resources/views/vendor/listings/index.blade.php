@@ -21,16 +21,12 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @foreach($listings as $listing)
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                    <!-- Image -->
-                    <div class="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
-                        @if($listing->media->first())
-                            <img src="{{ $listing->media->first()->data_uri }}"
-                                 alt="{{ $listing->title }}"
-                                 class="w-full h-full object-contain p-4">
-                        @else
-                            <div class="text-gray-400">No Image</div>
-                        @endif
-                    </div>
+                    <!-- Image Gallery -->
+                    <x-image-gallery 
+                        :images="$listing->media" 
+                        :title="$listing->title" 
+                        :modal-id="'listing-gallery-vendor-' . $listing->id" 
+                    />
 
                     <!-- Content -->
                     <div class="p-4">

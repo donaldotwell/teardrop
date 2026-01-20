@@ -179,15 +179,11 @@
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Related Order</h3>
                     <div class="flex items-center space-x-4">
                         <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                            @if($dispute->order->listing->media->isNotEmpty())
-                                <img src="{{ $dispute->order->listing->media->first()->data_uri }}" 
-                                     alt="{{ $dispute->order->listing->title }}"
-                                     class="w-full h-full object-cover">
-                            @else
-                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                                </svg>
-                            @endif
+                            <x-image-gallery
+                                :images="$dispute->order->listing->media"
+                                :title="$dispute->order->listing->title"
+                                :modal-id="'gallery-admin-dispute-' . $dispute->id"
+                            />
                         </div>
                         <div class="flex-1">
                             <h4 class="font-medium text-gray-900">{{ $dispute->order->listing->title }}</h4>

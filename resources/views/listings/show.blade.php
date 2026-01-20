@@ -114,15 +114,11 @@
                         <!-- Image Section -->
                         <div class="lg:w-1/3">
                             <div class="group relative">
-                                @if($listing->media->first())
-                                    <img src="{{ $listing->media->first()->data_uri }}"
-                                         alt="{{ $listing->title }}"
-                                         class="w-full h-96 object-contain rounded-xl bg-gray-50 p-4 border border-gray-200 transition-transform duration-300 group-hover:scale-105">
-                                @else
-                                    <div class="w-full h-96 flex items-center justify-center rounded-xl bg-gray-100 border border-gray-200">
-                                        <span class="text-gray-400 text-lg">No Image</span>
-                                    </div>
-                                @endif
+                                <x-image-gallery
+                                    :images="$listing->media"
+                                    :title="$listing->title"
+                                    :modal-id="'gallery-listing-' . $listing->id"
+                                />
                             </div>
                         </div>
 

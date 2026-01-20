@@ -99,15 +99,11 @@
                             <h2 class="text-xl font-semibold text-gray-900">Listing Details</h2>
                             <div class="flex mt-6">
                                 <div class="flex-shrink-0 w-32 h-32 overflow-hidden rounded-lg bg-gray-100">
-                                    @if($order->listing->media->first())
-                                        <img src="{{ $order->listing->media->first()->data_uri }}"
-                                             alt="{{ $order->listing->title }}"
-                                             class="object-cover object-center w-full h-full">
-                                    @else
-                                        <div class="flex items-center justify-center w-full h-full text-gray-400">
-                                            <span class="text-xs">No Image</span>
-                                        </div>
-                                    @endif
+                                    <x-image-gallery
+                                        :images="$order->listing->media"
+                                        :title="$order->listing->title"
+                                        :modal-id="'gallery-order-' . $order->id"
+                                    />
                                 </div>
                                 <div class="flex flex-col flex-1 ml-6">
                                     <h3 class="text-xl font-semibold text-gray-900">{{ $order->listing->title }}</h3>

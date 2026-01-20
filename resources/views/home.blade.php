@@ -195,24 +195,17 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         @forelse($featured_listings as $listing)
                             <div class="border-2 border-yellow-200 rounded-lg overflow-hidden hover:border-yellow-400 hover:shadow-lg transition-all">
-                                {{-- Listing Image --}}
-                                @if($listing->media->isNotEmpty())
-                                    <div class="aspect-video bg-gray-100 overflow-hidden relative">
-                                        <img src="{{ $listing->media->first()->data_uri }}"
-                                             alt="{{ $listing->title }}"
-                                             class="w-full h-full object-cover transition-transform duration-300 hover:scale-110">
-                                        <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
-                                            FEATURED
-                                        </div>
+                                {{-- Listing Image Gallery --}}
+                                <div class="aspect-video bg-gray-100 overflow-hidden relative">
+                                    <x-image-gallery
+                                        :images="$listing->media"
+                                        :title="$listing->title"
+                                        :modal-id="'gallery-featured-' . $listing->id"
+                                    />
+                                    <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded z-10 pointer-events-none">
+                                        FEATURED
                                     </div>
-                                @else
-                                    <div class="aspect-video bg-gray-200 flex items-center justify-center relative">
-                                        <span class="text-gray-400 text-sm">No Image</span>
-                                        <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
-                                            FEATURED
-                                        </div>
-                                    </div>
-                                @endif
+                                </div>
 
                                 <div class="p-4 bg-yellow-50 flex flex-col" style="min-height: 320px;">
                                     {{-- Listing Header --}}
@@ -350,28 +343,19 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         @forelse($all_listings as $listing)
                             <div class="border {{ $listing->is_featured ? 'border-2 border-yellow-200' : 'border-gray-200' }} rounded-lg overflow-hidden hover:border-yellow-300 hover:shadow-md transition-all">
-                                {{-- Listing Image --}}
-                                @if($listing->media->isNotEmpty())
-                                    <div class="aspect-video bg-gray-100 overflow-hidden relative">
-                                        <img src="{{ $listing->media->first()->data_uri }}"
-                                             alt="{{ $listing->title }}"
-                                             class="w-full h-full object-cover transition-transform duration-300 hover:scale-110">
-                                        @if($listing->is_featured)
-                                            <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
-                                                FEATURED
-                                            </div>
-                                        @endif
-                                    </div>
-                                @else
-                                    <div class="aspect-video bg-gray-200 flex items-center justify-center relative">
-                                        <span class="text-gray-400 text-sm">No Image</span>
-                                        @if($listing->is_featured)
-                                            <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
-                                                FEATURED
-                                            </div>
-                                        @endif
-                                    </div>
-                                @endif
+                                {{-- Listing Image Gallery --}}
+                                <div class="aspect-video bg-gray-100 overflow-hidden relative">
+                                    <x-image-gallery
+                                        :images="$listing->media"
+                                        :title="$listing->title"
+                                        :modal-id="'gallery-all-' . $listing->id"
+                                    />
+                                    @if($listing->is_featured)
+                                        <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded z-10 pointer-events-none">
+                                            FEATURED
+                                        </div>
+                                    @endif
+                                </div>
 
                                 <div class="p-4 flex flex-col {{ $listing->is_featured ? 'bg-yellow-50' : '' }}" style="min-height: 320px;">
                                     {{-- Listing Header --}}
@@ -522,24 +506,17 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         @forelse($all_listings as $listing)
                             <div class="border-2 border-yellow-200 rounded-lg overflow-hidden hover:border-yellow-400 hover:shadow-lg transition-all">
-                                {{-- Listing Image --}}
-                                @if($listing->media->isNotEmpty())
-                                    <div class="aspect-video bg-gray-100 overflow-hidden relative">
-                                        <img src="{{ $listing->media->first()->data_uri }}"
-                                             alt="{{ $listing->title }}"
-                                             class="w-full h-full object-cover transition-transform duration-300 hover:scale-110">
-                                        <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
-                                            FEATURED
-                                        </div>
+                                {{-- Listing Image Gallery --}}
+                                <div class="aspect-video bg-gray-100 overflow-hidden relative">
+                                    <x-image-gallery
+                                        :images="$listing->media"
+                                        :title="$listing->title"
+                                        :modal-id="'gallery-featured-only-' . $listing->id"
+                                    />
+                                    <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded z-10 pointer-events-none">
+                                        FEATURED
                                     </div>
-                                @else
-                                    <div class="aspect-video bg-gray-200 flex items-center justify-center relative">
-                                        <span class="text-gray-400 text-sm">No Image</span>
-                                        <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
-                                            FEATURED
-                                        </div>
-                                    </div>
-                                @endif
+                                </div>
 
                                 <div class="p-4 bg-yellow-50 flex flex-col" style="min-height: 320px;">
                                     {{-- Same content as featured listings above --}}
@@ -661,18 +638,14 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     @forelse($regular_listings as $listing)
                         <div class="border border-gray-200 rounded-lg overflow-hidden hover:border-yellow-300 hover:shadow-md transition-all">
-                            {{-- Listing Image --}}
-                            @if($listing->media->isNotEmpty())
-                                <div class="aspect-video bg-gray-100 overflow-hidden">
-                                    <img src="{{ $listing->media->first()->data_uri }}"
-                                         alt="{{ $listing->title }}"
-                                         class="w-full h-full object-cover transition-transform duration-300 hover:scale-110">
-                                </div>
-                            @else
-                                <div class="aspect-video bg-gray-200 flex items-center justify-center">
-                                    <span class="text-gray-400 text-sm">No Image</span>
-                                </div>
-                            @endif
+                            {{-- Listing Image Gallery --}}
+                            <div class="aspect-video bg-gray-100 overflow-hidden">
+                                <x-image-gallery
+                                    :images="$listing->media"
+                                    :title="$listing->title"
+                                    :modal-id="'gallery-search-' . $listing->id"
+                                />
+                            </div>
 
                             <div class="p-4 flex flex-col" style="min-height: 320px;">
                                 {{-- Listing Header --}}

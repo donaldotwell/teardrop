@@ -70,15 +70,13 @@
                 </div>
                 <div class="p-6">
                     <div class="flex items-start gap-4">
-                        @if($order->listing->media->first())
-                            <img src="{{ $order->listing->media->first()->data_uri }}"
-                                 alt="{{ $order->listing->title }}"
-                                 class="w-24 h-24 object-contain bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        @else
-                            <div class="w-24 h-24 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-lg">
-                                <span class="text-gray-400 text-xs">No Image</span>
-                            </div>
-                        @endif
+                        <div class="w-24 h-24 shrink-0">
+                            <x-image-gallery 
+                                :images="$order->listing->media" 
+                                :title="$order->listing->title" 
+                                :modal-id="'listing-gallery-vendor-order-' . $order->id" 
+                            />
+                        </div>
                         <div class="flex-1">
                             <h3 class="font-semibold text-gray-900">{{ $order->listing->title }}</h3>
                             <p class="text-sm text-gray-600 mt-1 line-clamp-2">{{ $order->listing->short_description }}</p>
@@ -347,7 +345,6 @@
                         <div class="w-full px-6 py-3 text-sm text-center text-yellow-700 bg-yellow-100 rounded-md border border-yellow-200">
                             Dispute is active for this order
                         </div>
-                    @endif
                     @endif
                 </div>
             </div>

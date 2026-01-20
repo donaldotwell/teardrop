@@ -12,15 +12,13 @@
         <!-- Listing Preview -->
         <div class="p-6 border-b border-gray-200">
             <div class="flex items-start gap-4 bg-gray-50 rounded-lg p-4">
-                @if($listing->media->first())
-                    <img src="{{ $listing->media->first()->data_uri }}"
-                         alt="{{ $listing->title }}"
-                         class="w-24 h-24 object-contain bg-white border border-gray-200 rounded-lg p-2">
-                @else
-                    <div class="w-24 h-24 flex items-center justify-center bg-white border border-gray-200 rounded-lg">
-                        <span class="text-gray-400 text-xs">No Image</span>
-                    </div>
-                @endif
+                <div class="w-24 h-24 shrink-0">
+                    <x-image-gallery 
+                        :images="$listing->media" 
+                        :title="$listing->title" 
+                        :modal-id="'listing-gallery-feature-' . $listing->id" 
+                    />
+                </div>
                 <div class="flex-1">
                     <h3 class="font-semibold text-gray-900">{{ $listing->title }}</h3>
                     <p class="text-sm text-gray-600 mt-1 line-clamp-2">{{ $listing->short_description }}</p>

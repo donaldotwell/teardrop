@@ -269,15 +269,11 @@
                 @if($dispute->order->listing)
                     <div class="flex items-center space-x-4 mb-6 pb-6 border-b border-gray-100">
                         <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                            @if($dispute->order->listing->media->isNotEmpty())
-                                <img src="{{ $dispute->order->listing->media->first()->data_uri }}"
-                                     alt="{{ $dispute->order->listing->title }}"
-                                     class="w-full h-full object-cover">
-                            @else
-                                <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                                </svg>
-                            @endif
+                            <x-image-gallery
+                                :images="$dispute->order->listing->media"
+                                :title="$dispute->order->listing->title"
+                                :modal-id="'gallery-mod-dispute-' . $dispute->id"
+                            />
                         </div>
                         <div class="flex-1 min-w-0">
                             <h4 class="text-base font-semibold text-gray-900 truncate">{{ $dispute->order->listing->title }}</h4>

@@ -331,17 +331,11 @@
                                     @foreach($user->listings as $listing)
                                         <a href="{{ route('listings.show', $listing) }}"
                                            class="block group bg-white border-2 border-gray-200 rounded-lg overflow-hidden hover:border-amber-400 transition-all">
-                                            <div class="aspect-w-16 aspect-h-9 bg-gray-100">
-                                                @if($listing->media->first())
-                                                    <img src="{{ $listing->media->first()->data_uri }}"
-                                                         alt="{{ $listing->title }}"
-                                                         class="object-cover w-full h-48">
-                                                @else
-                                                    <div class="flex items-center justify-center h-48 text-gray-400">
-                                                        <span class="text-sm">No Image</span>
-                                                    </div>
-                                                @endif
-                                            </div>
+                                            <x-image-gallery 
+                                                :images="$listing->media" 
+                                                :title="$listing->title" 
+                                                :modal-id="'listing-gallery-vendor-profile-' . $listing->id" 
+                                            />
                                             <div class="p-4">
                                                 <h3 class="font-semibold text-gray-900 group-hover:text-amber-600 transition-colors line-clamp-2 mb-2">
                                                     {{ $listing->title }}
