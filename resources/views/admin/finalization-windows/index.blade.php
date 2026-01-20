@@ -78,7 +78,7 @@
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit"
-                                            onclick="return confirm('Are you sure you want to delete this window?')"
+
                                             class="text-red-600 hover:text-red-900">Delete</button>
                                 </form>
                             @endif

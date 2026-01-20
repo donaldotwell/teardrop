@@ -77,7 +77,7 @@
                    id="allows_early_finalization"
                    value="1"
                    {{ old('allows_early_finalization', $productCategory->allows_early_finalization) ? 'checked' : '' }}
-                   class="h-5 w-5 text-amber-600 focus:ring-amber-500 border-gray-300 rounded mt-0.5">
+                   class="peer h-5 w-5 text-amber-600 focus:ring-amber-500 border-gray-300 rounded mt-0.5">
             <div>
                 <label for="allows_early_finalization" class="block text-sm font-medium text-gray-900">
                     Enable Early Finalization
@@ -88,7 +88,7 @@
             </div>
         </div>
 
-        <div id="finalization-settings" class="space-y-6 {{ old('allows_early_finalization', $productCategory->allows_early_finalization) ? '' : 'opacity-50 pointer-events-none' }}">
+        <div class="space-y-6 peer-checked:opacity-100 peer-checked:pointer-events-auto {{ old('allows_early_finalization', $productCategory->allows_early_finalization) ? '' : 'opacity-50 pointer-events-none' }}">
             <div>
                 <label for="finalization_window_id" class="block text-sm font-medium text-gray-700 mb-2">
                     Dispute Window *
@@ -163,19 +163,4 @@
     </div>
     @endif
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const checkbox = document.getElementById('allows_early_finalization');
-    const settings = document.getElementById('finalization-settings');
-
-    checkbox.addEventListener('change', function() {
-        if (this.checked) {
-            settings.classList.remove('opacity-50', 'pointer-events-none');
-        } else {
-            settings.classList.add('opacity-50', 'pointer-events-none');
-        }
-    });
-});
-</script>
 @endsection

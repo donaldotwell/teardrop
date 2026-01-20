@@ -59,7 +59,7 @@
                     <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-xs leading-relaxed border border-gray-700">{{ $verification->encrypted_message }}</pre>
 
                     <button type="button"
-                            onclick="navigator.clipboard.writeText(this.parentElement.querySelector('pre').textContent.trim()).then(() => { this.textContent = 'Copied'; setTimeout(() => this.textContent = 'Copy', 2000); })"
+
                             class="absolute top-2 right-2 px-3 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600">
                         Copy
                     </button>

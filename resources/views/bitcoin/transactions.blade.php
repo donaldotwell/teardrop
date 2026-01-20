@@ -100,7 +100,7 @@
                                    readonly
                                    class="w-full p-2 bg-gray-50 border border-gray-300 rounded font-mono text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 select-all cursor-pointer"
                                    id="txid-field"
-                                   onclick="this.select()">
+                                   >
                         </div>
                     </div>
 
@@ -136,7 +136,7 @@
                                    readonly
                                    class="w-full p-2 bg-gray-50 border border-gray-300 rounded font-mono text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 select-all cursor-pointer"
                                    id="block-hash-field"
-                                   onclick="this.select()">
+                                   >
                         </div>
                     @endif
 
@@ -164,7 +164,7 @@
                                    readonly
                                    class="w-full p-2 bg-gray-50 border border-gray-300 rounded font-mono text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 select-all cursor-pointer"
                                    id="address-field"
-                                   onclick="this.select()">
+                                   >
                         </div>
 
                         <div>

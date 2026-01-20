@@ -257,7 +257,7 @@
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit"
-                                                        onclick="return confirm('Are you sure you want to delete this post?')"
+
                                                         class="w-full px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">
                                                     Delete Post
                                                 </button>

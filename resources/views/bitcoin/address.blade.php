@@ -38,7 +38,7 @@
                                    readonly
                                    class="w-full p-3 bg-white border border-amber-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 select-all cursor-pointer"
                                    id="address-field"
-                                   onclick="this.select()">
+                                   class="select-all">
                         </div>
 
                         <div class="flex items-center justify-between text-sm">

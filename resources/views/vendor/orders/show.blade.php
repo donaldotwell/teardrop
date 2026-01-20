@@ -296,12 +296,14 @@
 
                     {{-- Cancel Order (Vendor Only) --}}
                     @if(in_array($order->status, ['pending', 'shipped']))
-                        <button type="button" onclick="document.getElementById('cancel-order-form').classList.toggle('hidden')" class="w-full px-6 py-3 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        <input type="checkbox" id="cancel-order-toggle-{{ $order->id }}" class="peer hidden" />
+                        
+                        <label for="cancel-order-toggle-{{ $order->id }}" class="block w-full px-6 py-3 text-sm font-medium text-center text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                             Cancel Order & Refund Buyer
-                        </button>
+                        </label>
 
-                        {{-- Cancel Order Form (Hidden by default) --}}
-                        <form id="cancel-order-form" action="{{ route('vendor.orders.cancel', $order) }}" method="POST" class="hidden mt-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        {{-- Cancel Order Form (Hidden by default, shown when checkbox is checked) --}}
+                        <form action="{{ route('vendor.orders.cancel', $order) }}" method="POST" class="hidden peer-checked:block mt-3 p-4 bg-red-50 border border-red-200 rounded-lg">
                             @csrf
                             <label for="cancellation_reason" class="block text-sm font-medium text-gray-700 mb-2">
                                 Reason for Cancellation <span class="text-red-600">*</span>
@@ -314,9 +316,9 @@
                                 <button type="submit" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors">
                                     Confirm Cancellation
                                 </button>
-                                <button type="button" onclick="document.getElementById('cancel-order-form').classList.add('hidden')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
+                                <label for="cancel-order-toggle-{{ $order->id }}" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors text-center cursor-pointer">
                                     Nevermind
-                                </button>
+                                </label>
                             </div>
                         </form>
                     @endif

@@ -85,7 +85,7 @@
                             <input type="text"
                                    value="{{ $currentAddress->address }}"
                                    readonly
-                                   onclick="this.select()"
+                                   class="select-all"
                                    class="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-lg font-mono text-sm cursor-pointer hover:border-orange-300 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
                                    id="monero-address">
                             <p class="text-xs text-gray-500">
