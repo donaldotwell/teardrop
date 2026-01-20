@@ -20,7 +20,7 @@
 
 @section('content')
     <div class="max-w-5xl mx-auto">
-        
+
         <!-- Header -->
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-gray-900 mb-2">Deposit Monero</h1>
@@ -51,7 +51,7 @@
         <!-- Main Deposit Section -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="grid lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-gray-200">
-                
+
                 <!-- QR Code Section -->
                 <div class="lg:col-span-2 p-8">
                     <div class="flex flex-col items-center justify-center h-full">
@@ -120,7 +120,7 @@
 
         <!-- Instructions & Information -->
         <div class="mt-6 grid md:grid-cols-2 gap-6">
-            
+
             <!-- How to Deposit -->
             <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200">
                 <h3 class="text-lg font-bold text-gray-900 mb-4">

@@ -53,7 +53,7 @@
         <!-- Main Deposit Section -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="grid lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-gray-200">
-                
+
                 <!-- QR Code Section -->
                 <div class="lg:col-span-2 p-8">
                     <div class="flex flex-col items-center justify-center h-full">

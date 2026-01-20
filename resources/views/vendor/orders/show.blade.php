@@ -297,7 +297,7 @@
                     {{-- Cancel Order (Vendor Only) --}}
                     @if(in_array($order->status, ['pending', 'shipped']))
                         <input type="checkbox" id="cancel-order-toggle-{{ $order->id }}" class="peer hidden" />
-                        
+
                         <label for="cancel-order-toggle-{{ $order->id }}" class="block w-full px-6 py-3 text-sm font-medium text-center text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                             Cancel Order & Refund Buyer
                         </label>
