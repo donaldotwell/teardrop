@@ -551,9 +551,11 @@ class EscrowService
             $buyerAddress = $buyerWallet->generateNewAddress();
         }
 
-        // Get the wallet balance from Bitcoin node to ensure accuracy. getWalletBalance in BitcoinRepository
-        $repository = new BitcoinRepository();
-        $escrowBalance = $repository->getWalletBalance($escrowWallet->wallet_name);
+        // estimate amount less the fees
+        $escrowBalance = $escrowWallet->balance;
+        $feeRate = BitcoinRepository::getFeeRateForAmount($escrowBalance);
+        $estimatedFee = BitcoinRepository::estimateTransactionFee(1, $feeRate); // 1 output
+        $escrowBalance -= $estimatedFee;
 
         // Send full balance back to buyer
         $txid = BitcoinRepository::sendBitcoin(

@@ -430,6 +430,27 @@ class BitcoinRepository
     }
 
     /**
+     * Estimate transaction fee based on number of outputs and fee rate.
+     *
+     * @param int $numOutputs Number of outputs in the transaction
+     * @param int $feeRate Fee rate in satoshis per virtual byte
+     * @return float Estimated fee in BTC
+     */
+    public static function estimateTransactionFee(int $numOutputs, int $feeRate): float
+    {
+        // Estimate transaction size in vBytes
+        // Typical sizes: input ~148 vB, output ~34 vB, overhead ~10 vB
+        $numInputs = 1; // Assuming 1 input for simplicity; adjust as needed
+        $txSize = (148 * $numInputs) + (34 * $numOutputs) + 10;
+
+        // Calculate fee in satoshis
+        $feeSatoshis = $txSize * $feeRate;
+
+        // Convert to BTC
+        return $feeSatoshis / 100_000_000;
+    }
+
+    /**
      * Send Bitcoin from user's wallet to address.
      *
      * @param string $walletName User's wallet name (username_pri)
