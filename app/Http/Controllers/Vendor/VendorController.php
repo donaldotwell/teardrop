@@ -238,41 +238,85 @@ class VendorController extends Controller
 
         try {
             DB::transaction(function () use ($order, $data, $vendor) {
-                // Check if order has escrow wallet
-                if ($order->escrow_wallet_id) {
+                $buyer = $order->user;
+                $refundMessage = '';
+
+                // Handle early finalized orders (funds already sent to vendor)
+                if ($order->is_early_finalized) {
+                    // For early finalized orders, vendor must manually refund from their own wallet
+                    // because funds were already released to vendor at purchase time
+                    $vendorWallet = $vendor->wallets()->where('currency', $order->currency)->first();
+                    $buyerWallet = $buyer->wallets()->where('currency', $order->currency)->first();
+
+                    if (!$vendorWallet || !$buyerWallet) {
+                        throw new \Exception("Vendor or buyer wallet not found for currency: {$order->currency}");
+                    }
+
+                    // Check if vendor has sufficient balance to refund
+                    if ($vendorWallet->balance < $order->crypto_value) {
+                        throw new \Exception("Insufficient vendor balance to refund order. Vendor balance: {$vendorWallet->balance} {$order->currency}, Order amount: {$order->crypto_value} {$order->currency}");
+                    }
+
+                    // Deduct from vendor
+                    $vendorWallet->decrement('balance', $order->crypto_value);
+                    $vendorWallet->transactions()->create([
+                        'amount' => -$order->crypto_value,
+                        'type' => 'order_refund',
+                        'comment' => "Refund to buyer for cancelled order #{$order->id}",
+                    ]);
+
+                    // Add to buyer
+                    $buyerWallet->increment('balance', $order->crypto_value);
+                    $buyerWallet->transactions()->create([
+                        'amount' => $order->crypto_value,
+                        'type' => 'order_refund',
+                        'comment' => "Refund from vendor for cancelled order #{$order->id}",
+                    ]);
+
+                    $refundMessage = "Full refund of {$order->crypto_value} {$order->currency} transferred from vendor to buyer wallet.";
+
+                    Log::info("Early finalized order #{$order->id} refunded from vendor to buyer", [
+                        'amount' => $order->crypto_value,
+                        'currency' => $order->currency,
+                        'vendor_id' => $vendor->id,
+                        'buyer_id' => $buyer->id,
+                    ]);
+
+                } elseif ($order->escrow_wallet_id) {
+                    // Handle standard escrow orders
                     $escrowWallet = $order->escrowWallet;
 
                     if (!$escrowWallet) {
                         throw new \Exception("Escrow wallet not found for order #{$order->id}");
                     }
 
-                    // Refund to buyer (EscrowService handles transaction fees automatically)
+                    // Check if escrow has been funded
+                    if (!$order->escrow_funded_at || $escrowWallet->balance <= 0) {
+                        throw new \Exception("Escrow has not been funded yet or balance is zero. Cannot process refund.");
+                    }
+
+                    // Store balance before refund (this is the amount that will be refunded minus network fees)
+                    $escrowBalance = $escrowWallet->balance;
+
+                    // Refund to buyer (EscrowService handles network transaction fees automatically)
                     $escrowService = new EscrowService();
                     $refundTxid = $escrowService->refundEscrow($escrowWallet, $order);
 
-                    // Record the refund transaction for the buyer
-                    $buyer = $order->user;
-                    $wallet = $buyer->wallets()->where('currency', $order->currency)->first();
+                    // Note: The sync jobs (SyncBitcoinWallets/SyncMoneroWallets) will automatically
+                    // update the buyer's wallet balance when the refund transaction confirms.
+                    // We don't manually increment the balance here to avoid double-counting.
 
-                    if ($wallet) {
-                        // The actual refunded amount (escrow balance minus network fees)
-                        $refundedAmount = $escrowWallet->balance;
+                    $refundMessage = "Refund of approximately {$escrowBalance} {$order->currency} sent from escrow (minus network fees). Transaction ID: {$refundTxid}";
 
-                        $wallet->transactions()->create([
-                            'amount' => $refundedAmount,
-                            'type' => 'order_refund',
-                            'comment' => "Refund for cancelled order #{$order->id}. Vendor reason: " . substr($data['cancellation_reason'], 0, 100),
-                        ]);
-
-                        // Update buyer's wallet balance
-                        $wallet->increment('balance', $refundedAmount);
-                    }
-
-                    Log::info("Order #{$order->id} refunded to buyer", [
+                    Log::info("Order #{$order->id} refunded from escrow to buyer", [
                         'refund_txid' => $refundTxid,
-                        'amount' => $refundedAmount ?? 'N/A',
+                        'escrow_balance' => $escrowBalance,
                         'currency' => $order->currency,
                     ]);
+
+                } else {
+                    // Order has no escrow and wasn't early finalized - shouldn't happen
+                    throw new \Exception("Order has no escrow wallet and was not early finalized. Cannot process refund.");
                 }
 
                 // Update order status
@@ -286,8 +330,7 @@ class VendorController extends Controller
                 \App\Models\UserMessage::create([
                     'sender_id' => $vendor->id,
                     'receiver_id' => $order->user_id,
-                    'message' => "Your order #{$order->id} has been cancelled by the vendor.\n\nReason: {$data['cancellation_reason']}\n\n" .
-                                ($order->escrow_wallet_id ? "Funds have been refunded to your wallet (minus network transaction fees)." : ""),
+                    'message' => "Your order #{$order->id} has been cancelled by the vendor.\n\nReason: {$data['cancellation_reason']}\n\n{$refundMessage}",
                     'order_id' => $order->id,
                 ]);
 
@@ -295,6 +338,7 @@ class VendorController extends Controller
                     'vendor_id' => $vendor->id,
                     'buyer_id' => $order->user_id,
                     'reason' => $data['cancellation_reason'],
+                    'was_early_finalized' => $order->is_early_finalized,
                 ]);
             });
 
