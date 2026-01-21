@@ -141,6 +141,11 @@
                               {{ request()->routeIs('vendor.orders.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
                         Orders
                     </a>
+                    <a href="{{ route('vendor.disputes.index') }}"
+                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                              {{ request()->routeIs('vendor.disputes.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                        Disputes
+                    </a>
                     <a href="{{ route('vendor.sales') }}"
                        class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
                               {{ request()->routeIs('vendor.sales') ? 'bg-yellow-100 text-yellow-700' : '' }}">
@@ -178,6 +183,10 @@
                         <a href="{{ route('vendor.orders.index') }}"
                            class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
                             Orders
+                        </a>
+                        <a href="{{ route('vendor.disputes.index') }}"
+                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
+                            Disputes
                         </a>
                         <a href="{{ route('vendor.sales') }}"
                            class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">

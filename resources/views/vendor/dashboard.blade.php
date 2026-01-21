@@ -8,7 +8,7 @@
 @section('content')
     <div class="space-y-6">
         {{-- Statistics Grid --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {{-- Total Listings --}}
             <div class="bg-white rounded-lg border border-gray-200 p-6">
                 <div class="flex items-center justify-between">
@@ -54,6 +54,26 @@
                 </div>
                 <p class="text-sm text-gray-500 mt-4">
                     Avg. Rating: {{ number_format($stats['avg_rating'], 1) }}/5
+                </p>
+            </div>
+
+            {{-- Disputes --}}
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 font-medium">Disputes</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-2">{{ $stats['total_disputes'] }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                        <span class="text-red-600 text-xl font-bold">D</span>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500 mt-4">
+                    @if($stats['open_disputes'] > 0)
+                        <span class="text-red-600 font-medium">{{ $stats['open_disputes'] }} open</span>
+                    @else
+                        {{ $stats['resolved_disputes'] }} resolved
+                    @endif
                 </p>
             </div>
         </div>

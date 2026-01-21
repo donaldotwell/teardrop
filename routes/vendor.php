@@ -41,4 +41,13 @@ Route::middleware(['auth', 'role:vendor'])->name('vendor.')->group(function () {
 
     // Vendor Reviews
     Route::get('/reviews', [VendorController::class, 'reviews'])->name('reviews');
+
+    // Vendor Disputes (orders where vendor is disputed against)
+    Route::prefix('disputes')->name('disputes.')->group(function () {
+        Route::get('/', [VendorController::class, 'disputes'])->name('index');
+        Route::get('/{dispute}', [VendorController::class, 'showDispute'])->name('show');
+        Route::post('/{dispute}/add-message', [VendorController::class, 'addDisputeMessage'])->name('add-message');
+        Route::post('/{dispute}/upload-evidence', [VendorController::class, 'uploadDisputeEvidence'])->name('upload-evidence');
+        Route::get('/{dispute}/evidence/{evidence}/download', [VendorController::class, 'downloadDisputeEvidence'])->name('download-evidence');
+    });
 });

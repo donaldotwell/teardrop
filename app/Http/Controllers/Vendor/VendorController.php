@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Vendor;
 
 use App\Http\Controllers\Controller;
+use App\Models\Dispute;
+use App\Models\DisputeEvidence;
 use App\Models\Listing;
 use App\Models\Order;
 use App\Models\Review;
@@ -10,6 +12,7 @@ use App\Services\EscrowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class VendorController extends Controller
 {
@@ -37,6 +40,9 @@ class VendorController extends Controller
                 $q->where('user_id', $vendor->id);
             })->selectRaw('AVG((rating_stealth + rating_quality + rating_delivery) / 3) as avg_rating')
             ->value('avg_rating') ?? 0,
+            'total_disputes' => $vendor->allDisputes()->count(),
+            'open_disputes' => $vendor->allDisputes()->open()->count(),
+            'resolved_disputes' => $vendor->allDisputes()->where('status', 'resolved')->count(),
         ];
 
         // Recent orders
@@ -416,5 +422,176 @@ class VendorController extends Controller
             ->paginate(20);
 
         return view('vendor.reviews', compact('reviews'));
+    }
+
+    /**
+     * Display vendor's disputes (disputes against vendor)
+     */
+    public function disputes(Request $request)
+    {
+        $vendor = auth()->user();
+
+        // Get disputes where vendor is the disputed party
+        $query = $vendor->allDisputes()
+            ->with(['order.listing', 'initiatedBy', 'disputedAgainst', 'assignedAdmin', 'assignedModerator']);
+
+        // Filter by status if requested
+        if ($request->filled('status')) {
+            $query->where('status', $request->get('status'));
+        }
+
+        // Filter by type if requested
+        if ($request->filled('type')) {
+            $query->where('type', $request->get('type'));
+        }
+
+        $disputes = $query->orderBy('created_at', 'desc')->paginate(10);
+
+        // Get counts for filter buttons
+        $statusCounts = [
+            'all' => $vendor->allDisputes()->count(),
+            'open' => $vendor->allDisputes()->open()->count(),
+            'resolved' => $vendor->allDisputes()->where('status', 'resolved')->count(),
+            'closed' => $vendor->allDisputes()->where('status', 'closed')->count(),
+        ];
+
+        return view('disputes.index', compact('disputes', 'statusCounts'));
+    }
+
+    /**
+     * Show specific dispute details
+     */
+    public function showDispute(Dispute $dispute)
+    {
+        $vendor = auth()->user();
+
+        // Verify vendor can access this dispute
+        if (!$dispute->canUserParticipate($vendor)) {
+            abort(403, 'You do not have access to this dispute.');
+        }
+
+        $dispute->load([
+            'order.listing.media',
+            'initiatedBy',
+            'disputedAgainst',
+            'assignedAdmin',
+            'assignedModerator',
+            'evidence.uploadedBy'
+        ]);
+
+        // Get messages (filter internal if user is not admin)
+        $messages = $dispute->messages()
+            ->where('is_internal', false)
+            ->with('user')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // Mark messages as read for this user
+        $dispute->messages()
+            ->where('user_id', '!=', $vendor->id)
+            ->where('is_read', false)
+            ->update(['is_read' => true, 'read_at' => now()]);
+
+        return view('disputes.show', compact('dispute', 'messages'));
+    }
+
+    /**
+     * Add message to dispute
+     */
+    public function addDisputeMessage(Request $request, Dispute $dispute)
+    {
+        $vendor = auth()->user();
+
+        // Verify vendor can access this dispute
+        if (!$dispute->canUserParticipate($vendor)) {
+            abort(403, 'You do not have access to this dispute.');
+        }
+
+        $validated = $request->validate([
+            'message' => 'required|string|max:1000',
+        ]);
+
+        $dispute->messages()->create([
+            'user_id' => $vendor->id,
+            'message' => $validated['message'],
+            'message_type' => 'user_message',
+            'is_internal' => false,
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Message added successfully.');
+    }
+
+    /**
+     * Upload evidence for dispute
+     */
+    public function uploadDisputeEvidence(Request $request, Dispute $dispute)
+    {
+        $vendor = auth()->user();
+
+        // Verify vendor can access this dispute
+        if (!$dispute->canUserParticipate($vendor)) {
+            abort(403, 'You do not have access to this dispute.');
+        }
+
+        $validated = $request->validate([
+            'evidence.*' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB max
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        if ($request->hasFile('evidence')) {
+            foreach ($request->file('evidence') as $file) {
+                $path = $file->store('dispute-evidence', 'private');
+
+                DisputeEvidence::create([
+                    'dispute_id' => $dispute->id,
+                    'uploaded_by' => $vendor->id,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => $file->getClientMimeType(),
+                    'file_size' => $file->getSize(),
+                    'description' => $validated['description'] ?? null,
+                ]);
+
+                // Add system message about evidence upload
+                $dispute->messages()->create([
+                    'user_id' => $vendor->id,
+                    'message' => "Evidence uploaded: {$file->getClientOriginalName()}",
+                    'message_type' => 'evidence_upload',
+                    'is_internal' => false,
+                ]);
+            }
+        }
+
+        return redirect()->back()
+            ->with('success', 'Evidence uploaded successfully.');
+    }
+
+    /**
+     * Download dispute evidence
+     */
+    public function downloadDisputeEvidence(Dispute $dispute, DisputeEvidence $evidence)
+    {
+        $vendor = auth()->user();
+
+        // Verify vendor can access this dispute
+        if (!$dispute->canUserParticipate($vendor)) {
+            abort(403, 'You do not have access to this dispute.');
+        }
+
+        // Verify evidence belongs to this dispute
+        if ($evidence->dispute_id !== $dispute->id) {
+            abort(404, 'Evidence not found.');
+        }
+
+        // Check if file exists
+        if (!Storage::disk('private')->exists($evidence->file_path)) {
+            abort(404, 'File not found.');
+        }
+
+        return Storage::disk('private')->download(
+            $evidence->file_path,
+            $evidence->file_name
+        );
     }
 }
