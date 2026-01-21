@@ -16,6 +16,8 @@ return new class extends Migration
 
         if ($driver === 'pgsql') {
             // PostgreSQL: Modify the enum type
+            // Drop default first to avoid casting issues
+            DB::statement("ALTER TABLE dispute_messages ALTER COLUMN message_type DROP DEFAULT");
             DB::statement("ALTER TABLE dispute_messages ALTER COLUMN message_type TYPE VARCHAR(50)");
             DB::statement("DROP TYPE IF EXISTS dispute_messages_message_type CASCADE");
 
@@ -58,6 +60,8 @@ return new class extends Migration
 
         if ($driver === 'pgsql') {
             // PostgreSQL: Remove 'assignment_update' from enum
+            // Drop default first to avoid casting issues
+            DB::statement("ALTER TABLE dispute_messages ALTER COLUMN message_type DROP DEFAULT");
             DB::statement("ALTER TABLE dispute_messages ALTER COLUMN message_type TYPE VARCHAR(50)");
             DB::statement("DROP TYPE IF EXISTS dispute_messages_message_type CASCADE");
 
