@@ -155,13 +155,11 @@ class DisputeController extends Controller
         ]);
 
         // Add auto-assignment message if moderator was assigned
-        // TODO: migration to add 'assignment_update' to enum if not exists
         if ($assignedModerator) {
             $dispute->messages()->create([
                 'user_id' => $user->id,
                 'message' => "Automatically assigned to moderator: {$assignedModerator->username_pub}",
-                // 'message_type' => 'assignment_update',
-                'message_type' => 'system_message',
+                'message_type' => 'assignment_update',
                 'is_internal' => true,
             ]);
         }

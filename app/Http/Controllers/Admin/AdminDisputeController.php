@@ -246,12 +246,10 @@ class AdminDisputeController extends Controller
             ? "Dispute reassigned by admin from {$previousModerator->username_pub} to {$moderator->username_pub}"
             : "Dispute assigned to moderator: {$moderator->username_pub} by admin";
 
-        // TODO: migration to add 'assignment_update' to enum if not exists
         $dispute->messages()->create([
             'user_id' => auth()->id(),
             'message' => $messageText,
-            // 'message_type' => 'assignment_update',
-            'message_type' => 'system_message',
+            'message_type' => 'assignment_update',
             'is_internal' => true,
         ]);
 
