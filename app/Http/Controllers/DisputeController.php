@@ -159,7 +159,7 @@ class DisputeController extends Controller
             $dispute->messages()->create([
                 'user_id' => $user->id,
                 'message' => "Automatically assigned to moderator: {$assignedModerator->username_pub}",
-                'message_type' => 'assignment_update',
+                'message_type' => 'status_update',
                 'is_internal' => true,
             ]);
         }

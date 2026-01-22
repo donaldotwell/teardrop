@@ -218,7 +218,7 @@ class AdminDisputeController extends Controller
                 'user_id' => auth()->id(),
                 'message' => "Moderator unassigned by admin: " .
                     ($previousModerator ? $previousModerator->username_pub : 'N/A') . " removed",
-                'message_type' => 'assignment_update',
+                'message_type' => 'status_update',
                 'is_internal' => true,
             ]);
 
