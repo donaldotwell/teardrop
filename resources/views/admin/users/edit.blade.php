@@ -173,7 +173,7 @@
                                 <div class="flex justify-between">
                                     <dt class="text-gray-600">Last Seen:</dt>
                                     <dd class="font-medium text-gray-900">
-                                        {{ $user->last_seen ? $user->last_seen->diffForHumans() : 'Never' }}
+                                        {{ $user->last_seen_at ? $user->last_seen_at->diffForHumans() : 'Never' }}
                                     </dd>
                                 </div>
                             </dl>
