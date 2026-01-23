@@ -148,7 +148,7 @@
                         @php
                             $isActive = request()->url() === $url || request()->fullUrl() === $url;
                         @endphp
-                        <a href="{{ $url }}" class="flex items-center text-sm px-3 py-2 rounded-md {{ $isActive ? 'bg-amber-600 text-white font-medium' : 'text-gray-700 hover:bg-yellow-50' }}">
+                        <a href="{{ $url }}" class="flex items-center text-sm px-3 py-2 rounded-md {{ $isActive ? 'bg-amber-600 text-white font-medium' : 'text-gray-300 hover:text-white hover:bg-gray-700' }}">
                             {{ $text }}
                         </a>
                     @endforeach
