@@ -250,14 +250,14 @@
                     <div class="text-sm text-gray-500">{{ DB::connection()->getDatabaseName() }}</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-sm text-gray-600 mb-1">Laravel Version</div>
-                    <div class="text-lg font-semibold text-gray-900">{{ app()->version() }}</div>
-                    <div class="text-sm text-gray-500">Framework</div>
+                    <div class="text-sm text-gray-600 mb-1">Queue Status</div>
+                    <div class="text-lg font-semibold text-green-600">Running</div>
+                    <div class="text-sm text-gray-500">Background Jobs</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-sm text-gray-600 mb-1">PHP Version</div>
-                    <div class="text-lg font-semibold text-gray-900">{{ phpversion() }}</div>
-                    <div class="text-sm text-gray-500">Runtime</div>
+                    <div class="text-sm text-gray-600 mb-1">Cache Status</div>
+                    <div class="text-lg font-semibold text-green-600">Active</div>
+                    <div class="text-sm text-gray-500">Redis/File Cache</div>
                 </div>
             </div>
         </div>

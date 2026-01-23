@@ -31,7 +31,18 @@ class AdminController extends Controller
             'total_revenue' => Order::where('status', 'completed')->sum('usd_price'),
         ];
 
-        return view('admin.dashboard', compact('stats'));
+        // Get recent orders with relationships
+        $recent_orders = Order::with(['user', 'listing'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        // Get recent users
+        $recent_users = User::latest()
+            ->limit(5)
+            ->get();
+
+        return view('admin.dashboard', compact('stats', 'recent_orders', 'recent_users'));
     }
 
     /**
