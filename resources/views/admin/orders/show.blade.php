@@ -86,10 +86,10 @@
                                     </div>
                                 @endif
                                 @if($order->direct_payment_txid)
-                                    <div><strong>Vendor TX:</strong> <code class="text-xs bg-white px-2 py-0.5 rounded">{{ substr($order->direct_payment_txid, 0, 16) }}...</code></div>
+                                    <div><strong>Vendor TX:</strong> <code class="text-xs bg-white px-2 py-0.5 rounded">{{ substr($order->direct_payment_txid, 0, 8) }}...</code></div>
                                 @endif
                                 @if($order->admin_fee_txid)
-                                    <div><strong>Admin Fee TX:</strong> <code class="text-xs bg-white px-2 py-0.5 rounded">{{ substr($order->admin_fee_txid, 0, 16) }}...</code></div>
+                                    <div><strong>Admin Fee TX:</strong> <code class="text-xs bg-white px-2 py-0.5 rounded">{{ substr($order->admin_fee_txid, 0, 8) }}...</code></div>
                                 @endif
                             </div>
                         </div>

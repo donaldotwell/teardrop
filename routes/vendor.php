@@ -4,7 +4,7 @@ use App\Http\Controllers\Vendor\VendorController;
 use App\Http\Controllers\Vendor\VendorListingController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'role:vendor'])->name('vendor.')->group(function () {
+Route::middleware(['auth', 'role:vendor', 'vendor.pgp'])->name('vendor.')->group(function () {
     // Vendor Dashboard
     Route::get('/', [VendorController::class, 'dashboard'])->name('dashboard');
 

@@ -32,16 +32,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'moderator' => ModeratorMiddleware::class,
             'role' => RoleMiddleware::class,
             'user.status' => \App\Http\Middleware\CheckUserStatus::class,
+            'vendor.pgp' => \App\Http\Middleware\RequireVendorPgp::class,
             'bot.protection' => \App\Http\Middleware\BotProtectionMiddleware::class,
         ]);
 
-        // Apply bot protection and last seen tracking globally to web routes
+        // Apply security middleware globally to web routes
         $middleware->web(append: [
             \App\Http\Middleware\BotProtectionMiddleware::class,
             \App\Http\Middleware\UpdateLastSeenAt::class,
+            \App\Http\Middleware\CheckUserStatus::class, // Check user status (banned/inactive)
         ]);
-
-        // TODO:  add user.status to global middleware stack
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Custom error page rendering

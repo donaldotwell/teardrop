@@ -110,7 +110,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders', [\App\Http\Controllers\OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [\App\Http\Controllers\OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{order}/complete', [\App\Http\Controllers\OrderController::class, 'complete'])->name('orders.complete');
-    Route::post('/orders/{order}/ship', [\App\Http\Controllers\OrderController::class, 'ship'])->name('orders.ship');
+    // Route::post('/orders/{order}/ship', [\App\Http\Controllers\OrderController::class, 'ship'])->name('orders.ship');
     Route::post('/orders/{order}/message', [\App\Http\Controllers\OrderController::class, 'sendMessage'])->name('orders.message');
     Route::post('/orders/{order}/review', [ReviewController::class, 'store'])->name('reviews.store');
 

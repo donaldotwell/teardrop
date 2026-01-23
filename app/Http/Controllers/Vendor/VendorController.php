@@ -197,17 +197,17 @@ class VendorController extends Controller
                 \App\Models\UserMessage::create([
                     'sender_id' => $order->listing->user_id,
                     'receiver_id' => $order->user_id,
-                    'message' => "Your order #{$order->id} has been marked as shipped by the vendor.",
+                    'message' => "Your order #{$order->uuid} has been marked as shipped by the vendor.",
                     'order_id' => $order->id,
                 ]);
 
-                \Log::info("Order #{$order->id} marked as shipped");
+                \Log::info("Order #{$order->uuid} marked as shipped");
             });
 
             return redirect()->route('vendor.orders.show', $order)->with('success', 'Order marked as shipped successfully!');
 
         } catch (\Exception $e) {
-            \Log::error("Failed to mark order #{$order->id} as shipped", [
+            \Log::error("Failed to mark order #{$order->uuid} as shipped", [
                 'exception' => $e,
                 'order_id' => $order->id,
                 'user_id' => $request->user()->id,
@@ -268,7 +268,7 @@ class VendorController extends Controller
                     $vendorWallet->transactions()->create([
                         'amount' => -$order->crypto_value,
                         'type' => 'order_refund',
-                        'comment' => "Refund to buyer for cancelled order #{$order->id}",
+                        'comment' => "Refund to buyer for cancelled order #{$order->uuid}",
                     ]);
 
                     // Add to buyer
@@ -276,12 +276,12 @@ class VendorController extends Controller
                     $buyerWallet->transactions()->create([
                         'amount' => $order->crypto_value,
                         'type' => 'order_refund',
-                        'comment' => "Refund from vendor for cancelled order #{$order->id}",
+                        'comment' => "Refund from vendor for cancelled order #{$order->uuid}",
                     ]);
 
                     $refundMessage = "Full refund of {$order->crypto_value} {$order->currency} transferred from vendor to buyer wallet.";
 
-                    Log::info("Early finalized order #{$order->id} refunded from vendor to buyer", [
+                    Log::info("Early finalized order #{$order->uuid} refunded from vendor to buyer", [
                         'amount' => $order->crypto_value,
                         'currency' => $order->currency,
                         'vendor_id' => $vendor->id,
@@ -293,7 +293,7 @@ class VendorController extends Controller
                     $escrowWallet = $order->escrowWallet;
 
                     if (!$escrowWallet) {
-                        throw new \Exception("Escrow wallet not found for order #{$order->id}");
+                        throw new \Exception("Escrow wallet not found for order #{$order->uuid}");
                     }
 
                     // Check if escrow has been funded
@@ -312,9 +312,9 @@ class VendorController extends Controller
                     // update the buyer's wallet balance when the refund transaction confirms.
                     // We don't manually increment the balance here to avoid double-counting.
 
-                    $refundMessage = "Refund of approximately {$escrowBalance} {$order->currency} sent from escrow (minus network fees). Transaction ID: {$refundTxid}";
+                    $refundMessage = "Refund of approximately {$escrowBalance} {$order->currency} sent from escrow (minus network fees). Payment confirmed.";
 
-                    Log::info("Order #{$order->id} refunded from escrow to buyer", [
+                    Log::info("Order #{$order->uuid} refunded from escrow to buyer", [
                         'refund_txid' => $refundTxid,
                         'escrow_balance' => $escrowBalance,
                         'currency' => $order->currency,
@@ -336,11 +336,11 @@ class VendorController extends Controller
                 \App\Models\UserMessage::create([
                     'sender_id' => $vendor->id,
                     'receiver_id' => $order->user_id,
-                    'message' => "Your order #{$order->id} has been cancelled by the vendor.\n\nReason: {$data['cancellation_reason']}\n\n{$refundMessage}",
+                    'message' => "Your order #{$order->uuid} has been cancelled by the vendor.\n\nReason: {$data['cancellation_reason']}\n\n{$refundMessage}",
                     'order_id' => $order->id,
                 ]);
 
-                Log::info("Order #{$order->id} cancelled by vendor", [
+                Log::info("Order #{$order->uuid} cancelled by vendor", [
                     'vendor_id' => $vendor->id,
                     'buyer_id' => $order->user_id,
                     'reason' => $data['cancellation_reason'],
@@ -352,7 +352,7 @@ class VendorController extends Controller
                 ->with('success', 'Order cancelled successfully. Buyer has been refunded.');
 
         } catch (\Exception $e) {
-            Log::error("Failed to cancel order #{$order->id}", [
+            Log::error("Failed to cancel order #{$order->uuid}", [
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'order_id' => $order->id,
@@ -396,7 +396,7 @@ class VendorController extends Controller
             return redirect()->route('vendor.orders.show', $order)->with('success', 'Message sent successfully!');
 
         } catch (\Exception $e) {
-            \Log::error("Failed to send message for order #{$order->id}", [
+            \Log::error("Failed to send message for order #{$order->uuid}", [
                 'exception' => $e,
                 'order_id' => $order->id,
                 'user_id' => $vendor->id,

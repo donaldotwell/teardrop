@@ -257,7 +257,7 @@ class OrderController extends Controller
                 UserMessage::create([
                     'sender_id' => $order->user_id,
                     'receiver_id' => $order->listing->user_id,
-                    'message' => "Order #{$order->id} has been completed.\nEscrow released.\nVendor Payment Transaction ID: {$txids['seller_txid']}\nAdmin Fee Transaction ID: {$txids['admin_txid']}",
+                    'message' => "Order #{$order->uuid} has been completed.\nEscrow released.\nPayment sent to your wallet.",
                     'order_id' => $order->id,
                 ]);
 
@@ -272,7 +272,7 @@ class OrderController extends Controller
             return redirect()->route('orders.show', $order)->with('success', "Order completed! Escrow released. {$currencyName} sent to vendor. Balances will update automatically after blockchain confirmations.");
 
         } catch (\Exception $e) {
-            Log::error("Failed to complete order #{$order->id}", [
+            Log::error("Failed to complete order #{$order->uuid}", [
                 'exception' => $e->getMessage(),
                 'order_id' => $order->id,
                 'user_id' => $request->user()->id,
@@ -316,17 +316,17 @@ class OrderController extends Controller
                 UserMessage::create([
                     'sender_id' => $order->listing->user_id,
                     'receiver_id' => $order->user_id,
-                    'message' => "Your order #{$order->id} has been marked as shipped by the vendor.",
+                    'message' => "Your order #{$order->uuid} has been marked as shipped by the vendor.",
                     'order_id' => $order->id,
                 ]);
 
-                \Log::info("Order #{$order->id} marked as shipped");
+                \Log::info("Order #{$order->uuid} marked as shipped");
             });
 
             return redirect()->route('orders.show', $order)->with('success', 'Order marked as shipped successfully!');
 
         } catch (\Exception $e) {
-            \Log::error("Failed to mark order #{$order->id} as shipped", [
+            \Log::error("Failed to mark order #{$order->uuid} as shipped", [
                 'exception' => $e,
                 'order_id' => $order->id,
                 'user_id' => $request->user()->id,
@@ -495,11 +495,10 @@ class OrderController extends Controller
                     $vendor->increment('total_early_finalized_orders');
 
                     // 6. Create message to vendor
-                    $messageContent = "New order #{$order->id} (INSTANT FINALIZATION):\n";
+                    $messageContent = "New order #{$order->uuid} (INSTANT FINALIZATION):\n";
                     $messageContent .= "Quantity: {$data['quantity']}\n";
                     $messageContent .= "Amount: {$crypto_value} ".strtoupper($data['currency'])."\n";
                     $messageContent .= "Payment sent directly to your wallet.\n";
-                    $messageContent .= "Vendor TXID: {$txids['vendor_txid']}\n";
                     $messageContent .= "Dispute window: {$finalizationWindow->name}\n";
                     if ($finalizationWindow->duration_minutes > 0) {
                         $messageContent .= "Expires: {$disputeWindowExpiry->format('Y-m-d H:i:s')}\n";
@@ -545,17 +544,16 @@ class OrderController extends Controller
                     $wallet->transactions()->create([
                         'amount' => -$crypto_value,
                         'type' => 'order_escrow',
-                        'comment' => "Sent to escrow for order #{$order->id}",
+                        'comment' => "Sent to escrow for order #{$order->uuid}",
                     ]);
 
                     // 6. Update buyer's wallet balance
                     $wallet->decrement('balance', $crypto_value);
 
                     // 7. Create message to vendor
-                    $messageContent = "New order #{$order->id}:\n";
+                    $messageContent = "New order #{$order->uuid}:\n";
                     $messageContent .= "Quantity: {$data['quantity']}\n";
                     $messageContent .= "Amount: {$crypto_value} ".strtoupper($data['currency'])."\n";
-                    $messageContent .= "Escrow Address: {$escrowWallet->address}\n";
                     $messageContent .= "Note: ".(($data['note'] ?? 'No message provided'));
 
                     UserMessage::create([
@@ -675,7 +673,7 @@ class OrderController extends Controller
             return redirect()->route('orders.show', $order)->with('success', 'Message sent successfully!');
 
         } catch (\Exception $e) {
-            \Log::error("Failed to send message for order #{$order->id}", [
+            \Log::error("Failed to send message for order #{$order->uuid}", [
                 'exception' => $e,
                 'order_id' => $order->id,
                 'user_id' => $user->id,

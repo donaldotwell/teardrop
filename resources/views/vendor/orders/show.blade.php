@@ -78,7 +78,13 @@
                             />
                         </div>
                         <div class="flex-1">
-                            <h3 class="font-semibold text-gray-900">{{ $order->listing->title }}</h3>
+                            <h3 class="font-semibold text-gray-900">
+                                <a href="{{ route('listings.show', $order->listing) }}" 
+                                   target="_blank"
+                                   class="text-purple-700 hover:text-purple-900 hover:underline">
+                                    {{ $order->listing->title }}
+                                </a>
+                            </h3>
                             <p class="text-sm text-gray-600 mt-1 line-clamp-2">{{ $order->listing->short_description }}</p>
                             <div class="mt-3 flex items-center justify-between">
                                 <div>
@@ -394,14 +400,6 @@
                         <span class="text-sm text-gray-600">Payment Method</span>
                         <span class="text-sm font-medium text-gray-900 capitalize">{{ $order->listing->payment_method }}</span>
                     </div>
-                    @if($order->txid)
-                    <div class="pt-3 border-t border-gray-100">
-                        <div class="text-xs text-gray-500 mb-1">Transaction ID</div>
-                        <div class="text-xs font-mono text-gray-700 break-all overflow-x-auto max-w-full" style="word-break: break-all;">
-                            {{ $order->txid }}
-                        </div>
-                    </div>
-                    @endif
                 </div>
             </div>
 

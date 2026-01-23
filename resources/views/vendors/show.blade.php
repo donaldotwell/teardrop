@@ -282,88 +282,20 @@
                     </div>
                 </div>
 
-                <!-- Right Column - Reviews & Listings -->
-                <div class="lg:col-span-2 space-y-8">
-                    <!-- Recent Reviews -->
-                    @if($user->receivedReviews->isNotEmpty())
-                        <div class="overflow-hidden bg-white rounded-xl shadow-lg">
-                            <div class="p-6">
-                                <h2 class="text-xl font-semibold text-gray-900 mb-6">Recent Reviews</h2>
-
-                                <div class="space-y-4">
-                                    @foreach($user->receivedReviews as $review)
-                                        <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                            <div class="flex justify-between items-start mb-3">
-                                                <span class="text-sm font-medium text-gray-700">Anonymous Buyer</span>
-                                                <span class="text-xs text-gray-500">{{ $review->created_at->diffForHumans() }}</span>
-                                            </div>
-
-                                            <div class="grid grid-cols-3 gap-3 mb-3">
-                                                <div class="text-center">
-                                                    <div class="text-xs text-gray-600 mb-1">Stealth</div>
-                                                    <div class="text-sm font-semibold text-gray-900">{{ $review->rating_stealth }}/5</div>
-                                                </div>
-                                                <div class="text-center">
-                                                    <div class="text-xs text-gray-600 mb-1">Quality</div>
-                                                    <div class="text-sm font-semibold text-gray-900">{{ $review->rating_quality }}/5</div>
-                                                </div>
-                                                <div class="text-center">
-                                                    <div class="text-xs text-gray-600 mb-1">Delivery</div>
-                                                    <div class="text-sm font-semibold text-gray-900">{{ $review->rating_delivery }}/5</div>
-                                                </div>
-                                            </div>
-
-                                            <p class="text-sm text-gray-700 italic">{{ $review->comment }}</p>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-
-                    <!-- Active Listings -->
-                    @if($user->listings->isNotEmpty())
-                        <div class="overflow-hidden bg-white rounded-xl shadow-lg">
-                            <div class="p-6">
-                                <h2 class="text-xl font-semibold text-gray-900 mb-6">Active Listings</h2>
-
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    @foreach($user->listings as $listing)
-                                        <a href="{{ route('listings.show', $listing) }}"
-                                           class="block group bg-white border-2 border-gray-200 rounded-lg overflow-hidden hover:border-amber-400 transition-all">
-                                            <x-image-gallery
-                                                :images="$listing->media"
-                                                :title="$listing->title"
-                                                :modal-id="'listing-gallery-vendor-profile-' . $listing->id"
-                                            />
-                                            <div class="p-4">
-                                                <h3 class="font-semibold text-gray-900 group-hover:text-amber-600 transition-colors line-clamp-2 mb-2">
-                                                    {{ $listing->title }}
-                                                </h3>
-                                                <p class="text-sm text-gray-600 line-clamp-2 mb-3">{{ $listing->short_description }}</p>
-                                                <div class="flex justify-between items-center">
-                                                    <span class="text-lg font-bold text-amber-600">${{ number_format($listing->price, 2) }}</span>
-                                                    <span class="text-xs text-gray-500">
-                                                        @if($listing->quantity === null)
-                                                            Unlimited
-                                                        @else
-                                                            {{ $listing->getAvailableStock() }} in stock
-                                                        @endif
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </a>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    @else
-                        <div class="overflow-hidden bg-white rounded-xl shadow-lg">
-                            <div class="p-12 text-center">
-                                <p class="text-gray-500">This vendor currently has no active listings.</p>
-                            </div>
-                        </div>
-                    @endif
+                <!-- Right Column - Tabbed Content -->
+                <div class="lg:col-span-2">
+                    <div class="overflow-hidden bg-white rounded-xl shadow-lg">
+                        <x-tabs :tabs="[
+                            'listings' => [
+                                'label' => 'Active Listings (' . $activeListingsCount . ')',
+                                'content' => view('partials.vendor-listings', ['user' => $user])->render()
+                            ],
+                            'reviews' => [
+                                'label' => 'Reviews (' . $totalReviews . ')',
+                                'content' => view('partials.vendor-reviews', ['user' => $user])->render()
+                            ],
+                        ]"/>
+                    </div>
                 </div>
             </div>
         </div>
