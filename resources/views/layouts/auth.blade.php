@@ -102,6 +102,37 @@
 
     <main class="flex-grow flex items-center justify-center p-4">
         <div class="w-full max-w-2xl">
+            {{-- Flash Messages --}}
+            @if ($errors->any())
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded text-red-800">
+                    <div class="font-medium">Error</div>
+                    @foreach ($errors->all() as $error)
+                        <div class="text-sm">{{ $error }}</div>
+                    @endforeach
+                </div>
+            @endif
+
+            @if (session('success'))
+                <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded text-green-800">
+                    <div class="font-medium">Success</div>
+                    <div class="text-sm">{{ session('success') }}</div>
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded text-red-800">
+                    <div class="font-medium">Error</div>
+                    <div class="text-sm">{{ session('error') }}</div>
+                </div>
+            @endif
+
+            @if (session('warning'))
+                <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
+                    <div class="font-medium">Warning</div>
+                    <div class="text-sm">{{ session('warning') }}</div>
+                </div>
+            @endif
+
             @yield('content')
         </div>
     </main>

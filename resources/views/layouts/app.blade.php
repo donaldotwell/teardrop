@@ -198,19 +198,34 @@
                     @yield('page-heading')
                 </h1>
 
-                <!-- Error Messages -->
+                {{-- Flash Messages --}}
                 @if ($errors->any())
-                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                        <strong class="font-bold">Oops!</strong>
-                        <span class="block sm:inline">{{ $errors->first() }}</span>
+                    <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded text-red-800">
+                        <div class="font-medium">Error</div>
+                        @foreach ($errors->all() as $error)
+                            <div class="text-sm">{{ $error }}</div>
+                        @endforeach
                     </div>
                 @endif
 
-                <!-- Success Messages -->
                 @if (session('success'))
-                    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
-                        <strong class="font-bold">Success!</strong>
-                        <span class="block sm:inline">{{ session('success') }}</span>
+                    <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded text-green-800">
+                        <div class="font-medium">Success</div>
+                        <div class="text-sm">{{ session('success') }}</div>
+                    </div>
+                @endif
+
+                @if (session('error'))
+                    <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded text-red-800">
+                        <div class="font-medium">Error</div>
+                        <div class="text-sm">{{ session('error') }}</div>
+                    </div>
+                @endif
+
+                @if (session('warning'))
+                    <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
+                        <div class="font-medium">Warning</div>
+                        <div class="text-sm">{{ session('warning') }}</div>
                     </div>
                 @endif
 
