@@ -43,11 +43,16 @@
                     Sign In
                 </button>
 
-                <div class="text-center">
-                    <span class="text-sm text-gray-600">New to {{ config('app.name') }}? </span>
-                    <a href="{{ route('register') }}" class="text-sm text-yellow-700 hover:text-yellow-800">
-                        Create an account
+                <div class="flex items-center justify-between text-sm">
+                    <a href="{{ route('recovery.show') }}" class="text-yellow-700 hover:text-yellow-800">
+                        Forgot password?
                     </a>
+                    <div>
+                        <span class="text-gray-600">New here? </span>
+                        <a href="{{ route('register') }}" class="text-yellow-700 hover:text-yellow-800">
+                            Create account
+                        </a>
+                    </div>
                 </div>
             </div>
         </form>

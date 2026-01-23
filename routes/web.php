@@ -29,6 +29,14 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->name('register');
 });
 
+// Account Recovery routes (public - no auth required)
+Route::prefix('recovery')->name('recovery.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\AccountRecoveryController::class, 'showRecoveryForm'])->name('show');
+    Route::post('/verify', [\App\Http\Controllers\AccountRecoveryController::class, 'verifyPassphrases'])->name('verify');
+    Route::get('/reset-password', [\App\Http\Controllers\AccountRecoveryController::class, 'showResetForm'])->name('reset-password');
+    Route::post('/reset-password', [\App\Http\Controllers\AccountRecoveryController::class, 'resetPassword'])->name('reset-password.submit');
+});
+
 Route::middleware('auth')->group(function () {
     // Logout route
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
