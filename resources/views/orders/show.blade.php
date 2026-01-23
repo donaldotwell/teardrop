@@ -106,7 +106,14 @@
                                     />
                                 </div>
                                 <div class="flex flex-col flex-1 ml-6">
-                                    <h3 class="text-xl font-semibold text-gray-900">{{ $order->listing->title }}</h3>
+                                    <h3 class="text-xl font-semibold text-gray-900">
+                                        <a href="{{ route('listings.show', $order->listing) }}" 
+                                           target="_blank" 
+                                           rel="noopener noreferrer"
+                                           class="text-amber-700 hover:text-amber-800 hover:underline transition-colors">
+                                            {{ $order->listing->title }}
+                                        </a>
+                                    </h3>
                                     <p class="mt-2 text-sm text-gray-500">{{ $order->listing->short_description }}</p>
                                     <div class="mt-4 space-y-2">
                                         <div class="flex items-center text-sm text-gray-600">

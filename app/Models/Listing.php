@@ -225,14 +225,15 @@ class Listing extends Model
     }
 
     /**
-     * Calculate total quantity sold (from completed orders only).
+     * Calculate total quantity sold (including pending/shipped orders to prevent overselling).
+     * Only excludes cancelled orders since funds are already committed for pending/shipped.
      *
      * @return int
      */
     public function getSoldQuantity(): int
     {
         return $this->orders()
-            ->where('status', 'completed')
+            ->whereIn('status', ['pending', 'shipped', 'completed'])
             ->sum('quantity');
     }
 
