@@ -74,7 +74,7 @@ class XmrWallet extends Model
     /**
      * Generate a new subaddress for the wallet.
      */
-    public function generateNewAddress(string $label = null)
+    public function generateNewAddress(?string $label = null)
     {
         $nextIndex = $this->addresses()->max('address_index') + 1;
 

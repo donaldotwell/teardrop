@@ -269,6 +269,12 @@ class BitcoinRepository
             return;
         }
 
+        // Stop updating once transaction has reached required confirmations
+        if ($oldConfirmations >= $requiredConfirmations) {
+            Log::debug("          Transaction already has {$oldConfirmations} confirmations (>= {$requiredConfirmations} required), skipping update");
+            return;
+        }
+
         // Always update confirmations count, but skip status change if below threshold
         // This allows tracking of confirmation progress even before meeting threshold
         if ($transaction->status === 'pending' && $newConfirmations < $requiredConfirmations) {

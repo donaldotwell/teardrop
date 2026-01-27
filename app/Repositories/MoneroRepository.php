@@ -428,7 +428,7 @@ class MoneroRepository
     /**
      * Create subaddress.
      */
-    public static function createSubaddress(string $walletName, int $accountIndex = 0, string $label = null): ?array
+    public static function createSubaddress(string $walletName, int $accountIndex = 0, ?string $label = null): ?array
     {
         $repository = new static();
 
