@@ -570,16 +570,15 @@ class MoneroRepository
 
     /**
      * Sync all active Monero wallets from master wallet.
-     * NEW ARCHITECTURE: All users share same master wallet, so single sync gets all transactions.
+     * NEW ARCHITECTURE: Query incoming_transfers per subaddress for efficiency and accurate address tracking.
      */
     public static function syncAllWallets(): void
     {
         Log::debug("=== Starting Monero wallet sync (master wallet with subaddresses) ===");
 
         $repository = new static();
-        $masterWalletName = $repository->getMasterWalletName();
 
-        // Get all active user wallets (they all point to same master wallet)
+        // Get all active user wallets with their addresses
         $activeWallets = XmrWallet::where('is_active', true)
             ->with('addresses')
             ->get();
@@ -591,18 +590,12 @@ class MoneroRepository
             return;
         }
 
-        // Master wallet should already be loaded in wallet-rpc
-        // Get all transfers from master wallet (all subaddresses)
         try {
-            $transfers = $repository->getAllTransfers();
-            Log::debug("Found " . count($transfers) . " total transfer(s) from master wallet");
-
-            // Group transfers by subaddress and match to users
+            // Process each wallet by querying incoming_transfers for its specific subaddress
             foreach ($activeWallets as $wallet) {
                 Log::debug("Processing wallet {$wallet->id} (User: {$wallet->user_id})");
                 
                 // Get wallet's address info
-                $walletAddress = $wallet->primary_address;
                 $addressRecord = $wallet->addresses()->first();
                 
                 if (!$addressRecord) {
@@ -613,44 +606,61 @@ class MoneroRepository
                 $accountIndex = $addressRecord->account_index;
                 $addressIndex = $addressRecord->address_index;
                 
-                // Filter transfers for this specific subaddress
-                // Match by transfer type to avoid counting same transaction twice in internal transfers
-                $walletTransfers = array_filter($transfers, function($tx) use ($walletAddress, $accountIndex, $addressIndex) {
-                    $transferType = $tx['transfer_type'] ?? null;
+                Log::debug("  Querying transfers for account {$accountIndex}, subaddress {$addressIndex}");
+                
+                // Query incoming transfers for this specific subaddress
+                $incomingResult = $repository->rpcCall('incoming_transfers', [
+                    'transfer_type' => 'available',
+                    'account_index' => $accountIndex,
+                    'subaddr_indices' => [$addressIndex],
+                ]);
+                
+                $incomingTransfers = $incomingResult['transfers'] ?? [];
+                Log::debug("  Found " . count($incomingTransfers) . " incoming transfer(s)");
+                
+                // Process incoming transfers
+                foreach ($incomingTransfers as $transfer) {
+                    // incoming_transfers returns different format, need to adapt to our format
+                    $txData = [
+                        'txid' => $transfer['tx_hash'] ?? null,
+                        'amount' => $transfer['amount'] ?? 0,
+                        'address' => $addressRecord->address,
+                        'confirmations' => $transfer['confirmations'] ?? 0,
+                        'unlock_time' => $transfer['unlock_time'] ?? 0,
+                        'subaddr_index' => [
+                            'major' => $accountIndex,
+                            'minor' => $addressIndex,
+                        ],
+                        'transfer_type' => 'in',
+                        'spent' => $transfer['spent'] ?? false,
+                    ];
                     
-                    // For 'in' transfers: match by receiving address
-                    if ($transferType === 'in' && isset($tx['address']) && $tx['address'] === $walletAddress) {
-                        return true;
-                    }
-                    
-                    // For 'out' transfers: match by sending subaddr_index
-                    if ($transferType === 'out' && isset($tx['subaddr_index']) && 
-                        $tx['subaddr_index']['major'] === $accountIndex && 
-                        $tx['subaddr_index']['minor'] === $addressIndex) {
-                        return true;
-                    }
-                    
-                    // For 'pending'/'pool' transfers: check type field and match accordingly
-                    if (in_array($transferType, ['pending', 'pool'])) {
-                        $type = $tx['type'] ?? null;
-                        if ($type === 'in' && isset($tx['address']) && $tx['address'] === $walletAddress) {
-                            return true;
+                    $repository->processWalletTransaction($wallet, $txData, $addressRecord->id);
+                }
+                
+                // Also get outgoing transfers using get_transfers for this subaddress
+                $outgoingResult = $repository->rpcCall('get_transfers', [
+                    'out' => true,
+                    'pending' => true,
+                    'account_index' => $accountIndex,
+                    'subaddr_indices' => [$addressIndex],
+                ]);
+                
+                $outgoingTransfers = [];
+                foreach (['out', 'pending'] as $type) {
+                    if (isset($outgoingResult[$type])) {
+                        foreach ($outgoingResult[$type] as $tx) {
+                            $tx['transfer_type'] = $type;
+                            $outgoingTransfers[] = $tx;
                         }
-                        if ($type === 'out' && isset($tx['subaddr_index']) && 
-                            $tx['subaddr_index']['major'] === $accountIndex && 
-                            $tx['subaddr_index']['minor'] === $addressIndex) {
-                            return true;
-                        }
                     }
-                    
-                    return false;
-                });
-
-                Log::debug("  Found " . count($walletTransfers) . " transfer(s) for wallet {$wallet->id}");
-
-                // Process each transfer
-                foreach ($walletTransfers as $tx) {
-                    $repository->processWalletTransaction($wallet, $tx);
+                }
+                
+                Log::debug("  Found " . count($outgoingTransfers) . " outgoing transfer(s)");
+                
+                // Process outgoing transfers
+                foreach ($outgoingTransfers as $tx) {
+                    $repository->processWalletTransaction($wallet, $tx, $addressRecord->id);
                 }
 
                 // Update wallet balance
@@ -704,8 +714,12 @@ class MoneroRepository
 
     /**
      * Process individual transaction for a wallet.
+     * 
+     * @param XmrWallet $wallet The wallet to process transaction for
+     * @param array $txData Transaction data from RPC
+     * @param int|null $xmrAddressId Optional pre-identified address ID (from incoming_transfers query)
      */
-    private function processWalletTransaction(XmrWallet $wallet, array $txData): void
+    private function processWalletTransaction(XmrWallet $wallet, array $txData, ?int $xmrAddressId = null): void
     {
         $txHash = $txData['txid'] ?? null;
 
@@ -714,20 +728,7 @@ class MoneroRepository
             return;
         }
 
-        // Check if transaction already exists FOR THIS WALLET
-        // Note: Same txid can exist for multiple wallets (e.g., internal transfers between subaddresses)
-        // The duplicate prevention for wallet_transactions happens in XmrTransaction::processConfirmation()
-        $existingTx = XmrTransaction::where('txid', $txHash)
-            ->where('xmr_wallet_id', $wallet->id)
-            ->first();
-
-        if ($existingTx) {
-            Log::debug("Transaction {$txHash} already exists for wallet {$wallet->id}, updating confirmations");
-            $this->updateExistingTransaction($existingTx, $txData);
-            return;
-        }
-
-        // Determine transaction type
+        // Determine transaction type FIRST (needed for duplicate check)
         // Monero RPC returns transfer_type as: 'in', 'out', 'pending', 'failed', 'pool'
         $type = match ($txData['transfer_type']) {
             'in' => 'deposit',
@@ -743,6 +744,21 @@ class MoneroRepository
             return;
         }
 
+        // Check if transaction already exists FOR THIS WALLET with this TYPE
+        // Note: Same txid can exist for multiple wallets (e.g., internal transfers between subaddresses)
+        // The unique constraint is on (txid, xmr_wallet_id, type)
+        // The duplicate prevention for wallet_transactions happens in XmrTransaction::processConfirmation()
+        $existingTx = XmrTransaction::where('txid', $txHash)
+            ->where('xmr_wallet_id', $wallet->id)
+            ->where('type', $type)
+            ->first();
+
+        if ($existingTx) {
+            Log::debug("Transaction {$txHash} already exists for wallet {$wallet->id}, updating confirmations");
+            $this->updateExistingTransaction($existingTx, $txData);
+            return;
+        }
+
         // Convert from atomic units to XMR
         // For outgoing transfers, amount is in 'destinations' array
         $amount = ($txData['amount'] ?? 0) / 1e12;
@@ -751,19 +767,22 @@ class MoneroRepository
         }
         $fee = ($txData['fee'] ?? 0) / 1e12;
 
-        // Find associated address
-        $xmrAddressId = null;
+        // Use provided address ID or find it from transaction data
         $xmrAddress = null;
-        if (isset($txData['address'])) {
+        if ($xmrAddressId) {
+            // Address ID provided from incoming_transfers query
+            $xmrAddress = XmrAddress::find($xmrAddressId);
+        } elseif (isset($txData['address'])) {
+            // Fallback: find by address string
             $xmrAddress = $wallet->addresses()->where('address', $txData['address'])->first();
             if ($xmrAddress) {
                 $xmrAddressId = $xmrAddress->id;
-                
-                // Mark address as used when first transaction is detected
-                if (!$xmrAddress->is_used && $type === 'deposit') {
-                    $xmrAddress->markAsUsed();
-                }
             }
+        }
+
+        // Mark address as used when first transaction is detected
+        if ($xmrAddress && !$xmrAddress->is_used && $type === 'deposit') {
+            $xmrAddress->markAsUsed();
         }
 
         // Determine status based on confirmation thresholds
@@ -817,6 +836,27 @@ class MoneroRepository
         if ($oldConfirmations === $newConfirmations) {
             Log::debug("          No confirmation change ({$oldConfirmations} confirmations)");
             return;
+        }
+
+        // CRITICAL: Prevent downgrading force-confirmed transactions (testing mode)
+        if (config('monero.force_confirmations')) {
+            $statusPriority = ['pending' => 1, 'confirmed' => 2, 'unlocked' => 3];
+            $currentPriority = $statusPriority[$transaction->status] ?? 0;
+            
+            // Calculate what status blockchain would assign
+            $blockchainStatus = 'pending';
+            if ($newConfirmations > 0 && $newConfirmations < $minConfirmations) {
+                $blockchainStatus = 'confirmed';
+            } elseif ($newConfirmations >= $minConfirmations) {
+                $blockchainStatus = 'unlocked';
+            }
+            $blockchainPriority = $statusPriority[$blockchainStatus] ?? 0;
+            
+            // Never downgrade when force confirmations enabled
+            if ($blockchainPriority < $currentPriority) {
+                Log::debug("          Force confirmation mode: Preventing downgrade from {$transaction->status} to {$blockchainStatus} (confirmations: {$newConfirmations})");
+                return;
+            }
         }
 
         // Stop updating once transaction has reached unlock threshold
