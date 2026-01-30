@@ -601,12 +601,49 @@ class MoneroRepository
             foreach ($activeWallets as $wallet) {
                 Log::debug("Processing wallet {$wallet->id} (User: {$wallet->user_id})");
                 
-                // Get wallet's primary address
+                // Get wallet's address info
                 $walletAddress = $wallet->primary_address;
+                $addressRecord = $wallet->addresses()->first();
                 
-                // Filter transfers for this specific address
-                $walletTransfers = array_filter($transfers, function($tx) use ($walletAddress) {
-                    return isset($tx['address']) && $tx['address'] === $walletAddress;
+                if (!$addressRecord) {
+                    Log::warning("  No address record found for wallet {$wallet->id}, skipping");
+                    continue;
+                }
+                
+                $accountIndex = $addressRecord->account_index;
+                $addressIndex = $addressRecord->address_index;
+                
+                // Filter transfers for this specific subaddress
+                // Match by transfer type to avoid counting same transaction twice in internal transfers
+                $walletTransfers = array_filter($transfers, function($tx) use ($walletAddress, $accountIndex, $addressIndex) {
+                    $transferType = $tx['transfer_type'] ?? null;
+                    
+                    // For 'in' transfers: match by receiving address
+                    if ($transferType === 'in' && isset($tx['address']) && $tx['address'] === $walletAddress) {
+                        return true;
+                    }
+                    
+                    // For 'out' transfers: match by sending subaddr_index
+                    if ($transferType === 'out' && isset($tx['subaddr_index']) && 
+                        $tx['subaddr_index']['major'] === $accountIndex && 
+                        $tx['subaddr_index']['minor'] === $addressIndex) {
+                        return true;
+                    }
+                    
+                    // For 'pending'/'pool' transfers: check type field and match accordingly
+                    if (in_array($transferType, ['pending', 'pool'])) {
+                        $type = $tx['type'] ?? null;
+                        if ($type === 'in' && isset($tx['address']) && $tx['address'] === $walletAddress) {
+                            return true;
+                        }
+                        if ($type === 'out' && isset($tx['subaddr_index']) && 
+                            $tx['subaddr_index']['major'] === $accountIndex && 
+                            $tx['subaddr_index']['minor'] === $addressIndex) {
+                            return true;
+                        }
+                    }
+                    
+                    return false;
                 });
 
                 Log::debug("  Found " . count($walletTransfers) . " transfer(s) for wallet {$wallet->id}");
@@ -677,39 +714,55 @@ class MoneroRepository
             return;
         }
 
-        // Determine transaction type
-        $type = match ($txData['transfer_type']) {
-            'in' => 'deposit',
-            'out' => 'withdrawal',
-            default => null,
-        };
-
-        if (!$type) {
-            Log::debug("Skipping unsupported transaction type: " . ($txData['transfer_type'] ?? 'unknown'));
-            return;
-        }
-
-        // Check if transaction already exists
+        // Check if transaction already exists FOR THIS WALLET
+        // Note: Same txid can exist for multiple wallets (e.g., internal transfers between subaddresses)
+        // The duplicate prevention for wallet_transactions happens in XmrTransaction::processConfirmation()
         $existingTx = XmrTransaction::where('txid', $txHash)
             ->where('xmr_wallet_id', $wallet->id)
             ->first();
 
         if ($existingTx) {
-            // Update confirmations
+            Log::debug("Transaction {$txHash} already exists for wallet {$wallet->id}, updating confirmations");
             $this->updateExistingTransaction($existingTx, $txData);
             return;
         }
 
+        // Determine transaction type
+        // Monero RPC returns transfer_type as: 'in', 'out', 'pending', 'failed', 'pool'
+        $type = match ($txData['transfer_type']) {
+            'in' => 'deposit',
+            'out' => 'withdrawal',
+            'pending' => isset($txData['type']) && $txData['type'] === 'out' ? 'withdrawal' : 'deposit',
+            'pool' => isset($txData['type']) && $txData['type'] === 'out' ? 'withdrawal' : 'deposit',
+            default => null,
+        };
+
+        if (!$type) {
+            Log::debug("Skipping unsupported transaction type: " . ($txData['transfer_type'] ?? 'unknown'));
+            Log::debug("Transaction data: " . json_encode($txData));
+            return;
+        }
+
         // Convert from atomic units to XMR
+        // For outgoing transfers, amount is in 'destinations' array
         $amount = ($txData['amount'] ?? 0) / 1e12;
+        if ($amount == 0 && isset($txData['destinations'][0]['amount'])) {
+            $amount = $txData['destinations'][0]['amount'] / 1e12;
+        }
         $fee = ($txData['fee'] ?? 0) / 1e12;
 
         // Find associated address
         $xmrAddressId = null;
+        $xmrAddress = null;
         if (isset($txData['address'])) {
             $xmrAddress = $wallet->addresses()->where('address', $txData['address'])->first();
             if ($xmrAddress) {
                 $xmrAddressId = $xmrAddress->id;
+                
+                // Mark address as used when first transaction is detected
+                if (!$xmrAddress->is_used && $type === 'deposit') {
+                    $xmrAddress->markAsUsed();
+                }
             }
         }
 

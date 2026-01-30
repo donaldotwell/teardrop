@@ -43,16 +43,16 @@ class MoneroController extends Controller
     /**
      * Show Monero top-up page.
      */
-    public function topup(Request $request): View
+    public function topup(Request $request): View|RedirectResponse
     {
         $user = $request->user();
         $xmrWallet = MoneroRepository::getOrCreateWalletForUser($user);
 
-        // Use primary address for deposits (Monero doesn't need address rotation like Bitcoin)
-        $currentAddress = $xmrWallet->addresses()->where('address_index', 0)->first();
+        // Get first unused address for deposits
+        $currentAddress = $xmrWallet->addresses()->where('is_used', false)->first();
 
         if (!$currentAddress) {
-            return back()->with('error', 'Unable to get deposit address. Please contact support.');
+            return redirect()->route('monero.index')->with('error', 'Unable to get deposit address. Please contact support.');
         }
 
         // Generate QR code as base64 encoded PNG (matching BitcoinController)
@@ -73,8 +73,9 @@ class MoneroController extends Controller
             $qrCodeDataUri = null;
         }
 
-        // Get current XMR price
-        $xmrPrice = MoneroRepository::getCurrentPrice();
+        // Get current XMR price from database
+        $xmrRate = \App\Models\ExchangeRate::where('crypto_shortname', 'xmr')->first();
+        $xmrPrice = $xmrRate ? $xmrRate->usd_rate : 0;
 
         return view('monero.topup', compact(
             'xmrWallet',
@@ -97,7 +98,7 @@ class MoneroController extends Controller
             'address' => [
                 'required',
                 'string',
-                'regex:/^[48][0-9AB][1-9A-HJ-NP-Za-km-z]{93,104}$/', // Monero address format
+                'regex:/^[489AB][0-9A-Za-z]{94,106}$/', // Monero address format (mainnet and testnet)
             ],
             'amount' => [
                 'required',
@@ -115,6 +116,9 @@ class MoneroController extends Controller
             'pin.required' => 'Security PIN is required.',
             'pin.size' => 'PIN must be exactly 6 digits.',
         ]);
+
+        // Ensure amount is treated as XMR float, not atomic units
+        $validated['amount'] = (float) $validated['amount'];
 
         // Verify PIN
         if (!Hash::check($validated['pin'], $user->pin)) {
@@ -142,6 +146,17 @@ class MoneroController extends Controller
                     ->withErrors(['amount' => 'Insufficient unlocked balance. Another transaction may be in progress.']);
             }
 
+            // Calculate USD value at time of withdrawal
+            $usdValue = null;
+            try {
+                $xmrRate = \App\Models\ExchangeRate::where('crypto_shortname', 'xmr')->first();
+                if ($xmrRate) {
+                    $usdValue = $validated['amount'] * $xmrRate->usd_rate;
+                }
+            } catch (\Exception $e) {
+                \Log::warning("Failed to calculate USD value for withdrawal: " . $e->getMessage());
+            }
+
             // Create withdrawal transaction record first
             $withdrawal = $xmrWallet->transactions()->create([
                 'xmr_address_id' => null,
@@ -149,6 +164,7 @@ class MoneroController extends Controller
                 'payment_id' => null,
                 'type' => 'withdrawal',
                 'amount' => $validated['amount'],
+                'usd_value' => $usdValue,
                 'fee' => 0, // Will be updated from actual transaction
                 'confirmations' => 0,
                 'unlock_time' => 0,

@@ -81,16 +81,14 @@
                             <p class="text-sm text-gray-600">Send Bitcoin to this address to fund your wallet</p>
                         </div>
 
-                        <!-- Address Input -->
+                        <!-- Address Display -->
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-gray-700">Bitcoin Address</label>
-                            <input type="text"
-                                   value="{{ $currentAddress->address }}"
-                                   readonly
-                                   class="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-lg font-mono text-sm select-all cursor-text hover:border-amber-300 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all"
-                                   id="bitcoin-address">
+                            <div class="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-lg">
+                                <p class="font-mono text-sm text-gray-900 break-all select-all">{{ $currentAddress->address }}</p>
+                            </div>
                             <p class="text-xs text-gray-500">
-                                Click the address to select it, then copy with Ctrl+C (Cmd+C on Mac)
+                                Select the address text above and copy it manually
                             </p>
                         </div>
 

@@ -16,6 +16,7 @@ class XmrTransaction extends Model
         'payment_id',
         'type',
         'amount',
+        'usd_value',
         'fee',
         'confirmations',
         'unlock_time',
@@ -28,6 +29,7 @@ class XmrTransaction extends Model
 
     protected $casts = [
         'amount' => 'decimal:12',
+        'usd_value' => 'decimal:2',
         'fee' => 'decimal:12',
         'confirmations' => 'integer',
         'unlock_time' => 'integer',
@@ -99,6 +101,16 @@ class XmrTransaction extends Model
 
         if (!$internalWallet) {
             \Log::warning("No internal XMR wallet found for user {$user->id}");
+            return;
+        }
+
+        // CRITICAL: Check GLOBALLY if wallet transaction exists to prevent duplicates
+        // For internal transfers between subaddresses, same txid creates multiple XmrTransaction records
+        // but should only create ONE WalletTransaction (for the actual recipient)
+        $existingWalletTx = \App\Models\WalletTransaction::where('txid', $this->txid)->first();
+
+        if ($existingWalletTx) {
+            \Log::debug("Wallet transaction already exists globally for txid {$this->txid}, skipping for user {$user->id}");
             return;
         }
 

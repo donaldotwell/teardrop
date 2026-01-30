@@ -82,8 +82,9 @@ class BitcoinController extends Controller
             $qrCodeDataUri = null;
         }
 
-        // Get current BTC price
-        $btcPrice = BitcoinRepository::getCurrentPrice();
+        // Get current BTC price from database
+        $btcRate = \App\Models\ExchangeRate::where('crypto_shortname', 'btc')->first();
+        $btcPrice = $btcRate ? $btcRate->usd_rate : 0;
 
         return view('bitcoin.topup', compact(
             'btcWallet',
