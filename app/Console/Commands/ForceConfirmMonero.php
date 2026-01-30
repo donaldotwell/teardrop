@@ -49,8 +49,8 @@ class ForceConfirmMonero extends Command
         if (!empty($statusFilter)) {
             $query->whereIn('status', $statusFilter);
         } else {
-            // Default: target pending and confirmed transactions
-            $query->whereIn('status', ['pending', 'confirmed']);
+            // Default: target non-confirmed transactions (pending, unlocked)
+            $query->whereIn('status', ['pending', 'unlocked']);
         }
 
         $transactions = $query->get();
@@ -69,41 +69,19 @@ class ForceConfirmMonero extends Command
         }
 
         $confirmedCount = 0;
-        $unlockedCount = 0;
 
         foreach ($transactions as $transaction) {
             $oldStatus = $transaction->status;
-            $newStatus = null;
 
-            // Determine new status
-            if ($transaction->status === 'pending') {
-                $newStatus = 'confirmed';
-                $transaction->confirmed_at = now();
-                $transaction->confirmations = 1;
+            $this->line("[{$transaction->id}] {$oldStatus} → confirmed | TXID: " . substr($transaction->txid, 0, 16) . '...');
+
+            if (!$isDryRun) {
+                $transaction->status = 'confirmed';
+                $transaction->confirmed_at = $transaction->confirmed_at ?? now();
+                $transaction->confirmations = max($transaction->confirmations, 1);
+                $transaction->save();
+                
                 $confirmedCount++;
-            } elseif ($transaction->status === 'confirmed') {
-                $newStatus = 'unlocked';
-                $transaction->unlocked_at = now();
-                $transaction->confirmations = config('monero.min_confirmations', 10);
-                $unlockedCount++;
-            }
-
-            if ($newStatus) {
-                $this->line("[{$transaction->id}] {$oldStatus} → {$newStatus} | TXID: " . substr($transaction->txid, 0, 16) . '...');
-
-                if (!$isDryRun) {
-                    $transaction->status = $newStatus;
-                    $transaction->save();
-
-                    // Process confirmation if now unlocked
-                    if ($newStatus === 'unlocked') {
-                        try {
-                            $transaction->processConfirmation();
-                        } catch (\Exception $e) {
-                            $this->error("  Failed to process confirmation: {$e->getMessage()}");
-                        }
-                    }
-                }
             }
         }
 
@@ -112,8 +90,7 @@ class ForceConfirmMonero extends Command
         $this->table(
             ['Action', 'Count'],
             [
-                ['Pending → Confirmed', $confirmedCount],
-                ['Confirmed → Unlocked', $unlockedCount],
+                ['Forced to Confirmed', $confirmedCount],
                 ['Total Processed', $transactions->count()],
             ]
         );
