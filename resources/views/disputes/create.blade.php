@@ -2,11 +2,9 @@
 @section('page-title', 'Create Dispute')
 
 @section('breadcrumbs')
-    <a href="{{ route('orders.show', $order) }}" class="text-amber-700 hover:text-amber-600">
-        Order #{{ substr($order->uuid, 0, 8) }}
-    </a>
-    <span class="text-gray-300">/</span>
-    <span class="text-gray-600">Create Dispute</span>
+    <a href="{{ route('orders.show', $order) }}" class="text-amber-700 hover:text-amber-900">Order #{{ substr($order->uuid, 0, 8) }}</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">Create Dispute</span>
 @endsection
 
 @section('page-heading')

@@ -49,8 +49,8 @@ class ForceConfirmMonero extends Command
         if (!empty($statusFilter)) {
             $query->whereIn('status', $statusFilter);
         } else {
-            // Default: target non-confirmed transactions (pending, unlocked)
-            $query->whereIn('status', ['pending', 'unlocked']);
+            // Default: target non-unlocked transactions (pending, confirmed)
+            $query->whereIn('status', ['pending', 'confirmed']);
         }
 
         $transactions = $query->get();
@@ -66,23 +66,67 @@ class ForceConfirmMonero extends Command
         if ($isDryRun) {
             $this->info('DRY RUN MODE - No changes will be made');
             $this->newLine();
-        }
-
-        $confirmedCount = 0;
-
-        foreach ($transactions as $transaction) {
-            $oldStatus = $transaction->status;
-
-            $this->line("[{$transaction->id}] {$oldStatus} → confirmed | TXID: " . substr($transaction->txid, 0, 16) . '...');
-
-            if (!$isDryRun) {
-                $transaction->status = 'confirmed';
-                $transaction->confirmed_at = $transaction->confirmed_at ?? now();
-                $transaction->confirmations = max($transaction->confirmations, 1);
-                $transaction->save();
-                
-                $confirmedCount++;
+            
+            foreach ($transactions as $transaction) {
+                $this->line("[{$transaction->id}] {$transaction->status} → unlocked | TXID: " . substr($transaction->txid, 0, 16) . '...');
             }
+            
+            $unlockedCount = $transactions->count();
+        } else {
+            // Bulk update all transactions to unlocked status
+            $now = now();
+            $minConfirmations = config('monero.min_confirmations', 10);
+            
+            $transactionIds = $transactions->pluck('id')->toArray();
+            
+            XmrTransaction::whereIn('id', $transactionIds)->update([
+                'status' => 'unlocked',
+                'confirmations' => $minConfirmations,
+                'unlocked_at' => $now,
+                'updated_at' => $now,
+            ]);
+            
+            // Update confirmed_at only for transactions that don't have it set
+            XmrTransaction::whereIn('id', $transactionIds)
+                ->whereNull('confirmed_at')
+                ->update(['confirmed_at' => $now]);
+            
+            $this->info("✓ Bulk updated {$transactions->count()} transactions to unlocked status");
+            $this->newLine();
+            
+            // Process confirmations for deposits (updates balances)
+            $deposits = $transactions->where('type', 'deposit');
+            $balanceUpdates = 0;
+            $balanceErrors = 0;
+            
+            if ($deposits->isNotEmpty()) {
+                $this->info("Processing balance updates for {$deposits->count()} deposits...");
+                $progressBar = $this->output->createProgressBar($deposits->count());
+                $progressBar->start();
+                
+                foreach ($deposits as $transaction) {
+                    try {
+                        $transaction->refresh(); // Reload with updated values
+                        $transaction->processConfirmation();
+                        $balanceUpdates++;
+                    } catch (\Exception $e) {
+                        $balanceErrors++;
+                        \Log::error("Failed to process confirmation for transaction {$transaction->id}: {$e->getMessage()}");
+                    }
+                    $progressBar->advance();
+                }
+                
+                $progressBar->finish();
+                $this->newLine();
+                
+                if ($balanceErrors > 0) {
+                    $this->warn("✓ {$balanceUpdates} balances updated, {$balanceErrors} errors (see logs)");
+                } else {
+                    $this->info("✓ {$balanceUpdates} balances updated successfully");
+                }
+            }
+            
+            $unlockedCount = $transactions->count();
         }
 
         $this->newLine();
@@ -90,7 +134,7 @@ class ForceConfirmMonero extends Command
         $this->table(
             ['Action', 'Count'],
             [
-                ['Forced to Confirmed', $confirmedCount],
+                ['Forced to Unlocked', $unlockedCount],
                 ['Total Processed', $transactions->count()],
             ]
         );

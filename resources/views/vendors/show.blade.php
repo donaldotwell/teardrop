@@ -2,11 +2,11 @@
 @section('page-title', 'Vendor Profile - ' . $user->username_pub)
 
 @section('breadcrumbs')
-    <a href="{{ route('home') }}" class="text-yellow-700 hover:text-yellow-600">Marketplace</a>
-    <span class="text-gray-300">/</span>
-    <span class="text-gray-600">Vendors</span>
-    <span class="text-gray-300">/</span>
-    <span class="text-gray-600">{{ $user->username_pub }}</span>
+    <a href="{{ route('home') }}" class="text-amber-700 hover:text-amber-900">Marketplace</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">Vendors</span>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">{{ $user->username_pub }}</span>
 @endsection
 
 @section('content')

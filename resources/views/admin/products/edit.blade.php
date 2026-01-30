@@ -4,8 +4,8 @@
 
 @section('breadcrumbs')
     <a href="{{ route('admin.products.index') }}" class="text-yellow-700 hover:text-yellow-800">Products</a>
-    <span class="text-gray-400 mx-2">/</span>
-    <span class="text-gray-900">Edit</span>
+    <span class="text-gray-400">/</span>
+    <span class="text-gray-600">Edit</span>
 @endsection
 
 @section('page-heading', 'Edit Product')

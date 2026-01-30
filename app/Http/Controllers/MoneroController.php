@@ -48,11 +48,19 @@ class MoneroController extends Controller
         $user = $request->user();
         $xmrWallet = MoneroRepository::getOrCreateWalletForUser($user);
 
-        // Get first unused address for deposits
-        $currentAddress = $xmrWallet->addresses()->where('is_used', false)->first();
+        // Get or automatically generate current receiving address
+        $currentAddress = $xmrWallet->getCurrentAddress();
 
+        // If no unused address exists, automatically generate one
         if (!$currentAddress) {
-            return redirect()->route('monero.index')->with('error', 'Unable to get deposit address. Please contact support.');
+            try {
+                $currentAddress = $xmrWallet->generateNewAddress();
+            } catch (\Exception $e) {
+                // Log error and show user-friendly message
+                \Log::error("Failed to generate Monero address for user {$user->id}", ['exception' => $e]);
+
+                return back()->with('error', 'Unable to generate Monero address. Please contact support.');
+            }
         }
 
         // Generate QR code as base64 encoded PNG (matching BitcoinController)
@@ -69,7 +77,10 @@ class MoneroController extends Controller
             // Convert to base64 data URI for inline display
             $qrCodeDataUri = 'data:' . $result->getMimeType() . ';base64,' . base64_encode($result->getString());
         } catch (\Exception $e) {
-            \Log::error("Failed to generate Monero QR code for user {$user->id}", ['exception' => $e->getMessage()]);
+            \Log::error("Failed to generate Monero QR code for user {$user->id}", [
+                'exception' => $e->getMessage(),
+                'stack' => $e->getTraceAsString(),
+                ]);
             $qrCodeDataUri = null;
         }
 

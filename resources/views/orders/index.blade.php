@@ -3,7 +3,7 @@
 @section('page-title', 'My Orders')
 
 @section('breadcrumbs')
-    <span class="text-gray-600 font-medium">Orders</span>
+    <span class="text-amber-700">Orders</span>
 @endsection
 
 @section('content')

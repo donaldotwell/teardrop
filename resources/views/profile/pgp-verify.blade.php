@@ -2,11 +2,11 @@
 @section('page-title', 'Verify PGP Key')
 
 @section('breadcrumbs')
-    <a href="{{ route('profile.show') }}" class="text-yellow-600 hover:text-yellow-700">Profile</a>
-    <span class="text-gray-400 mx-2">/</span>
-    <a href="{{ route('profile.pgp') }}" class="text-yellow-600 hover:text-yellow-700">PGP Setup</a>
-    <span class="text-gray-400 mx-2">/</span>
-    <span class="text-gray-600">Verification</span>
+    <a href="{{ route('profile.show') }}" class="text-amber-700 hover:text-amber-900">Profile</a>
+    <span class="text-amber-400">/</span>
+    <a href="{{ route('profile.pgp') }}" class="text-amber-700 hover:text-amber-900">PGP Setup</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">Verification</span>
 @endsection
 
 @section('page-heading')

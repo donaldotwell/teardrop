@@ -3,9 +3,9 @@
 @section('page-title', 'Bitcoin Wallet')
 
 @section('breadcrumbs')
-    <a href="{{ route('wallet.index') }}" class="text-gray-600 hover:text-purple-600">Wallets</a>
-    <span class="text-gray-400 mx-2">/</span>
-    <span class="text-gray-900 font-medium">Bitcoin</span>
+    <a href="{{ route('wallet.index') }}" class="text-amber-700 hover:text-amber-900">Wallets</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">Bitcoin</span>
 @endsection
 
 @section('content')

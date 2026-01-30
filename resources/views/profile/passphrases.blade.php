@@ -3,9 +3,9 @@
 @section('page-title', 'Recovery Passphrases')
 
 @section('breadcrumbs')
-    <a href="{{ route('profile.show') }}" class="text-yellow-700 hover:text-yellow-800">Profile</a>
-    <span class="text-gray-400">/</span>
-    <span class="text-gray-600">Recovery Passphrases</span>
+    <a href="{{ route('profile.show') }}" class="text-amber-700 hover:text-amber-900">Profile</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">Recovery Passphrases</span>
 @endsection
 
 @section('page-heading')

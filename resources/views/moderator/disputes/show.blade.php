@@ -3,7 +3,7 @@
 
 @section('breadcrumbs')
     <a href="{{ route('moderator.disputes.index') }}" class="text-gray-600 hover:text-blue-600">Dispute Management</a>
-    <span class="text-gray-300">/</span>
+    <span class="text-gray-400">/</span>
     <span class="text-gray-600">Dispute #{{ $dispute->dispute_number }}</span>
 @endsection
 

@@ -136,6 +136,39 @@ class MoneroRepository
         $existingWallet = $user->xmrWallet;
 
         if ($existingWallet) {
+            // Ensure wallet has at least one UNUSED address (safety check)
+            $hasUnusedAddress = $existingWallet->addresses()->where('is_used', false)->exists();
+            
+            if (!$hasUnusedAddress) {
+                Log::warning("Wallet {$existingWallet->id} for user {$user->id} has no unused addresses, creating one");
+                
+                $repository = new static();
+                
+                // Create new subaddress in master wallet
+                $subaddressData = $repository->rpcCall('create_address', [
+                    'account_index' => 0,
+                    'label' => "User {$user->id} - {$user->username_pri}",
+                ]);
+
+                if ($subaddressData && isset($subaddressData['address'])) {
+                    $existingWallet->addresses()->create([
+                        'address' => $subaddressData['address'],
+                        'account_index' => 0,
+                        'address_index' => $subaddressData['address_index'],
+                        'label' => "User {$user->id} - {$user->username_pri}",
+                        'balance' => 0,
+                        'total_received' => 0,
+                        'tx_count' => 0,
+                        'is_used' => false,
+                    ]);
+                    
+                    // Update primary address if not set
+                    if (!$existingWallet->primary_address) {
+                        $existingWallet->update(['primary_address' => $subaddressData['address']]);
+                    }
+                }
+            }
+            
             return $existingWallet;
         }
 

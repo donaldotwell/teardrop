@@ -2,11 +2,11 @@
 @section('page-title', 'Edit Post')
 
 @section('breadcrumbs')
-    <a href="{{ route('forum.index') }}" class="text-yellow-700 hover:text-yellow-600">Forum</a>
-    <span class="text-gray-300">/</span>
-    <a href="{{ route('forum.posts.show', $post) }}" class="text-yellow-700 hover:text-yellow-600">{{ Str::limit($post->title, 30) }}</a>
-    <span class="text-gray-300">/</span>
-    <span class="text-gray-600">Edit</span>
+    <a href="{{ route('forum.index') }}" class="text-amber-700 hover:text-amber-900">Forum</a>
+    <span class="text-amber-400">/</span>
+    <a href="{{ route('forum.posts.show', $post) }}" class="text-amber-700 hover:text-amber-900">{{ Str::limit($post->title, 30) }}</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">Edit</span>
 @endsection
 
 @section('page-heading')

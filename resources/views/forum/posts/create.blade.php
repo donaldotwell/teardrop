@@ -2,9 +2,9 @@
 @section('page-title', 'Create Post')
 
 @section('breadcrumbs')
-    <a href="{{ route('forum.index') }}" class="text-yellow-700 hover:text-yellow-600">Forum</a>
-    <span class="text-gray-300">/</span>
-    <span class="text-gray-600">Create Post</span>
+    <a href="{{ route('forum.index') }}" class="text-amber-700 hover:text-amber-900">Forum</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">Create Post</span>
 @endsection
 
 @section('page-heading')

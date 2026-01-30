@@ -3,12 +3,9 @@
 @section('page-title', "Messages with {$thread->receiver->username_pub}")
 
 @section('breadcrumbs')
-    <div class="flex items-center space-x-2 text-sm">
-        <a href="{{ route('messages.index') }}" class="text-yellow-700 hover:text-yellow-600 font-medium transition-colors">
-            Messages
-        </a>
-        <span class="text-gray-500 font-medium">{{ $thread->receiver->username_pub }}</span>
-    </div>
+    <a href="{{ route('messages.index') }}" class="text-amber-700 hover:text-amber-900">Messages</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">{{ $thread->receiver->username_pub }}</span>
 @endsection
 
 @section('content')

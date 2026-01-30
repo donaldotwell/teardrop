@@ -4,8 +4,8 @@
 
 @section('breadcrumbs')
     <a href="{{ route('admin.product-categories.index') }}" class="text-yellow-700 hover:text-yellow-800">Categories</a>
-    <span class="text-gray-400 mx-2">/</span>
-    <span class="text-gray-900">Create</span>
+    <span class="text-gray-400">/</span>
+    <span class="text-gray-600">Create</span>
 @endsection
 
 @section('page-heading', 'Create New Category')

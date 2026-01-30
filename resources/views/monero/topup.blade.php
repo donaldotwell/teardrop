@@ -3,19 +3,11 @@
 @section('page-title', 'Monero Top-up')
 
 @section('breadcrumbs')
-    <nav class="text-sm mb-6">
-        <ol class="list-none p-0 inline-flex">
-            <li class="flex items-center">
-                <a href="{{ route('wallet.index') }}" class="text-amber-600 hover:text-amber-700">Wallets</a>
-                <span class="mx-3 text-gray-400">›</span>
-            </li>
-            <li class="flex items-center">
-                <a href="{{ route('monero.index') }}" class="text-amber-600 hover:text-amber-700">Monero</a>
-                <span class="mx-3 text-gray-400">›</span>
-            </li>
-            <li class="text-gray-500">Top-up</li>
-        </ol>
-    </nav>
+    <a href="{{ route('wallet.index') }}" class="text-amber-700 hover:text-amber-900">Wallets</a>
+    <span class="text-amber-400">/</span>
+    <a href="{{ route('monero.index') }}" class="text-amber-700 hover:text-amber-900">Monero</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">Top-up</span>
 @endsection
 
 @section('content')

@@ -2,7 +2,7 @@
 @section('page-title', 'Complete Security Setup')
 
 @section('breadcrumbs')
-    <span class="text-gray-600">Security Setup</span>
+    <span class="text-amber-700">Security Setup</span>
 @endsection
 
 @section('page-heading')

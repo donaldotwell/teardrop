@@ -85,61 +85,52 @@
                 <!-- Logo/Brand -->
                 <div class="flex items-center">
                     <a href="{{ route('home') }}">
-                        <img src="{{ asset('logo-h.png') }}" alt="{{ config('app.name') }}" class="h-10 w-auto">
+                        <img src="{{ asset('logo-h.png') }}" alt="{{ config('app.name') }}" class="h-12 w-auto">
                     </a>
                 </div>
 
                 <!-- User Widget -->
-                <div class="flex items-center space-x-4">
-                    @auth
-                        <!-- User Info -->
-                        <div class="flex items-center space-x-3 px-4 py-2 bg-amber-50 rounded-lg border border-amber-200">
-                            <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-700 rounded-full flex items-center justify-center">
-                                <span class="text-white font-bold text-sm">{{ strtoupper(substr(auth()->user()->username_pub, 0, 1)) }}</span>
-                            </div>
-                            <div class="flex flex-col">
-                                <span class="text-xs text-amber-600 font-medium">User</span>
-                                <span class="text-sm font-bold text-gray-900">{{ auth()->user()->username_pub }}</span>
-                            </div>
-                        </div>
-
+                @auth
+                    <div class="flex items-center gap-6">
                         <!-- Wallet Balances -->
-                        <div class="hidden md:flex items-center space-x-3 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
-                            <div class="flex flex-col">
-                                <span class="text-xs text-gray-500 font-medium">BTC Balance</span>
-                                <div class="flex items-baseline space-x-2">
-                                    <span class="text-sm font-mono font-bold text-gray-900">{{ $user_balance['btc']['balance'] }}</span>
-                                    <span class="text-xs text-gray-500">≈ ${{ number_format($user_balance['btc']['usd_value'], 2) }}</span>
-                                </div>
+                        <div class="hidden md:flex items-center gap-4 text-xs">
+                            <div class="flex items-baseline gap-1.5">
+                                <span class="text-gray-500">BTC:</span>
+                                <span class="font-mono font-semibold text-gray-900">{{ $user_balance['btc']['balance'] }}</span>
                             </div>
-                            <div class="w-px h-10 bg-gray-300"></div>
-                            <div class="flex flex-col">
-                                <span class="text-xs text-gray-500 font-medium">XMR Balance</span>
-                                <div class="flex items-baseline space-x-2">
-                                    <span class="text-sm font-mono font-bold text-gray-900">{{ $user_balance['xmr']['balance'] }}</span>
-                                    <span class="text-xs text-gray-500">≈ ${{ number_format($user_balance['xmr']['usd_value'], 2) }}</span>
-                                </div>
+                            <div class="flex items-baseline gap-1.5">
+                                <span class="text-gray-500">XMR:</span>
+                                <span class="font-mono font-semibold text-gray-900">{{ $user_balance['xmr']['balance'] }}</span>
                             </div>
                         </div>
-
-                        <!-- Logout Button -->
-                        <form method="POST" action="{{ route('logout') }}" class="inline">
+                        
+                        <div class="h-8 w-px bg-gray-200 hidden md:block"></div>
+                        
+                        <!-- User Avatar Only -->
+                        <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-700 rounded-full flex items-center justify-center" title="{{ auth()->user()->username_pub }}">
+                            <span class="text-white font-bold text-sm">{{ strtoupper(substr(auth()->user()->username_pub, 0, 1)) }}</span>
+                        </div>
+                        
+                        <!-- Sign Out -->
+                        <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button type="submit" class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium">
+                            <button type="submit" class="text-xs text-gray-500 hover:text-gray-900 transition-colors underline">
                                 Sign Out
                             </button>
                         </form>
-                    @else
-                        <a href="{{ route('login') }}" class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition-colors">Login</a>
-                        <a href="{{ route('register') }}" class="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium">Register</a>
-                    @endauth
-                </div>
+                    </div>
+                @else
+                    <div class="flex items-center gap-3">
+                        <a href="{{ route('login') }}" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Login</a>
+                        <a href="{{ route('register') }}" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium">Register</a>
+                    </div>
+                @endauth
             </div>
         </div>
     </header>
 
     <!-- Navigation -->
-    <nav class="bg-gradient-to-r from-gray-800 to-gray-700 border-b border-gray-600 shadow-lg">
+    <nav class="bg-amber-100 border-b border-amber-300 shadow-sm">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between items-center h-12">
                 <!-- Desktop Menu -->
@@ -148,7 +139,7 @@
                         @php
                             $isActive = request()->url() === $url || request()->fullUrl() === $url;
                         @endphp
-                        <a href="{{ $url }}" class="flex items-center text-sm px-3 py-2 rounded-md {{ $isActive ? 'bg-amber-600 text-white font-medium' : 'text-gray-300 hover:text-white hover:bg-gray-700' }}">
+                        <a href="{{ $url }}" class="flex items-center text-sm px-3 py-2 rounded-md transition-colors {{ $isActive ? 'bg-amber-500 text-white font-semibold' : 'text-amber-800 hover:bg-amber-200' }}">
                             {{ $text }}
                         </a>
                     @endforeach
@@ -156,21 +147,21 @@
 
                 <!-- Mobile Menu Toggle -->
                 <label for="menu-toggle" class="md:hidden p-2 cursor-pointer">
-                    <span class="block w-6 h-0.5 bg-gray-300 mb-1.5"></span>
-                    <span class="block w-6 h-0.5 bg-gray-300 mb-1.5"></span>
-                    <span class="block w-6 h-0.5 bg-gray-300"></span>
+                    <span class="block w-6 h-0.5 bg-amber-800 mb-1.5"></span>
+                    <span class="block w-6 h-0.5 bg-amber-800 mb-1.5"></span>
+                    <span class="block w-6 h-0.5 bg-amber-800"></span>
                 </label>
             </div>
         </div>
 
         <!-- Mobile Menu -->
         <input type="checkbox" id="menu-toggle" class="hidden">
-        <div class="mobile-menu md:hidden bg-gray-800 border-t border-gray-600">
+        <div class="mobile-menu md:hidden bg-amber-200 border-t border-amber-300">
             @foreach($navigation_links as $text => $url)
                 @php
                     $isActive = request()->url() === $url || request()->fullUrl() === $url;
                 @endphp
-                <a href="{{ $url }}" class="block px-4 py-3 text-sm font-medium {{ $isActive ? 'bg-amber-600 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700/50' }}">
+                <a href="{{ $url }}" class="block px-4 py-3 text-sm font-medium transition-colors {{ $isActive ? 'bg-amber-500 text-white font-semibold' : 'text-amber-800 hover:bg-amber-100' }}">
                     {{ $text }}
                 </a>
             @endforeach
@@ -178,14 +169,16 @@
     </nav>
 
     <!-- Breadcrumbs -->
-    <div class="bg-white border-b">
+    <div class="bg-amber-50 border-b border-amber-200">
         <div class="max-w-7xl mx-auto px-4 py-3">
-            <nav class="flex items-center space-x-2 text-sm">
-                <a href="{{ route('home') }}" class="text-yellow-700 hover:text-yellow-600">
-                    <span class="font-medium">Home</span>
+            <nav class="flex items-center space-x-2 text-sm overflow-x-auto">
+                <a href="{{ route('home') }}" class="text-amber-700 hover:text-amber-900 font-medium whitespace-nowrap flex-shrink-0">
+                    Home
                 </a>
-                <span class="text-gray-300">/</span>
-                @yield('breadcrumbs')
+                <span class="text-amber-400 flex-shrink-0">/</span>
+                <div class="truncate text-amber-700">
+                    @yield('breadcrumbs')
+                </div>
             </nav>
         </div>
     </div>
@@ -236,35 +229,29 @@
 
     <!-- Footer -->
     <footer class="bg-gray-900 border-t border-gray-800 mt-8">
-        <div class="max-w-7xl mx-auto px-4 py-6">
-            <!-- Exchange Rates -->
-            <div class="flex flex-col items-center justify-center gap-4 mb-6">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <!-- Exchange Rates -->
                 @if($btcRate && $xmrRate)
-                    <div class="flex items-center gap-6">
-                        <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
-                            <span class="text-amber-400 font-bold text-sm">BTC</span>
-                            <span class="text-gray-400">=</span>
-                            <span class="text-white font-mono font-semibold">${{ number_format($btcRate->usd_rate, 2) }}</span>
-                            <span class="text-gray-500 text-xs">USD</span>
+                    <div class="flex items-baseline gap-6 text-sm">
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-amber-400 font-semibold">BTC</span>
+                            <span class="text-gray-600">=</span>
+                            <span class="text-white font-mono">${{ number_format($btcRate->usd_rate, 2) }}</span>
                         </div>
-                        <div class="flex items-center space-x-2 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
-                            <span class="text-amber-400 font-bold text-sm">XMR</span>
-                            <span class="text-gray-400">=</span>
-                            <span class="text-white font-mono font-semibold">${{ number_format($xmrRate->usd_rate, 2) }}</span>
-                            <span class="text-gray-500 text-xs">USD</span>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-amber-400 font-semibold">XMR</span>
+                            <span class="text-gray-600">=</span>
+                            <span class="text-white font-mono">${{ number_format($xmrRate->usd_rate, 2) }}</span>
                         </div>
                     </div>
                 @else
-                    <div class="text-gray-500 text-sm">
-                        Exchange rates not available.
-                    </div>
+                    <div class="text-gray-500 text-sm">Exchange rates not available.</div>
                 @endif
-            </div>
 
-            <!-- Copyright -->
-            <div class="border-t border-gray-800 pt-4">
-                <p class="text-center text-sm text-gray-500">
-                    &copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.
+                <!-- Copyright -->
+                <p class="text-xs text-gray-500">
+                    &copy; {{ date('Y') }} {{ config('app.name') }}
                 </p>
             </div>
         </div>

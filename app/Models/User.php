@@ -199,12 +199,12 @@ class User extends Authenticatable
 
         return [
             'btc' => [
-                'balance' => $wallets->where('currency', 'btc')->first()->balance ?? 0,
-                'usd_value' => convert_crypto_to_usd($wallets->where('currency', 'btc')->first()->balance ?? 0, 'btc'),
+                'balance' => $btcWallet->balance ?? 0,
+                'usd_value' => convert_crypto_to_usd($btcWallet->balance ?? 0, 'btc'),
             ],
             'xmr' => [
-                'balance' => $wallets->where('currency', 'xmr')->first()->balance ?? 0,
-                'usd_value' => convert_crypto_to_usd($wallets->where('currency', 'xmr')->first()->balance ?? 0, 'xmr'),
+                'balance' => $xmrWallet->balance ?? 0,
+                'usd_value' => convert_crypto_to_usd($xmrWallet->balance ?? 0, 'xmr'),
             ],
         ];
     }

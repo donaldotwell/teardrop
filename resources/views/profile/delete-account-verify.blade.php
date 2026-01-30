@@ -2,11 +2,11 @@
 @section('page-title', 'Verify Account Deletion')
 
 @section('breadcrumbs')
-    <a href="{{ route('profile.show') }}" class="text-yellow-600 hover:text-yellow-700">Profile</a>
-    <span class="text-gray-600 mx-2">/</span>
-    <a href="{{ route('profile.delete-account.show') }}" class="text-yellow-600 hover:text-yellow-700">Delete Account</a>
-    <span class="text-gray-600 mx-2">/</span>
-    <span class="text-gray-600">Verify</span>
+    <a href="{{ route('profile.show') }}" class="text-amber-700 hover:text-amber-900">Profile</a>
+    <span class="text-amber-400">/</span>
+    <a href="{{ route('profile.delete-account.show') }}" class="text-amber-700 hover:text-amber-900">Delete Account</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">Verify</span>
 @endsection
 
 @section('page-heading')

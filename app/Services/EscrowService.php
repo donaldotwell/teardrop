@@ -89,27 +89,19 @@ class EscrowService
 
     /**
      * Create Monero escrow wallet using subaddress from master wallet.
-     * NEW ARCHITECTURE: Uses subaddress from master wallet instead of separate wallet file.
+     * NEW ARCHITECTURE: Uses subaddress from master wallet (account 0) with escrow label.
      */
     private function createMoneroEscrow(Order $order, string $walletName): EscrowWallet
     {
-        $repository = new MoneroRepository();
-
         $masterWalletName = config('monero.master_wallet_name', 'teardrop_master');
 
-        // Find next available escrow address index
-        // Escrow uses account_index = 1 to separate from user addresses (account_index = 0)
-        $lastEscrowAddress = \App\Models\XmrAddress::where('account_index', 1)
-            ->orderBy('address_index', 'desc')
-            ->first();
-
-        $addressIndex = $lastEscrowAddress ? ($lastEscrowAddress->address_index + 1) : 0;
-
-        // Create escrow subaddress in account 1
-        $subaddressData = $repository->rpcCall('create_address', [
-            'account_index' => 1,
-            'label' => "Escrow Order #{$order->id}",
-        ]);
+        // Create escrow subaddress in account 0 (same as users, differentiated by label)
+        // RPC automatically assigns next available address_index
+        $subaddressData = MoneroRepository::createSubaddress(
+            $masterWalletName,
+            0, // account_index = 0 (master wallet only has account 0)
+            "Escrow Order #{$order->id}"
+        );
 
         if (!$subaddressData || !isset($subaddressData['address'])) {
             throw new \Exception("Failed to create Monero escrow subaddress for order #{$order->id}");
@@ -133,10 +125,10 @@ class EscrowService
             'is_active' => true,
         ]);
 
-        // Create XmrAddress record with escrow account index
+        // Create XmrAddress record (account 0, escrow identified by label)
         $xmrWallet->addresses()->create([
             'address' => $address,
-            'account_index' => 1, // Escrow uses account 1
+            'account_index' => 0, // Same account as users
             'address_index' => $createdAddressIndex,
             'label' => "Escrow Order #{$order->id}",
             'balance' => 0,
@@ -156,7 +148,7 @@ class EscrowService
 
         Log::info("Monero escrow subaddress created for order #{$order->id}", [
             'master_wallet' => $masterWalletName,
-            'account_index' => 1,
+            'account_index' => 0,
             'address_index' => $createdAddressIndex,
             'address' => $address,
         ]);

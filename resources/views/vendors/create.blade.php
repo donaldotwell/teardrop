@@ -3,13 +3,7 @@
 @section('page-title', 'Become a Vendor')
 
 @section('breadcrumbs')
-    <div class="flex items-center space-x-2 text-sm">
-        <a href="{{ route('home') }}" class="text-amber-700 hover:text-amber-600 font-medium transition-colors">
-            Home
-        </a>
-        <span class="text-gray-300">→</span>
-        <span class="text-gray-500 font-medium">Become a Vendor</span>
-    </div>
+    <span class="text-amber-700">Become a Vendor</span>
 @endsection
 
 @section('content')

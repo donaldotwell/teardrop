@@ -2,9 +2,9 @@
 @section('page-title', 'Support Ticket Details')
 
 @section('breadcrumbs')
-    <a href="{{ route('support.index') }}" class="text-amber-700 hover:text-amber-600">Support</a>
-    <span class="text-gray-300">/</span>
-    <span class="text-gray-600">{{ $supportTicket->ticket_number }}</span>
+    <a href="{{ route('support.index') }}" class="text-amber-700 hover:text-amber-900">Support</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">{{ $supportTicket->ticket_number }}</span>
 @endsection
 
 @section('page-heading')

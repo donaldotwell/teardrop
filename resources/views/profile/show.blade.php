@@ -2,7 +2,7 @@
 @section('page-title', 'Profile Settings')
 
 @section('breadcrumbs')
-    <span class="text-gray-600">Profile Settings</span>
+    <span class="text-amber-700">Profile Settings</span>
 @endsection
 
 @section('page-heading')

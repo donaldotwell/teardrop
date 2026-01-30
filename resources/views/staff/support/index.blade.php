@@ -2,7 +2,7 @@
 @section('page-title', 'My Support Queue')
 
 @section('breadcrumbs')
-    <span class="text-gray-600">Support Queue</span>
+    <span class="text-amber-700">Support Queue</span>
 @endsection
 
 @section('page-heading')

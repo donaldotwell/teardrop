@@ -2,7 +2,7 @@
 @section('page-title', 'Forum')
 
 @section('breadcrumbs')
-    <span class="text-gray-600">Forum</span>
+    <span class="text-amber-700">Forum</span>
 @endsection
 
 @section('page-heading')

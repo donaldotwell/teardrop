@@ -59,42 +59,50 @@ class XmrWallet extends Model
     }
 
     /**
-     * Get the current unused address or primary address.
+     * Get the current unused address for receiving funds.
      */
-    public function getCurrentAddress()
+    public function getCurrentAddress(): ?XmrAddress
     {
-        // For Monero, we can return the primary address or an unused subaddress
-        // Primary address is always valid for receiving
         return $this->addresses()
             ->where('is_used', false)
             ->orderBy('address_index')
-            ->first() ?? $this->addresses()->where('address_index', 0)->first();
+            ->first();
     }
 
     /**
-     * Generate a new subaddress for the wallet.
+     * Generate a new subaddress for this wallet.
      */
-    public function generateNewAddress(?string $label = null)
+    public function generateNewAddress(): XmrAddress
     {
-        $nextIndex = $this->addresses()->max('address_index') + 1;
+        $repository = new \App\Repositories\MoneroRepository();
 
-        // Call MoneroRepository to generate subaddress via RPC
-        $addressData = \App\Repositories\MoneroRepository::createSubaddress($this->name, 0, $label);
+        // Create new subaddress in master wallet
+        $subaddressData = $repository->rpcCall('create_address', [
+            'account_index' => 0,
+            'label' => "User {$this->user_id} - Address " . (time()),
+        ]);
 
-        if (!$addressData) {
-            throw new \Exception("Failed to generate Monero subaddress");
+        if (!$subaddressData || !isset($subaddressData['address'])) {
+            throw new \Exception("Failed to generate Monero subaddress from RPC");
         }
 
-        return $this->addresses()->create([
-            'address' => $addressData['address'],
+        $address = $this->addresses()->create([
+            'address' => $subaddressData['address'],
             'account_index' => 0,
-            'address_index' => $addressData['address_index'],
-            'label' => $label,
+            'address_index' => $subaddressData['address_index'],
+            'label' => "User {$this->user_id} - Address " . (time()),
             'balance' => 0,
             'total_received' => 0,
             'tx_count' => 0,
             'is_used' => false,
         ]);
+
+        \Log::debug("Generated new Monero subaddress for wallet {$this->id}", [
+            'address_index' => $subaddressData['address_index'],
+            'address' => $subaddressData['address'],
+        ]);
+
+        return $address;
     }
 
     /**
@@ -103,6 +111,7 @@ class XmrWallet extends Model
     public function updateBalance()
     {
         try {
+            // Get actual balance from monero-wallet-rpc for this subaddress
             $balanceData = \App\Repositories\MoneroRepository::getBalance($this->name);
 
             if ($balanceData) {
@@ -110,9 +119,11 @@ class XmrWallet extends Model
                     'balance' => $balanceData['balance'],
                     'unlocked_balance' => $balanceData['unlocked_balance'],
                 ]);
+                
+                \Log::debug("Updated wallet {$this->id} from RPC: balance={$balanceData['balance']}, unlocked={$balanceData['unlocked_balance']}");
             }
 
-            // Update totals from transactions
+            // Update statistics from transaction records
             $deposits = $this->transactions()
                 ->where('type', 'deposit')
                 ->where('status', 'unlocked')

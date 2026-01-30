@@ -2,7 +2,7 @@
 @section('page-title', 'My Disputes')
 
 @section('breadcrumbs')
-    <span class="text-gray-600">My Disputes</span>
+    <span class="text-amber-700">My Disputes</span>
 @endsection
 
 @section('page-heading')

@@ -3,13 +3,9 @@
 @section('page-title', 'Confirm Order')
 
 @section('breadcrumbs')
-    <div class="flex items-center space-x-2 text-sm">
-        <a href="{{ route('listings.show', $listing) }}" class="text-amber-700 hover:text-amber-600 font-medium transition-colors">
-            {{ $listing->title }}
-        </a>
-        <span class="text-gray-300">→</span>
-        <span class="text-gray-500 font-medium">Confirm Order</span>
-    </div>
+    <a href="{{ route('listings.show', $listing) }}" class="text-amber-700 hover:text-amber-900">{{ $listing->title }}</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">Confirm Order</span>
 @endsection
 
 @section('page-heading', 'Confirm Your Order')

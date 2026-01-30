@@ -2,11 +2,9 @@
 @section('page-title', 'Dispute Details')
 
 @section('breadcrumbs')
-    <a href="{{ route('disputes.index') }}" class="text-amber-700 hover:text-amber-600">
-        My Disputes
-    </a>
-    <span class="text-gray-300">/</span>
-    <span class="text-gray-600">Dispute #{{ substr($dispute->uuid, 0, 8) }}</span>
+    <a href="{{ route('disputes.index') }}" class="text-amber-700 hover:text-amber-900">My Disputes</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">Dispute #{{ substr($dispute->uuid, 0, 8) }}</span>
 @endsection
 
 @section('page-heading')

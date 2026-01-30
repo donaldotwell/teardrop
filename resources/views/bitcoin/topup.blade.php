@@ -3,11 +3,11 @@
 @section('page-title', 'Bitcoin Top-up')
 
 @section('breadcrumbs')
-    <a href="{{ route('wallet.index') }}" class="text-gray-600 hover:text-purple-600">Wallets</a>
-    <span class="text-gray-400 mx-2">/</span>
-    <a href="{{ route('bitcoin.index') }}" class="text-gray-600 hover:text-purple-600">Bitcoin</a>
-    <span class="text-gray-400 mx-2">/</span>
-    <span class="text-gray-900 font-medium">Top-up</span>
+    <a href="{{ route('wallet.index') }}" class="text-amber-700 hover:text-amber-900">Wallets</a>
+    <span class="text-amber-400">/</span>
+    <a href="{{ route('bitcoin.index') }}" class="text-amber-700 hover:text-amber-900">Bitcoin</a>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">Top-up</span>
 @endsection
 
 @section('content')

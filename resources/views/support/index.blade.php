@@ -2,7 +2,7 @@
 @section('page-title', 'My Support Tickets')
 
 @section('breadcrumbs')
-    <span class="text-gray-600">Support</span>
+    <span class="text-amber-700">Support</span>
 @endsection
 
 @section('page-heading')

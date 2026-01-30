@@ -3,7 +3,7 @@
 
 @section('breadcrumbs')
     <span class="text-gray-600">Moderation</span>
-    <span class="text-gray-300">/</span>
+    <span class="text-gray-400">/</span>
     <span class="text-gray-600">Reports</span>
 @endsection
 

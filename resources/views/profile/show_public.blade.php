@@ -2,9 +2,9 @@
 @section('page-title', $user->username_pub . "'s Profile")
 
 @section('breadcrumbs')
-    <span class="text-gray-600">Profile</span>
-    <span class="text-gray-300">/</span>
-    <span class="text-gray-600">{{ $user->username_pub }}</span>
+    <span class="text-amber-700">Profile</span>
+    <span class="text-amber-400">/</span>
+    <span class="text-amber-700">{{ $user->username_pub }}</span>
 @endsection
 
 @section('page-heading')

@@ -3,7 +3,7 @@
 @section('page-title', 'Create New Listing')
 
 @section('breadcrumbs')
-    <span class="text-gray-600">Create Listing</span>
+    <span class="text-amber-700">Create Listing</span>
 @endsection
 
 @section('page-heading')
