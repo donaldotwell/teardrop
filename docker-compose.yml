@@ -1,0 +1,169 @@
+# Docker Compose for Teardrop Escrow Marketplace
+# Complete stack: App + MySQL + Redis + Bitcoin + Monero
+
+version: '3.8'
+
+services:
+  # Laravel Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: teardrop-app
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./storage:/var/www/html/storage
+      - ./public:/var/www/html/public
+      - ./.env:/var/www/html/.env:ro
+    environment:
+      - APP_ENV=production
+      - CONTAINER_ROLE=app
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - teardrop-network
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: teardrop-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_DATABASE: ${DB_DATABASE:-teardrop}
+      MYSQL_USER: ${DB_USERNAME:-teardrop}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - teardrop-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: teardrop-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - teardrop-network
+
+  # Bitcoin Core (Testnet)
+  bitcoin:
+    image: btcpayserver/bitcoin:27.0
+    container_name: teardrop-bitcoin
+    restart: unless-stopped
+    ports:
+      - "18332:18332"  # RPC
+      - "18333:18333"  # P2P
+    volumes:
+      - bitcoin-data:/data
+      - ./docker/bitcoin/bitcoin.conf:/data/bitcoin.conf:ro
+    command: >
+      bitcoind
+      -testnet
+      -conf=/data/bitcoin.conf
+      -datadir=/data
+      -rpcbind=0.0.0.0
+      -rpcallowip=0.0.0.0/0
+    healthcheck:
+      test: ["CMD", "bitcoin-cli", "-testnet", "getblockchaininfo"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - teardrop-network
+
+  # Monero Daemon (Testnet)
+  monero-daemon:
+    image: sethsimmons/simple-monerod:latest
+    container_name: teardrop-monero-daemon
+    restart: unless-stopped
+    ports:
+      - "28081:28081"  # RPC
+      - "28080:28080"  # P2P
+    volumes:
+      - monero-daemon-data:/home/monero/.bitmonero
+    command: >
+      --testnet
+      --rpc-bind-ip=0.0.0.0
+      --confirm-external-bind
+      --rpc-bind-port=28081
+      --no-igd
+      --hide-my-port
+      --offline
+      --fixed-difficulty=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:28081/get_info"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - teardrop-network
+
+  # Monero Wallet RPC (Testnet)
+  monero-wallet-rpc:
+    image: sethsimmons/simple-monero-wallet-rpc:latest
+    container_name: teardrop-monero-wallet-rpc
+    restart: unless-stopped
+    ports:
+      - "28084:28084"
+    volumes:
+      - monero-wallets:/home/monero/wallets
+    command: >
+      --testnet
+      --daemon-address=monero-daemon:28081
+      --rpc-bind-port=28084
+      --rpc-bind-ip=0.0.0.0
+      --confirm-external-bind
+      --wallet-dir=/home/monero/wallets
+      --disable-rpc-login
+      --trusted-daemon
+    depends_on:
+      - monero-daemon
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-X", "POST", "http://localhost:28084/json_rpc", "-d", '{"jsonrpc":"2.0","id":"0","method":"get_version"}']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - teardrop-network
+
+volumes:
+  mysql-data:
+    driver: local
+  redis-data:
+    driver: local
+  bitcoin-data:
+    driver: local
+  monero-daemon-data:
+    driver: local
+  monero-wallets:
+    driver: local
+
+networks:
+  teardrop-network:
+    driver: bridge

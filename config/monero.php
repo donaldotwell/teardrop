@@ -50,6 +50,18 @@ return [
     
     /*
     |--------------------------------------------------------------------------
+    | Master Wallet Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Single wallet loaded in wallet-rpc with subaddresses for all users
+    |
+    */
+
+    'master_wallet_name' => env('MONERO_MASTER_WALLET_NAME', 'teardrop_master'),
+    'master_wallet_password' => env('MONERO_MASTER_WALLET_PASSWORD', null),
+    
+    /*
+    |--------------------------------------------------------------------------
     | Confirmation Settings
     |--------------------------------------------------------------------------
     |

@@ -1,0 +1,82 @@
+# Docker ignore file - excludes files from build context
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment files (will be mounted separately)
+.env
+.env.*
+!.env.example
+
+# Node modules and package files
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Composer vendor (will be installed during build)
+vendor
+
+# Storage (will be mounted as volume)
+storage/*.key
+storage/framework/cache/**
+storage/framework/sessions/**
+storage/framework/views/**
+storage/logs/**
+
+# Build artifacts
+public/build
+public/hot
+public/storage
+
+# IDE and editor files
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+docs
+BLADE_CLEANUP_PLAN.md
+context.md
+ESCROW_IMPLEMENTATION_PLAN.md
+ESCROW_TESTING_GUIDE.md
+examples.md
+MONERO_AUDIT_REPORT.md
+MONERO_FIX_SUMMARY.md
+SUPPORT_TICKET_ESCALATION.md
+
+# Testing
+tests
+phpunit.xml
+.phpunit.result.cache
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.cache
+*.log
+
+# Docker files (to avoid recursion)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Backup files
+*.bak
+*.backup
+*.old

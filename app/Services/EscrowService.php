@@ -88,67 +88,77 @@ class EscrowService
     }
 
     /**
-     * Create Monero escrow wallet.
+     * Create Monero escrow wallet using subaddress from master wallet.
+     * NEW ARCHITECTURE: Uses subaddress from master wallet instead of separate wallet file.
      */
     private function createMoneroEscrow(Order $order, string $walletName): EscrowWallet
     {
         $repository = new MoneroRepository();
 
-        // Generate unique password for escrow wallet
-        $password = hash('sha256', $order->id . $order->uuid . config('app.key'));
-        $passwordHash = hash('sha256', $password);
+        $masterWalletName = config('monero.master_wallet_name', 'teardrop_master');
 
-        // 1. Create Monero wallet via RPC
-        $walletData = $repository->createWallet($walletName, $password);
-        if (!$walletData) {
-            throw new \Exception("Failed to create Monero escrow wallet");
+        // Find next available escrow address index
+        // Escrow uses account_index = 1 to separate from user addresses (account_index = 0)
+        $lastEscrowAddress = \App\Models\XmrAddress::where('account_index', 1)
+            ->orderBy('address_index', 'desc')
+            ->first();
+
+        $addressIndex = $lastEscrowAddress ? ($lastEscrowAddress->address_index + 1) : 0;
+
+        // Create escrow subaddress in account 1
+        $subaddressData = $repository->rpcCall('create_address', [
+            'account_index' => 1,
+            'label' => "Escrow Order #{$order->id}",
+        ]);
+
+        if (!$subaddressData || !isset($subaddressData['address'])) {
+            throw new \Exception("Failed to create Monero escrow subaddress for order #{$order->id}");
         }
 
-        // 2. Get primary address
-        $addressData = $repository->getAddress();
-        if (!$addressData) {
-            throw new \Exception("Failed to get Monero escrow address");
-        }
+        $address = $subaddressData['address'];
+        $createdAddressIndex = $subaddressData['address_index'];
 
-        // 3. Create XmrWallet record for syncing
-        $xmrWallet = XmrWallet::create([
+        // Create XmrWallet record for escrow (points to master wallet)
+        $xmrWallet = \App\Models\XmrWallet::create([
             'user_id' => null, // Escrow wallets don't belong to users
-            'name' => $walletName,
-            'primary_address' => $addressData['address'],
-            'view_key' => $walletData['view_key'] ?? null,
-            'spend_key_encrypted' => null, // Don't store spend key for security
+            'name' => $masterWalletName,
+            'primary_address' => $address,
+            'view_key' => null,
+            'spend_key_encrypted' => null,
             'seed_encrypted' => null,
-            'password_hash' => $passwordHash,
+            'password_hash' => null,
             'height' => 0,
             'balance' => 0,
             'unlocked_balance' => 0,
             'is_active' => true,
         ]);
 
-        // 4. Create XmrAddress record
+        // Create XmrAddress record with escrow account index
         $xmrWallet->addresses()->create([
-            'address' => $addressData['address'],
-            'account_index' => 0,
-            'address_index' => 0,
-            'label' => 'Escrow Primary',
+            'address' => $address,
+            'account_index' => 1, // Escrow uses account 1
+            'address_index' => $createdAddressIndex,
+            'label' => "Escrow Order #{$order->id}",
             'balance' => 0,
             'is_used' => false,
         ]);
 
-        // 5. Create EscrowWallet record
+        // Create EscrowWallet record
         $escrowWallet = EscrowWallet::create([
             'order_id' => $order->id,
             'currency' => 'xmr',
-            'wallet_name' => $walletName,
-            'wallet_password_hash' => $passwordHash,
-            'address' => $addressData['address'],
+            'wallet_name' => $walletName, // Keep original wallet name for reference
+            'wallet_password_hash' => null, // No password needed with subaddress
+            'address' => $address,
             'balance' => 0,
             'status' => 'active',
         ]);
 
-        Log::info("Monero escrow wallet created for order #{$order->id}", [
-            'wallet_name' => $walletName,
-            'address' => $addressData['address'],
+        Log::info("Monero escrow subaddress created for order #{$order->id}", [
+            'master_wallet' => $masterWalletName,
+            'account_index' => 1,
+            'address_index' => $createdAddressIndex,
+            'address' => $address,
         ]);
 
         return $escrowWallet;
