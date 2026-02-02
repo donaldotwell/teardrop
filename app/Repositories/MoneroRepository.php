@@ -78,7 +78,7 @@ class MoneroRepository
     /**
      * Make RPC call to monero-wallet-rpc.
      */
-    private function rpcCall(string $method, array $params = [])
+    public function rpcCall(string $method, array $params = [])
     {
         try {
             $response = Http::withBasicAuth($this->rpcUser, $this->rpcPassword)
@@ -542,6 +542,159 @@ class MoneroRepository
         }
 
         return $transfers;
+    }
+
+    /**
+     * Get balance for a specific address by index.
+     * Returns both locked and unlocked balance.
+     */
+    public static function getAddressBalance(int $accountIndex, int $addressIndex): ?array
+    {
+        $repository = new static();
+
+        try {
+            $result = $repository->rpcCall('get_balance', [
+                'account_index' => $accountIndex,
+                'address_indices' => [$addressIndex],
+            ]);
+
+            if (!$result || !isset($result['per_subaddress'][0])) {
+                return null;
+            }
+
+            $subaddress = $result['per_subaddress'][0];
+
+            return [
+                'balance' => $subaddress['balance'] / 1e12,
+                'unlocked_balance' => $subaddress['unlocked_balance'] / 1e12,
+                'num_unspent_outputs' => $subaddress['num_unspent_outputs'] ?? 0,
+                'address_index' => $subaddress['address_index'],
+            ];
+        } catch (\Exception $e) {
+            Log::error("Failed to get address balance for {$accountIndex}/{$addressIndex}", [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Find addresses with sufficient combined balance to cover amount.
+     * Returns array of address indices that should be swept.
+     */
+    public static function findAddressesForPayment(XmrWallet $wallet, float $amount): array
+    {
+        $addresses = $wallet->addresses()
+            ->where('balance', '>', 0)
+            ->orderBy('balance', 'desc')
+            ->get();
+
+        $selectedAddresses = [];
+        $totalCollected = 0;
+
+        foreach ($addresses as $address) {
+            // Verify current balance from RPC
+            $balanceData = self::getAddressBalance($address->account_index, $address->address_index);
+            
+            if (!$balanceData || $balanceData['unlocked_balance'] <= 0) {
+                continue;
+            }
+
+            $selectedAddresses[] = [
+                'address_index' => $address->address_index,
+                'account_index' => $address->account_index,
+                'balance' => $balanceData['unlocked_balance'],
+            ];
+
+            $totalCollected += $balanceData['unlocked_balance'];
+
+            // Stop once we have enough
+            if ($totalCollected >= $amount) {
+                break;
+            }
+        }
+
+        if ($totalCollected < $amount) {
+            Log::warning("Insufficient total balance for payment", [
+                'wallet_id' => $wallet->id,
+                'needed' => $amount,
+                'collected' => $totalCollected,
+                'addresses_checked' => count($selectedAddresses),
+            ]);
+            return [];
+        }
+
+        return $selectedAddresses;
+    }
+
+    /**
+     * Sweep funds from multiple addresses to a destination.
+     * This consolidates funds from multiple subaddresses into one payment.
+     */
+    public static function sweepAddresses(array $sourceAddressIndices, int $accountIndex, string $destination, float $amount): ?array
+    {
+        $repository = new static();
+
+        if (empty($sourceAddressIndices)) {
+            Log::error("No source addresses provided for sweep");
+            return null;
+        }
+
+        try {
+            // Convert XMR to atomic units
+            $atomicAmount = (int) round($amount * 1e12);
+
+            Log::info("Sweeping addresses for payment", [
+                'source_indices' => $sourceAddressIndices,
+                'account_index' => $accountIndex,
+                'destination' => $destination,
+                'amount_xmr' => $amount,
+                'amount_atomic' => $atomicAmount,
+            ]);
+
+            // Use transfer with multiple subaddr_indices
+            $result = $repository->rpcCall('transfer', [
+                'destinations' => [
+                    [
+                        'amount' => $atomicAmount,
+                        'address' => $destination,
+                    ],
+                ],
+                'account_index' => $accountIndex,
+                'subaddr_indices' => $sourceAddressIndices,
+                'priority' => 1,
+                'get_tx_key' => true,
+            ]);
+
+            if (!$result || !isset($result['tx_hash'])) {
+                Log::error("Failed to sweep addresses", [
+                    'source_indices' => $sourceAddressIndices,
+                    'result' => $result,
+                ]);
+                return null;
+            }
+
+            Log::info("Successfully swept addresses", [
+                'tx_hash' => $result['tx_hash'],
+                'fee' => ($result['fee'] ?? 0) / 1e12,
+                'amount_sent' => $result['amount'] / 1e12,
+            ]);
+
+            return [
+                'tx_hash' => $result['tx_hash'],
+                'fee' => ($result['fee'] ?? 0) / 1e12,
+                'amount' => $result['amount'] / 1e12,
+                'tx_key' => $result['tx_key'] ?? null,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("Exception during address sweep", [
+                'error' => $e->getMessage(),
+                'source_indices' => $sourceAddressIndices,
+                'destination' => $destination,
+            ]);
+            return null;
+        }
     }
 
     /**

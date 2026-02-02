@@ -10,6 +10,8 @@ use App\Models\Listing;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Wallet;
+use App\Models\XmrWallet;
+use App\Models\XmrTransaction;
 use App\Repositories\BitcoinRepository;
 use App\Repositories\MoneroRepository;
 use Illuminate\Http\Request;
@@ -358,69 +360,114 @@ class VendorListingController extends Controller
      */
     private function processFeatureMoneroPayment(Listing $listing, $vendor, $feeUsd)
     {
-        // Get exchange rate
-        $xmrRate = ExchangeRate::where('crypto_shortname', 'xmr')->firstOrFail();
-        $requiredAmountXmr = $feeUsd / $xmrRate->usd_rate;
+        // Calculate required Monero amount using helper function
+        $requiredAmountXmr = convert_usd_to_crypto($feeUsd, 'xmr');
 
         // Get vendor's Monero wallet
-        $vendorXmrWallet = Wallet::where('user_id', $vendor->id)
-            ->where('currency', 'xmr')
-            ->lockForUpdate()
-            ->firstOrFail();
-
-        // Check balance
-        if ($vendorXmrWallet->balance < $requiredAmountXmr) {
-            throw new \Exception('Insufficient Monero balance. Required: ' . number_format($requiredAmountXmr, 8) . ' XMR');
+        $vendorXmrWallet = $vendor->xmrWallet;
+        if (!$vendorXmrWallet) {
+            throw new \Exception('Monero wallet not found.');
         }
 
-        // Get admin Monero wallet
-        $adminXmrWallet = Wallet::where('user_id', function ($query) {
-            $query->select('id')
-                ->from('users')
-                ->whereHas('roles', function ($q) {
-                    $q->where('name', 'admin');
-                })
-                ->limit(1);
-        })
-        ->where('currency', 'xmr')
-        ->firstOrFail();
+        // Lock wallet to prevent race conditions
+        $vendorXmrWallet = XmrWallet::where('id', $vendorXmrWallet->id)->lockForUpdate()->first();
 
-        // Get admin wallet address
-        $adminAddress = $adminXmrWallet->address;
+        // Get total balance from all addresses
+        $totalBalance = $vendor->getBalance()['xmr']['balance'] ?? 0;
 
-        // Send Monero to admin wallet
-        $txid = MoneroRepository::transfer(
-            $vendor->id,
-            $adminAddress,
-            $requiredAmountXmr,
-            'Feature listing payment'
-        );
+        // Check if vendor has sufficient balance across all addresses
+        if ($totalBalance < $requiredAmountXmr) {
+            throw new \Exception('Insufficient Monero balance. Required: ' . number_format($requiredAmountXmr, 8) . ' XMR, Available: ' . number_format($totalBalance, 8) . ' XMR');
+        }
+
+        // Get admin wallet
+        $adminWalletName = config('fees.admin_xmr_wallet_name', 'admin_xmr');
+        $adminXmrWallet = XmrWallet::where('name', $adminWalletName)->first();
+
+        if (!$adminXmrWallet) {
+            throw new \Exception('Admin Monero wallet not configured. Please contact support.');
+        }
+
+        // Get admin address
+        $adminAddress = $adminXmrWallet->addresses()->first();
+        if (!$adminAddress) {
+            throw new \Exception('Admin Monero wallet has no address. Please contact support.');
+        }
+
+        // Find addresses that can cover the payment (using Phase 3 multi-address logic)
+        $sourceAddresses = MoneroRepository::findAddressesForPayment($vendorXmrWallet, $requiredAmountXmr);
+
+        if (empty($sourceAddresses)) {
+            throw new \Exception('Unable to find addresses with sufficient unlocked balance.');
+        }
+
+        $txid = null;
+
+        // Use single or multi-address payment depending on balance distribution
+        if (count($sourceAddresses) === 1 && $sourceAddresses[0]['balance'] >= $requiredAmountXmr) {
+            // Single address has enough funds
+            $txid = MoneroRepository::transfer(
+                $vendorXmrWallet->name,
+                $adminAddress->address,
+                $requiredAmountXmr
+            );
+        } else {
+            // Multiple addresses needed - use sweep
+            $addressIndices = array_column($sourceAddresses, 'address_index');
+            $accountIndex = $sourceAddresses[0]['account_index'];
+
+            \Log::info('Using multi-address payment for feature listing', [
+                'listing_id' => $listing->id,
+                'vendor_id' => $vendor->id,
+                'num_addresses' => count($addressIndices),
+                'address_indices' => $addressIndices,
+                'amount' => $requiredAmountXmr,
+            ]);
+
+            $result = MoneroRepository::sweepAddresses(
+                $addressIndices,
+                $accountIndex,
+                $adminAddress->address,
+                $requiredAmountXmr
+            );
+
+            $txid = $result['tx_hash'] ?? null;
+        }
 
         if (!$txid) {
             throw new \Exception('Failed to send Monero transaction.');
         }
 
-        // Create wallet transaction record
-        \App\Models\WalletTransaction::create([
-            'wallet_id' => $vendorXmrWallet->id,
+        // Create transaction record
+        XmrTransaction::create([
+            'xmr_wallet_id' => $vendorXmrWallet->id,
+            'xmr_address_id' => null, // Multi-address payment
+            'txid' => $txid,
             'type' => 'withdrawal',
             'amount' => $requiredAmountXmr,
-            'balance_after' => $vendorXmrWallet->balance - $requiredAmountXmr,
-            'description' => 'Feature listing payment',
-            'metadata' => [
+            'fee' => 0,
+            'confirmations' => 0,
+            'status' => 'pending',
+            'raw_transaction' => [
                 'listing_id' => $listing->id,
                 'purpose' => 'feature_listing',
                 'fee_usd' => $feeUsd,
-                'txid' => $txid,
+                'to_address' => $adminAddress->address,
+                'num_addresses_used' => count($sourceAddresses),
             ],
         ]);
-
-        // Update wallet balance
-        $vendorXmrWallet->decrement('balance', $requiredAmountXmr);
 
         // Mark listing as featured
         $listing->update([
             'is_featured' => true,
+        ]);
+
+        \Log::info('Feature listing payment processed', [
+            'listing_id' => $listing->id,
+            'vendor_id' => $vendor->id,
+            'amount_xmr' => $requiredAmountXmr,
+            'fee_usd' => $feeUsd,
+            'txid' => $txid,
         ]);
     }
 }
