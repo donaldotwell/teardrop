@@ -15,6 +15,7 @@ class CountriesSeeder extends Seeder
         // seed all country of the world
 
         $countries = [
+            'Worldwide',
             'Afghanistan',
             'Albania',
             'Algeria',

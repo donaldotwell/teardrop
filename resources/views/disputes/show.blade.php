@@ -242,7 +242,7 @@
                                 </div>
                                 <div>
                                     <div class="font-medium text-gray-900">{{ $dispute->assignedAdmin->username_pub }}</div>
-                                    <div class="text-sm text-purple-600">Assigned Admin</div>
+                                    <div class="text-sm text-amber-600">Assigned Admin</div>
                                 </div>
                             </div>
                         @endif

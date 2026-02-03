@@ -193,8 +193,8 @@
                                                     <select name="currency"
                                                             id="currency"
                                                             class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
-                                                        <option value="btc">Bitcoin (BTC) - {{ $btcAmount }} BTC (incl. shipping)</option>
-                                                        <option value="xmr">Monero (XMR) - {{ $xmrAmount }} XMR (incl. shipping)</option>
+                                                        <option value="btc">Bitcoin (BTC) - {{ $btcRate ? number_format($totalPrice / $btcRate->usd_rate, 8) : 'N/A' }} BTC (incl. shipping)</option>
+                                                        <option value="xmr">Monero (XMR) - {{ $xmrRate ? number_format($totalPrice / $xmrRate->usd_rate, 8) : 'N/A' }} XMR (incl. shipping)</option>
                                                     </select>
                                                     <p class="mt-1 text-xs text-gray-500">Prices shown include shipping cost per unit</p>
                                                     @error('currency')

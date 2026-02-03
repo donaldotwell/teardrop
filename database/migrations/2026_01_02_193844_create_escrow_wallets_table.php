@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('wallet_name')->unique();
             $table->string('wallet_password_hash')->nullable(); // For XMR
             $table->string('address'); // Primary receiving address
+            $table->unsignedInteger('account_index')->nullable(); // For XMR subaddress
+            $table->unsignedInteger('address_index')->nullable(); // For XMR subaddress
             $table->decimal('balance', 20, 12)->default(0);
             $table->enum('status', ['active', 'released', 'refunded', 'archived'])->default('active');
             $table->timestamp('released_at')->nullable();

@@ -13,13 +13,15 @@ return new class extends Migration
     {
         Schema::create('xmr_transactions', function (Blueprint $table) {
             $table->id();
+            $table->uuid('uuid')->nullable()->unique()->comment('Unique identifier for external references');
             $table->foreignId('xmr_wallet_id')->constrained()->onDelete('cascade');
             $table->foreignId('xmr_address_id')->nullable()->constrained()->onDelete('set null');
             $table->string('txid')->nullable(); // Transaction hash
             $table->string('payment_id')->nullable(); // Optional payment ID
             $table->enum('type', ['deposit', 'withdrawal']);
-            $table->decimal('amount', 16, 12); // 12 decimals for XMR
-            $table->decimal('fee', 16, 12)->default(0);
+            $table->decimal('amount', 20, 12); // 12 decimals for XMR
+            $table->decimal('usd_value', 16, 2)->nullable();
+            $table->decimal('fee', 20, 12)->default(0);
             $table->integer('confirmations')->default(0);
             $table->unsignedBigInteger('unlock_time')->default(0); // Monero-specific lock time
             $table->unsignedBigInteger('height')->nullable(); // Block height

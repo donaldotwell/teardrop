@@ -95,21 +95,21 @@
                 <div class="flex items-center space-x-4">
                     <div class="flex items-center space-x-3 text-purple-100">
                         <span>{{ auth()->user()->username_pub }}</span>
-                        <span class="bg-purple-600 px-2 py-1 rounded text-xs">Vendor</span>
+                        <span class="bg-amber-600 px-2 py-1 rounded text-xs">Vendor</span>
                     </div>
 
-                    <div class="h-4 w-px bg-purple-600"></div>
+                    <div class="h-4 w-px bg-amber-600"></div>
 
                     {{-- Quick Actions --}}
                     <div class="flex items-center space-x-2">
                         <a href="{{ route('home') }}"
-                           class="px-3 py-1 bg-purple-600 text-purple-50 rounded hover:bg-purple-800 text-sm">
+                           class="px-3 py-1 bg-amber-600 text-purple-50 rounded hover:bg-purple-800 text-sm">
                             View Site
                         </a>
 
                         <form action="{{ route('logout') }}" method="POST" class="inline">
                             @csrf
-                            <button type="submit" class="px-3 py-1 border border-purple-600 text-purple-100 rounded hover:bg-purple-600 text-sm">
+                            <button type="submit" class="px-3 py-1 border border-purple-600 text-purple-100 rounded hover:bg-amber-600 text-sm">
                                 Sign Out
                             </button>
                         </form>

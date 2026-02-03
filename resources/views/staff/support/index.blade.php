@@ -26,7 +26,7 @@
                         @csrf
                         <input type="hidden" name="limit" value="3">
                         <button type="submit"
-                                class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm">
+                                class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors text-sm">
                             Grab 3 Tickets
                         </button>
                     </form>
@@ -52,7 +52,7 @@
                     <div class="text-sm text-gray-600">Resolved Today</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-2xl font-bold text-purple-600">{{ round(($stats['my_avg_response_time'] ?? 0) / 60, 1) }}h</div>
+                    <div class="text-2xl font-bold text-amber-600">{{ round(($stats['my_avg_response_time'] ?? 0) / 60, 1) }}h</div>
                     <div class="text-sm text-gray-600">Avg Response</div>
                 </div>
                 <div class="text-center">
@@ -307,7 +307,7 @@
                                     <form action="{{ route('staff.support.assign-me', $ticket) }}" method="POST">
                                         @csrf
                                         <button type="submit"
-                                                class="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors">
+                                                class="w-full px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors">
                                             Assign to Me
                                         </button>
                                     </form>

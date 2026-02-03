@@ -5,7 +5,7 @@
     <!-- Back Button -->
     <div>
         <a href="{{ route('vendor.orders.index') }}"
-           class="text-purple-600 hover:text-purple-800 text-sm font-medium">
+           class="text-amber-600 hover:text-purple-800 text-sm font-medium">
             ← Back to Orders
         </a>
     </div>
@@ -127,7 +127,7 @@
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h2 class="text-lg font-semibold text-gray-900">
                         Communication with
-                        <a href="{{ route('profile.show_public_view', $otherParty->username_pub) }}" class="text-purple-600 hover:text-purple-700 hover:underline">
+                        <a href="{{ route('profile.show_public_view', $otherParty->username_pub) }}" class="text-amber-600 hover:text-purple-700 hover:underline">
                             {{ $otherParty->username_pub }}
                         </a>
                     </h2>
@@ -166,7 +166,7 @@
                                 name="message"
                                 id="message"
                                 rows="4"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                                 placeholder="Type your message here..."
                                 required
                             ></textarea>
@@ -176,7 +176,7 @@
                         </div>
                         <button
                             type="submit"
-                            class="w-full px-6 py-3 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                            class="w-full px-6 py-3 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
                         >
                             Send Message
                         </button>
@@ -222,7 +222,7 @@
 
                         <div class="mt-6 pt-4 border-t border-gray-200">
                             <a href="{{ route('disputes.show', $order->dispute) }}"
-                               class="inline-flex items-center justify-center px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                               class="inline-flex items-center justify-center px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
                                 View Dispute Details
                             </a>
                         </div>
@@ -294,7 +294,7 @@
                     @if($order->status === 'pending')
                         <form action="{{ route('vendor.orders.ship', $order) }}" method="POST">
                             @csrf
-                            <button type="submit" class="w-full px-6 py-3 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
+                            <button type="submit" class="w-full px-6 py-3 text-sm font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
                                 Mark as Shipped
                             </button>
                         </form>
@@ -366,7 +366,7 @@
                     <div>
                         <div class="text-xs text-gray-500 mb-1">Username</div>
                         <div class="text-sm font-medium text-gray-900">
-                            <a href="{{ route('profile.show_public_view', $order->user->username_pub) }}" class="text-purple-600 hover:text-purple-700 hover:underline">
+                            <a href="{{ route('profile.show_public_view', $order->user->username_pub) }}" class="text-amber-600 hover:text-purple-700 hover:underline">
                                 {{ $order->user->username_pub }}
                             </a>
                         </div>

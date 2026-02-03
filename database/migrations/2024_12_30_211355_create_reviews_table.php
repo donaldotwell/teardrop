@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('reviews', function (Blueprint $table) {
             $table->id();
             $table->foreignId('listing_id');
+            $table->foreignId('order_id')->unique()->constrained()->onDelete('cascade');
             $table->foreignId('user_id');
             $table->string('comment', 140);
             $table->decimal('buyer_price', 10, 2);

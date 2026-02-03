@@ -21,10 +21,18 @@ return new class extends Migration
             $table->decimal('usd_price', 10, 2);
             $table->decimal('crypto_value', 10, 8);
             $table->enum('status', ['pending', 'shipped', 'completed', 'cancelled'])->default('pending');
+            $table->boolean('is_early_finalized')->default(false)->index();
+            $table->timestamp('early_finalized_at')->nullable();
+            $table->timestamp('dispute_window_expires_at')->nullable()->index();
+            $table->unsignedBigInteger('finalization_window_id')->nullable();
+            $table->string('direct_payment_txid')->nullable();
+            $table->string('admin_fee_txid')->nullable();
             $table->string('txid')->nullable(); // Blockchain transaction ID for completed orders
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('cancelled_at')->nullable();
+            $table->text('cancellation_reason')->nullable();
             $table->text('notes')->nullable();
+            $table->text('encrypted_delivery_address')->nullable();
             $table->timestamps();
         });
     }

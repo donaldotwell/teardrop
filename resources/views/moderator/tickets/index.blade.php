@@ -63,7 +63,7 @@
                 <div class="flex-1 min-w-64">
                     <input type="text" name="search" value="{{ request('search') }}"
                            placeholder="Search by ticket #, subject, or username..."
-                           class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-amber-500">
                 </div>
 
                 <select name="category" class="px-3 py-2 border border-gray-300 rounded">
@@ -358,7 +358,7 @@
                     <div class="text-sm text-gray-600">Overdue</div>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-purple-600">{{ $stats['team_tickets'] }}</div>
+                    <div class="text-2xl font-bold text-amber-600">{{ $stats['team_tickets'] }}</div>
                     <div class="text-sm text-gray-600">Team Active</div>
                 </div>
             </div>

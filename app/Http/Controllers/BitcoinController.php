@@ -34,10 +34,18 @@ class BitcoinController extends Controller
 
         $balance = $user->getBalance();
 
+        // Calculate fresh stats from transactions (not stale fields)
+        $walletStats = [
+            'balance' => $btcWallet->getBalance(),
+            'total_received' => $btcWallet->getTotalReceived(),
+            'total_sent' => $btcWallet->getTotalSent(),
+        ];
+
         return view('bitcoin.index', compact(
             'btcWallet',
             'recentTransactions',
-            'balance'
+            'balance',
+            'walletStats'
         ));
     }
 
@@ -82,15 +90,10 @@ class BitcoinController extends Controller
             $qrCodeDataUri = null;
         }
 
-        // Get current BTC price from database
-        $btcRate = \App\Models\ExchangeRate::where('crypto_shortname', 'btc')->first();
-        $btcPrice = $btcRate ? $btcRate->usd_rate : 0;
-
         return view('bitcoin.topup', compact(
             'btcWallet',
             'currentAddress',
-            'qrCodeDataUri',
-            'btcPrice'
+            'qrCodeDataUri'
         ));
     }
 

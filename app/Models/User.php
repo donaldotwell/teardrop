@@ -180,6 +180,8 @@ class User extends Authenticatable
 
     /**
      * Get the balance for the specified currency.
+     * Balances are calculated from transaction records (authoritative source).
+     * Wallet balance fields are DEPRECATED and may be stale.
      */
     public function getBalance(): array
     {
@@ -187,24 +189,19 @@ class User extends Authenticatable
         $btcWallet = $this->btcWallet;
         $xmrWallet = $this->xmrWallet;
 
-        // Sync BTC wallet balance if exists
-        if ($btcWallet) {
-            //$btcWallet->updateBalance();
-        }
-
-        // Sync XMR wallet balance if exists
-        if ($xmrWallet) {
-            //$xmrWallet->updateBalance();
-        }
+        // Get balances directly from transaction sums (fast ~0.05s, always fresh)
+        $btcBalance = $btcWallet ? $btcWallet->getBalance() : 0;
+        $xmrBalanceData = $xmrWallet ? $xmrWallet->getBalance() : ['balance' => 0, 'unlocked_balance' => 0];
 
         return [
             'btc' => [
-                'balance' => $btcWallet->balance ?? 0,
-                'usd_value' => convert_crypto_to_usd($btcWallet->balance ?? 0, 'btc'),
+                'balance' => $btcBalance,
+                'usd_value' => convert_crypto_to_usd($btcBalance, 'btc'),
             ],
             'xmr' => [
-                'balance' => $xmrWallet->balance ?? 0,
-                'usd_value' => convert_crypto_to_usd($xmrWallet->balance ?? 0, 'xmr'),
+                'balance' => $xmrBalanceData['balance'],
+                'unlocked_balance' => $xmrBalanceData['unlocked_balance'],
+                'usd_value' => convert_crypto_to_usd($xmrBalanceData['balance'], 'xmr'),
             ],
         ];
     }

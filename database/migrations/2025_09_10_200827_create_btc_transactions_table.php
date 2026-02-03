@@ -13,11 +13,13 @@ return new class extends Migration
     {
         Schema::create('btc_transactions', function (Blueprint $table) {
             $table->id();
+            $table->uuid('uuid')->nullable()->unique()->comment('Unique identifier for external references');
             $table->foreignId('btc_wallet_id')->constrained()->onDelete('cascade');
             $table->foreignId('btc_address_id')->nullable()->constrained()->onDelete('set null');
             $table->string('txid')->nullable(); // Not unique - same txid can exist for sender and receiver
             $table->enum('type', ['deposit', 'withdrawal']);
             $table->decimal('amount', 16, 8);
+            $table->decimal('usd_value', 16, 2)->nullable();
             $table->decimal('fee', 16, 8)->default(0);
             $table->integer('confirmations')->default(0);
             $table->enum('status', ['pending', 'confirmed', 'failed'])->default('pending');
@@ -26,6 +28,7 @@ return new class extends Migration
             $table->integer('block_height')->nullable();
             $table->timestamp('confirmed_at')->nullable();
             $table->timestamps();
+            $table->softDeletes();
 
             $table->index(['btc_wallet_id', 'type']);
             $table->index(['status', 'confirmations']);

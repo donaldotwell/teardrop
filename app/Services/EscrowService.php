@@ -139,9 +139,11 @@ class EscrowService
         $escrowWallet = EscrowWallet::create([
             'order_id' => $order->id,
             'currency' => 'xmr',
-            'wallet_name' => $walletName, // Keep original wallet name for reference
+            'wallet_name' => $masterWalletName, // CRITICAL: Store master wallet name (not unique order name)
             'wallet_password_hash' => null, // No password needed with subaddress
             'address' => $address,
+            'account_index' => 0, // Master wallet account
+            'address_index' => $createdAddressIndex, // Subaddress index
             'balance' => 0,
             'status' => 'active',
         ]);

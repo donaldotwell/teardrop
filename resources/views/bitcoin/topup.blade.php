@@ -46,7 +46,7 @@
         <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
             <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-amber-800">Current Bitcoin Price:</span>
-                <span class="text-lg font-bold text-amber-900">${{ number_format($btcPrice, 2) }} USD</span>
+                <span class="text-lg font-bold text-amber-900">${{ $btcRate ? number_format($btcRate->usd_rate, 2) : 'N/A' }} USD</span>
             </div>
         </div>
 
@@ -147,19 +147,19 @@
                     <h4 class="font-semibold text-gray-800 mb-2">Option 2: Manual Address</h4>
                     <ol class="space-y-2 text-sm text-gray-600">
                         <li class="flex items-start">
-                            <span class="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center mr-2 mt-0.5">1</span>
+                            <span class="bg-amber-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center mr-2 mt-0.5">1</span>
                             Copy the Bitcoin address above
                         </li>
                         <li class="flex items-start">
-                            <span class="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center mr-2 mt-0.5">2</span>
+                            <span class="bg-amber-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center mr-2 mt-0.5">2</span>
                             Paste it in your wallet's send field
                         </li>
                         <li class="flex items-start">
-                            <span class="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center mr-2 mt-0.5">3</span>
+                            <span class="bg-amber-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center mr-2 mt-0.5">3</span>
                             Enter amount and send
                         </li>
                         <li class="flex items-start">
-                            <span class="bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center mr-2 mt-0.5">4</span>
+                            <span class="bg-amber-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center mr-2 mt-0.5">4</span>
                             Wait for blockchain confirmation
                         </li>
                     </ol>

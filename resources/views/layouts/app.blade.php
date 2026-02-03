@@ -106,9 +106,12 @@
                         
                         <div class="h-8 w-px bg-gray-200 hidden md:block"></div>
                         
-                        <!-- User Avatar Only -->
-                        <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-700 rounded-full flex items-center justify-center" title="{{ auth()->user()->username_pub }}">
-                            <span class="text-white font-bold text-sm">{{ strtoupper(substr(auth()->user()->username_pub, 0, 1)) }}</span>
+                        <!-- User Avatar & Username -->
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-700 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="text-white font-bold text-sm">{{ strtoupper(substr(auth()->user()->username_pri, 0, 1)) }}</span>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">{{ auth()->user()->username_pri }}</span>
                         </div>
                         
                         <!-- Sign Out -->

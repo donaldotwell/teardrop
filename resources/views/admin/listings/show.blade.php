@@ -95,7 +95,7 @@
                     <div class="text-sm text-gray-600">Item Price (USD)</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-2xl font-semibold text-purple-600">
+                    <div class="text-2xl font-semibold text-amber-600">
                         ${{ number_format($listing->price_shipping, 2) }}
                     </div>
                     <div class="text-sm text-gray-600">Shipping Price</div>

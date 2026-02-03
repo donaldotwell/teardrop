@@ -339,18 +339,19 @@ class MoneroCleanup extends Command
             foreach ($addresses as $address) {
                 if (!$this->dryRun) {
                     try {
-                        // Get incoming transfers for this address
-                        $transfers = $this->repository->rpcCall('incoming_transfers', [
+                        // ===== INCOMING TRANSFERS =====
+                        $incomingTransfers = $this->repository->rpcCall('incoming_transfers', [
                             'transfer_type' => 'all',
                             'account_index' => $address->account_index,
                             'subaddr_indices' => [$address->address_index],
                         ]);
 
-                        if (isset($transfers['transfers'])) {
-                            foreach ($transfers['transfers'] as $transfer) {
+                        if (isset($incomingTransfers['transfers'])) {
+                            foreach ($incomingTransfers['transfers'] as $transfer) {
                                 // Check if transaction already exists
                                 $exists = XmrTransaction::where('txid', $transfer['tx_hash'])
                                     ->where('xmr_wallet_id', $wallet->id)
+                                    ->where('xmr_address_id', $address->id)
                                     ->exists();
 
                                 if (!$exists) {
@@ -358,10 +359,10 @@ class MoneroCleanup extends Command
                                         'xmr_wallet_id' => $wallet->id,
                                         'xmr_address_id' => $address->id,
                                         'txid' => $transfer['tx_hash'],
-                                        'type' => 'deposit',
+                                        'type' => 'incoming',
                                         'amount' => $transfer['amount'] / 1e12,
                                         'confirmations' => $transfer['unlocked'] ? config('monero.min_confirmations', 10) : 0,
-                                        'status' => $transfer['unlocked'] ? 'unlocked' : 'pending',
+                                        'status' => $transfer['unlocked'] ? 'unlocked' : 'confirmed',
                                         'raw_transaction' => $transfer,
                                         'confirmed_at' => $transfer['unlocked'] ? now() : null,
                                         'unlocked_at' => $transfer['unlocked'] ? now() : null,
@@ -371,6 +372,54 @@ class MoneroCleanup extends Command
                                 }
                             }
                         }
+
+                        // ===== OUTGOING TRANSFERS =====
+                        $outgoingTransfers = $this->repository->rpcCall('get_transfers', [
+                            'out' => true,
+                            'pending' => true,
+                            'failed' => true,
+                            'account_index' => $address->account_index,
+                            'subaddr_indices' => [$address->address_index],
+                        ]);
+
+                        // Process outgoing transfers
+                        foreach (['out', 'pending', 'failed'] as $type) {
+                            if (isset($outgoingTransfers[$type])) {
+                                foreach ($outgoingTransfers[$type] as $transfer) {
+                                    // Check if transaction already exists
+                                    $exists = XmrTransaction::where('txid', $transfer['txid'])
+                                        ->where('xmr_wallet_id', $wallet->id)
+                                        ->exists();
+
+                                    if (!$exists) {
+                                        // Determine transaction type based on destination or memo
+                                        $txType = 'withdrawal'; // Default
+                                        $status = $type === 'failed' ? 'failed' : 'confirmed';
+                                        
+                                        if ($type === 'pending') {
+                                            $status = 'pending';
+                                        }
+
+                                        XmrTransaction::create([
+                                            'xmr_wallet_id' => $wallet->id,
+                                            'xmr_address_id' => $address->id,
+                                            'txid' => $transfer['txid'],
+                                            'type' => $txType,
+                                            'amount' => -abs($transfer['amount'] / 1e12), // Negative for outgoing
+                                            'fee' => isset($transfer['fee']) ? $transfer['fee'] / 1e12 : 0,
+                                            'confirmations' => $transfer['confirmations'] ?? 0,
+                                            'status' => $status,
+                                            'raw_transaction' => $transfer,
+                                            'confirmed_at' => isset($transfer['timestamp']) ? date('Y-m-d H:i:s', $transfer['timestamp']) : now(),
+                                            'unlocked_at' => ($transfer['confirmations'] ?? 0) >= config('monero.min_confirmations', 10) ? now() : null,
+                                        ]);
+
+                                        $this->stats['transactions_created']++;
+                                    }
+                                }
+                            }
+                        }
+
                     } catch (\Exception $e) {
                         Log::error("Failed to rebuild transactions for address {$address->id}", [
                             'error' => $e->getMessage(),
@@ -408,10 +457,18 @@ class MoneroCleanup extends Command
 
             $wallet = $user->xmrWallet;
 
-            // Calculate balance from XmrTransaction records (the correct way)
-            $dbBalance = XmrTransaction::where('xmr_wallet_id', $wallet->id)
+            // Calculate balance from XmrTransaction records using the same logic as User::getXmrBalance()
+            $totalIncoming = XmrTransaction::where('xmr_wallet_id', $wallet->id)
+                ->where('type', 'incoming')
                 ->where('status', 'unlocked')
-                ->sum(DB::raw('CASE WHEN type = "deposit" THEN amount ELSE -amount END'));
+                ->sum('amount');
+            
+            $totalOutgoing = XmrTransaction::where('xmr_wallet_id', $wallet->id)
+                ->whereIn('type', ['withdrawal', 'escrow_funding', 'direct_payment', 'feature_payment', 'refund'])
+                ->where('status', '!=', 'failed')
+                ->sum('amount');
+            
+            $dbBalance = $totalIncoming - abs($totalOutgoing);
 
             // Get RPC balance (sum all addresses)
             $rpcBalance = 0;

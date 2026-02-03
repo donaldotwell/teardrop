@@ -94,7 +94,7 @@
                     <div class="text-sm text-gray-600">Total Spent</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-2xl font-semibold text-purple-600">
+                    <div class="text-2xl font-semibold text-amber-600">
                         {{ $user->wallets->sum('balance') }}
                     </div>
                     <div class="text-sm text-gray-600">Total Balance</div>
@@ -198,7 +198,7 @@
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center
                                     {{ $wallet->currency === 'btc' ? 'bg-orange-100' : 'bg-purple-100' }}">
                                     <span class="font-bold text-sm
-                                        {{ $wallet->currency === 'btc' ? 'text-orange-600' : 'text-purple-600' }}">
+                                        {{ $wallet->currency === 'btc' ? 'text-orange-600' : 'text-amber-600' }}">
                                         {{ strtoupper($wallet->currency) }}
                                     </span>
                                 </div>

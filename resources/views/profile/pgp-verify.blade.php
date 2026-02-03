@@ -52,25 +52,19 @@
             <div class="border-t border-gray-200 pt-6">
                 <h3 class="font-semibold text-gray-900 mb-3">Encrypted Challenge Message</h3>
                 <p class="text-sm text-gray-600 mb-3">
-                    Copy this entire message and decrypt it with your PGP private key:
+                    Select and copy this entire message, then decrypt it with your PGP private key:
                 </p>
 
-                <div class="relative">
-                    <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-xs leading-relaxed border border-gray-700">{{ $verification->encrypted_message }}</pre>
-
-                    <button type="button"
-
-                            class="absolute top-2 right-2 px-3 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600">
-                        Copy
-                    </button>
+                <div class="bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
+                    <pre class="bg-gray-900 text-amber-300 p-4 rounded-lg overflow-x-auto text-xs leading-relaxed border border-amber-600 select-all">{{ $verification->encrypted_message }}</pre>
                 </div>
 
-                <div class="mt-4 bg-blue-50 border border-blue-200 rounded p-3">
-                    <h4 class="text-sm font-semibold text-blue-900 mb-2">How to Decrypt:</h4>
-                    <ol class="text-xs text-blue-800 space-y-1 list-decimal list-inside">
-                        <li>Copy the encrypted message above</li>
-                        <li>Save it to a file (e.g., <code class="bg-blue-100 px-1 rounded">challenge.asc</code>)</li>
-                        <li>Decrypt using GPG: <code class="bg-blue-100 px-1 rounded">gpg --decrypt challenge.asc</code></li>
+                <div class="mt-4 bg-amber-50 border border-amber-200 rounded p-3">
+                    <h4 class="text-sm font-semibold text-amber-900 mb-2">How to Decrypt:</h4>
+                    <ol class="text-xs text-amber-800 space-y-1 list-decimal list-inside">
+                        <li>Select and copy the encrypted message above (click inside, press Ctrl+A / Cmd+A, then Ctrl+C / Cmd+C)</li>
+                        <li>Save it to a file (e.g., <code class="bg-amber-100 px-1 rounded">challenge.asc</code>)</li>
+                        <li>Decrypt using GPG: <code class="bg-amber-100 px-1 rounded">gpg --decrypt challenge.asc</code></li>
                         <li>Look for the line starting with "Verification Code:"</li>
                         <li>Enter the code in the form below</li>
                     </ol>

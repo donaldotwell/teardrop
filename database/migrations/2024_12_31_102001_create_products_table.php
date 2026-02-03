@@ -16,6 +16,7 @@ return new class extends Migration
             $table->uuid()->unique();
             $table->foreignId('product_category_id');
             $table->string('name', 50)->index();
+            $table->boolean('is_active')->default(true);
             $table->unique(['product_category_id', 'name']);
 
             $table->timestamps();

@@ -10,7 +10,7 @@
                 <p class="text-sm text-gray-600 mt-1">Manage your product listings</p>
             </div>
             <a href="{{ route('vendor.listings.create') }}"
-               class="px-6 py-2.5 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors">
+               class="px-6 py-2.5 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 transition-colors">
                 Create New Listing
             </a>
         </div>
@@ -115,7 +115,7 @@
             <div class="text-gray-400 text-lg mb-2">No Listings Yet</div>
             <p class="text-sm text-gray-500 mb-6">Create your first listing to start selling</p>
             <a href="{{ route('vendor.listings.create') }}"
-               class="inline-block px-6 py-2.5 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors">
+               class="inline-block px-6 py-2.5 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 transition-colors">
                 Create New Listing
             </a>
         </div>

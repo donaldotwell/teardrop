@@ -85,7 +85,7 @@
                             @csrf
                             <input type="hidden" name="assigned_to" value="{{ auth()->id() }}">
                             <button type="submit"
-                                    class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm">
+                                    class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 text-sm">
                                 Assign to Me
                             </button>
                         </form>
@@ -114,7 +114,7 @@
                     <div class="text-sm text-gray-600">Total Messages</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-2xl font-semibold text-purple-600">{{ $supportTicket->attachments->count() }}</div>
+                    <div class="text-2xl font-semibold text-amber-600">{{ $supportTicket->attachments->count() }}</div>
                     <div class="text-sm text-gray-600">Attachments</div>
                 </div>
                 <div class="text-center">
@@ -356,7 +356,7 @@
                                 </select>
                             </div>
                             <button type="submit"
-                                    class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm">
+                                    class="w-full px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm">
                                 Assign Ticket
                             </button>
                         </form>

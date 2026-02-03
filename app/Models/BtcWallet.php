@@ -142,6 +142,54 @@ class BtcWallet extends Model
     }
 
     /**
+     * Get accurate balance from transaction records (not stale cached balance).
+     * 
+     * @return float Current balance in BTC
+     */
+    public function getBalance(): float
+    {
+        // Sum all confirmed deposits
+        $totalReceived = $this->transactions()
+            ->where('type', 'deposit')
+            ->where('status', 'confirmed')
+            ->sum('amount');
+
+        // Sum all withdrawals (confirmed + pending to prevent double-spend)
+        $totalSent = $this->transactions()
+            ->where('type', 'withdrawal')
+            ->whereIn('status', ['confirmed', 'pending'])
+            ->sum('amount');
+
+        return max(0, $totalReceived - abs($totalSent));
+    }
+
+    /**
+     * Get total received from confirmed transactions.
+     * 
+     * @return float Total received in BTC
+     */
+    public function getTotalReceived(): float
+    {
+        return $this->transactions()
+            ->where('type', 'deposit')
+            ->where('status', 'confirmed')
+            ->sum('amount');
+    }
+
+    /**
+     * Get total sent from all withdrawals (confirmed + pending).
+     * 
+     * @return float Total sent in BTC
+     */
+    public function getTotalSent(): float
+    {
+        return abs($this->transactions()
+            ->where('type', 'withdrawal')
+            ->whereIn('status', ['confirmed', 'pending'])
+            ->sum('amount'));
+    }
+
+    /**
      * Get wallet formatted display name.
      */
     public function getDisplayNameAttribute(): string

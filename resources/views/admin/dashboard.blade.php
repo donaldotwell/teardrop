@@ -110,7 +110,7 @@
                         <div class="text-2xl font-semibold text-gray-900">${{ number_format($stats['total_revenue'], 2) }}</div>
                     </div>
                     <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                        <span class="text-purple-600 font-bold">$</span>
+                        <span class="text-amber-600 font-bold">$</span>
                     </div>
                 </div>
                 <div class="mt-3">
@@ -280,7 +280,7 @@
                     <div class="text-sm text-gray-600">New Listings</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-2xl font-semibold text-purple-600">${{ number_format($daily_stats['daily_revenue'] ?? 0, 2) }}</div>
+                    <div class="text-2xl font-semibold text-amber-600">${{ number_format($daily_stats['daily_revenue'] ?? 0, 2) }}</div>
                     <div class="text-sm text-gray-600">Revenue Today</div>
                 </div>
             </div>

@@ -33,11 +33,11 @@
             <div class="p-6 bg-amber-50 border-2 border-amber-100 rounded-xl">
                 <h3 class="text-lg font-semibold text-gray-700 mb-2">Current Balance</h3>
                 <p class="text-2xl font-mono font-bold text-amber-700">
-                    {{ number_format($btcWallet->balance, 8) }} BTC
+                    {{ number_format($walletStats['balance'], 8) }} BTC
                 </p>
                 @if($btcRate)
                     <p class="text-sm text-gray-600 mt-1">
-                        ≈ ${{ number_format($btcWallet->balance * $btcRate->usd_rate, 2) }} USD
+                        ≈ ${{ number_format($walletStats['balance'] * $btcRate->usd_rate, 2) }} USD
                     </p>
                 @endif
             </div>
@@ -45,11 +45,11 @@
             <div class="p-6 bg-gray-50 rounded-xl">
                 <h3 class="text-lg font-semibold text-gray-700 mb-2">Total Received</h3>
                 <p class="text-2xl font-mono font-bold text-gray-900">
-                    {{ number_format($btcWallet->total_received, 8) }} BTC
+                    {{ number_format($walletStats['total_received'], 8) }} BTC
                 </p>
                 @if($btcRate)
                     <p class="text-sm text-gray-600 mt-1">
-                        ≈ ${{ number_format($btcWallet->total_received * $btcRate->usd_rate, 2) }} USD
+                        ≈ ${{ number_format($walletStats['total_received'] * $btcRate->usd_rate, 2) }} USD
                     </p>
                 @endif
             </div>
@@ -57,11 +57,11 @@
             <div class="p-6 bg-gray-50 rounded-xl">
                 <h3 class="text-lg font-semibold text-gray-700 mb-2">Total Sent</h3>
                 <p class="text-2xl font-mono font-bold text-gray-900">
-                    {{ number_format($btcWallet->total_sent, 8) }} BTC
+                    {{ number_format($walletStats['total_sent'], 8) }} BTC
                 </p>
                 @if($btcRate)
                     <p class="text-sm text-gray-600 mt-1">
-                        ≈ ${{ number_format($btcWallet->total_sent * $btcRate->usd_rate, 2) }} USD
+                        ≈ ${{ number_format($walletStats['total_sent'] * $btcRate->usd_rate, 2) }} USD
                     </p>
                 @endif
             </div>
@@ -160,6 +160,9 @@
                             <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Ref ID
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Type
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -179,7 +182,11 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                             @foreach($recentTransactions as $tx)
                                 <tr class="hover:bg-gray-50">
-
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-xs font-mono text-gray-600" title="{{ $tx->uuid }}">
+                                            {{ substr($tx->uuid, 0, 8) }}...
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
                                         {{ $tx->type === 'deposit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">

@@ -21,6 +21,8 @@ class XmrAddress extends Model
         'first_used_at',
         'last_used_at',
         'is_used',
+        'last_synced_height',
+        'last_synced_at',
     ];
 
     protected $casts = [
@@ -33,6 +35,23 @@ class XmrAddress extends Model
         'last_used_at' => 'datetime',
         'is_used' => 'boolean',
     ];
+
+    /**
+     * Boot method - Set up event listeners.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // When a new address is created, mark previous addresses as used
+        static::created(function ($address) {
+            // Mark all previous addresses for this wallet as used (except the newly created one)
+            static::where('xmr_wallet_id', $address->xmr_wallet_id)
+                ->where('id', '!=', $address->id)
+                ->where('is_used', false)
+                ->update(['is_used' => true]);
+        });
+    }
 
     /**
      * Get the wallet that owns the address.

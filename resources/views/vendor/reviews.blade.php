@@ -40,7 +40,7 @@
                                     <div class="font-semibold text-gray-900">{{ $review->user->username_pub }}</div>
                                     <div class="text-sm text-gray-500">{{ $review->created_at->format('F d, Y') }}</div>
                                     <a href="{{ route('listings.show', $review->listing) }}"
-                                       class="text-sm text-purple-600 hover:text-purple-800 mt-1 inline-block">
+                                       class="text-sm text-amber-600 hover:text-purple-800 mt-1 inline-block">
                                         {{ $review->listing->title }}
                                     </a>
                                 </div>

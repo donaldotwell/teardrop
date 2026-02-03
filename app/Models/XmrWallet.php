@@ -145,6 +145,72 @@ class XmrWallet extends Model
     }
 
     /**
+     * Get accurate balance from transaction records (not stale RPC balance).
+     * 
+     * @return array ['balance' => float, 'unlocked_balance' => float]
+     */
+    public function getBalance(): array
+    {
+        $minConfirmations = config('monero.min_confirmations', 10);
+        
+        // Sum all confirmed incoming transactions
+        // 'incoming' = from blockchain sync, 'deposit' = from internal transfers (escrow release, etc.)
+        $totalIncoming = $this->transactions()
+            ->whereIn('type', ['incoming', 'deposit'])
+            ->whereIn('status', ['confirmed', 'unlocked'])
+            ->sum('amount');
+        
+        // Sum all outgoing transactions
+        $totalOutgoing = $this->transactions()
+            ->where('type', 'withdrawal')
+            ->where('status', '!=', 'failed')
+            ->sum('amount');
+        
+        // Total balance
+        $balance = $totalIncoming - abs($totalOutgoing);
+        
+        // Unlocked balance (only fully confirmed transactions)
+        $unlockedIncoming = $this->transactions()
+            ->whereIn('type', ['incoming', 'deposit'])
+            ->where('status', 'unlocked')
+            ->where('confirmations', '>=', $minConfirmations)
+            ->sum('amount');
+        
+        $unlocked_balance = $unlockedIncoming - abs($totalOutgoing);
+        
+        return [
+            'balance' => max(0, $balance),
+            'unlocked_balance' => max(0, $unlocked_balance),
+        ];
+    }
+
+    /**
+     * Get total received from all incoming transactions.
+     * 
+     * @return float Total received in XMR
+     */
+    public function getTotalReceived(): float
+    {
+        return $this->transactions()
+            ->whereIn('type', ['incoming', 'deposit'])
+            ->whereIn('status', ['confirmed', 'unlocked'])
+            ->sum('amount');
+    }
+
+    /**
+     * Get total sent from all withdrawal transactions.
+     * 
+     * @return float Total sent in XMR
+     */
+    public function getTotalSent(): float
+    {
+        return abs($this->transactions()
+            ->where('type', 'withdrawal')
+            ->where('status', '!=', 'failed')
+            ->sum('amount'));
+    }
+
+    /**
      * Get QR code data for the primary address.
      */
     public function getQrCodeData(): string

@@ -80,7 +80,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Escalation Reason</label>
                                 <textarea name="escalation_reason" rows="4" required
-                                          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-amber-500"
                                           placeholder="Explain why this dispute needs admin attention..."></textarea>
                             </div>
                             <div class="flex justify-end">
@@ -394,7 +394,7 @@
                             @csrf
                             <div class="space-y-3">
                                 <textarea name="note" rows="3"
-                                          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-amber-500"
                                           placeholder="Add your note here..."></textarea>
                                 <div class="flex items-center">
                                     <input type="checkbox" name="is_internal" value="1" checked
@@ -420,7 +420,7 @@
                                     <option value="both">From Both Parties</option>
                                 </select>
                                 <textarea name="request_message" rows="2"
-                                          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-amber-500"
                                           placeholder="What information do you need?"></textarea>
                                 <input type="datetime-local" name="deadline"
                                        class="w-full px-3 py-2 border border-gray-300 rounded"

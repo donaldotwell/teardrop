@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('wallet_id');
             $table->decimal('amount', 10, 8);
             $table->enum('type', ['deposit', 'withdrawal', 'order_escrow', 'order_payment', 'order_refund', 'shipped']);
-            $table->string('txid', 255)->nullable();
+            $table->string('txid', 255)->nullable()->unique();
             $table->string('comment', 255)->nullable();
             $table->timestamp('confirmed_at')->nullable();
             $table->timestamp('canceled_at')->nullable();

@@ -89,7 +89,7 @@
                         <form action="{{ route('admin.disputes.assign', $dispute) }}" method="POST">
                             @csrf
                             <button type="submit"
-                                    class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm">
+                                    class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 text-sm">
                                 Assign to Me
                             </button>
                         </form>
@@ -152,7 +152,7 @@
                     <div class="text-sm text-gray-600">Disputed Amount</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-2xl font-semibold text-purple-600">
+                    <div class="text-2xl font-semibold text-amber-600">
                         {{ $dispute->messages->count() }}
                     </div>
                     <div class="text-sm text-gray-600">Total Messages</div>
@@ -408,7 +408,7 @@
                                 </div>
                                 <div class="flex-1">
                                     <div class="font-medium text-gray-900">{{ $dispute->assignedAdmin->username_pub }}</div>
-                                    <div class="text-sm text-purple-600">Assigned Admin</div>
+                                    <div class="text-sm text-amber-600">Assigned Admin</div>
                                     <div class="text-sm text-gray-500">Assigned {{ $dispute->admin_reviewed_at ? $dispute->admin_reviewed_at->diffForHumans() : 'recently' }}</div>
                                 </div>
                             </div>

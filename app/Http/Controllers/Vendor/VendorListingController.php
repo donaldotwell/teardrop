@@ -217,14 +217,6 @@ class VendorListingController extends Controller
         // Get feature fee from config (in USD)
         $feeUsd = config('fees.featured_listing_usd', 10); // $10 USD to feature a listing
 
-        // Get exchange rates
-        $btcRate = ExchangeRate::where('crypto_shortname', 'btc')->first();
-        $xmrRate = ExchangeRate::where('crypto_shortname', 'xmr')->first();
-
-        // Calculate crypto amounts
-        $btcAmount = $btcRate ? number_format($feeUsd / $btcRate->usd_rate, 8) : 'N/A';
-        $xmrAmount = $xmrRate ? number_format($feeUsd / $xmrRate->usd_rate, 8) : 'N/A';
-
         // Get vendor's wallet balances
         $btcWallet = $vendor->btcWallet;
         $xmrWallet = Wallet::where('user_id', $vendor->id)
@@ -234,8 +226,6 @@ class VendorListingController extends Controller
         return view('vendor.listings.feature', compact(
             'listing',
             'feeUsd',
-            'btcAmount',
-            'xmrAmount',
             'btcWallet',
             'xmrWallet'
         ));

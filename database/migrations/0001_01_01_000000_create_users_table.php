@@ -21,6 +21,10 @@ return new class extends Migration
             $table->string('passphrase_2', 140)->nullable();
             $table->integer('trust_level')->default(1);
             $table->integer('vendor_level')->default(0);
+            $table->decimal('rating', 3, 2)->default(0.00);
+            $table->integer('total_early_finalized_orders')->default(0);
+            $table->integer('successful_early_finalized_orders')->default(0);
+            $table->boolean('early_finalization_enabled')->default(true)->index();
             $table->timestamp('vendor_since')->nullable();
             $table->timestamp('last_login_at')->nullable();
             $table->timestamp('last_seen_at')->nullable();

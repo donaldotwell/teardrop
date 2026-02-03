@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             CountriesSeeder::class,
             ProductsSeeder::class,
             RolesSeeder::class,
+            FinalizationWindowSeeder::class,
         ]);
         
         // Step 2: Seed users with roles (only in non-production environments)

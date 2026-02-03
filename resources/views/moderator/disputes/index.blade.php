@@ -17,7 +17,7 @@
     <div class="flex items-center space-x-3">
         <form method="POST" action="{{ route('moderator.disputes.auto-assign') }}" class="inline">
             @csrf
-            <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm">
+            <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 text-sm">
                 Auto-Assign
             </button>
         </form>
@@ -63,7 +63,7 @@
                 <div class="flex-1 min-w-64">
                     <input type="text" name="search" value="{{ request('search') }}"
                            placeholder="Search by dispute #, order #, or usernames..."
-                           class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-amber-500">
                 </div>
 
                 <select name="status" class="px-3 py-2 border border-gray-300 rounded">
@@ -115,7 +115,7 @@
             </div>
             <div class="bg-white border border-gray-200 rounded-lg p-4">
                 <div class="text-sm text-gray-600">Auto-Assigned Today</div>
-                <div class="text-2xl font-semibold text-purple-600">{{ $stats['auto_assigned_today'] }}</div>
+                <div class="text-2xl font-semibold text-amber-600">{{ $stats['auto_assigned_today'] }}</div>
                 <div class="text-xs text-gray-500">System assignments</div>
             </div>
             <div class="bg-white border border-gray-200 rounded-lg p-4">
@@ -181,7 +181,7 @@
                                             Order: {{ $dispute->order->uuid ?? 'N/A' }}
                                         </div>
                                         @if($dispute->auto_assigned)
-                                            <div class="text-xs text-purple-600">Auto-assigned</div>
+                                            <div class="text-xs text-amber-600">Auto-assigned</div>
                                         @endif
                                     </div>
                                 </div>
@@ -334,7 +334,7 @@
                     <div class="text-sm text-gray-600">Resolved by Me</div>
                 </div>
                 <div>
-                    <div class="text-2xl font-bold text-purple-600">{{ $stats['auto_assigned_today'] }}</div>
+                    <div class="text-2xl font-bold text-amber-600">{{ $stats['auto_assigned_today'] }}</div>
                     <div class="text-sm text-gray-600">Auto-Assigned</div>
                 </div>
                 <div>

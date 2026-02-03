@@ -11,6 +11,7 @@ class BtcTransaction extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'uuid',
         'btc_wallet_id',
         'btc_address_id',
         'txid',
@@ -36,6 +37,20 @@ class BtcTransaction extends Model
         'confirmed_at' => 'datetime',
         'deleted_at' => 'datetime'
     ];
+
+    /**
+     * The "booting" method of the model.
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function ($transaction) {
+            if (empty($transaction->uuid)) {
+                $transaction->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
 
     /**
      * Get the wallet that owns this transaction.

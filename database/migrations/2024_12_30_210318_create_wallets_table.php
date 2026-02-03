@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('wallets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id');
-            $table->decimal('balance', 10, 8)->default(0);
+            $table->decimal('balance', 20, 8)->default(0);
             $table->enum('currency', ['btc', 'xmr'])->default('btc');
             $table->unique(['currency', 'user_id']);
             $table->timestamps();

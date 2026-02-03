@@ -36,7 +36,7 @@
         <div class="mb-6 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-sm p-6 text-white">
             <div class="flex items-center justify-between">
                 <span class="text-sm font-medium opacity-90">Current Monero Price</span>
-                <span class="text-2xl font-bold">${{ number_format($xmrPrice, 2) }}</span>
+                <span class="text-2xl font-bold">${{ $xmrRate ? number_format($xmrRate->usd_rate, 2) : 'N/A' }}</span>
             </div>
         </div>
 

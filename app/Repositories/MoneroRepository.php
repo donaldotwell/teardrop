@@ -584,16 +584,17 @@ class MoneroRepository
      */
     public static function findAddressesForPayment(XmrWallet $wallet, float $amount): array
     {
+        // CRITICAL: Don't filter by xmr_addresses.balance (it's DEPRECATED and stale)
+        // Instead, query ALL addresses and check their RPC balance
         $addresses = $wallet->addresses()
-            ->where('balance', '>', 0)
-            ->orderBy('balance', 'desc')
+            ->orderBy('address_index', 'asc')
             ->get();
 
         $selectedAddresses = [];
         $totalCollected = 0;
 
         foreach ($addresses as $address) {
-            // Verify current balance from RPC
+            // Verify current balance from RPC (authoritative source)
             $balanceData = self::getAddressBalance($address->account_index, $address->address_index);
             
             if (!$balanceData || $balanceData['unlocked_balance'] <= 0) {
@@ -619,10 +620,19 @@ class MoneroRepository
                 'wallet_id' => $wallet->id,
                 'needed' => $amount,
                 'collected' => $totalCollected,
-                'addresses_checked' => count($selectedAddresses),
+                'addresses_checked' => count($addresses),
+                'addresses_with_funds' => count($selectedAddresses),
             ]);
             return [];
         }
+
+        Log::info("Found sufficient addresses for payment", [
+            'wallet_id' => $wallet->id,
+            'needed' => $amount,
+            'collected' => $totalCollected,
+            'addresses_selected' => count($selectedAddresses),
+            'address_indices' => array_column($selectedAddresses, 'address_index'),
+        ]);
 
         return $selectedAddresses;
     }
@@ -756,104 +766,170 @@ class MoneroRepository
 
     /**
      * Sync all active Monero wallets from master wallet.
-     * NEW ARCHITECTURE: Query incoming_transfers per subaddress for efficiency and accurate address tracking.
+     * OPTIMIZED: Makes ONE RPC call for all addresses using height-based filtering.
+     * Discovery: subaddr_indices: [0] returns ALL subaddresses, no need to query individually.
      */
     public static function syncAllWallets(): void
     {
-        Log::debug("=== Starting Monero wallet sync (master wallet with subaddresses) ===");
+        Log::debug("=== Starting Monero wallet sync (single RPC call optimization) ===");
 
         $repository = new static();
 
-        // Get all active user wallets with their addresses
-        $activeWallets = XmrWallet::where('is_active', true)
-            ->with('addresses')
+        // Get current blockchain height
+        $heightData = $repository->getCurrentHeight();
+        $currentHeight = $heightData['height'] ?? 0;
+        Log::debug("Current blockchain height: {$currentHeight}");
+
+        // Get all active addresses across all wallets that need syncing
+        // OPTIMIZATION: Only sync addresses that need checking:
+        // 1. Addresses that are not marked as used (is_used = false) - still expecting funds
+        // 2. Addresses with recent transactions (last 30 days) - may have new confirmations
+        $activeAddresses = XmrAddress::whereHas('wallet', function ($query) {
+                $query->where('is_active', true);
+            })
+            ->where(function ($q) {
+                $q->where('is_used', false)
+                  ->orWhere('last_used_at', '>=', now()->subDays(30));
+            })
+            ->with('wallet')
             ->get();
 
-        Log::debug("Found {$activeWallets->count()} active Monero wallet records to sync");
-
-        if ($activeWallets->isEmpty()) {
-            Log::debug("No wallets to sync");
+        if ($activeAddresses->isEmpty()) {
+            Log::debug("No active addresses to sync");
             return;
         }
 
+        Log::debug("Found {$activeAddresses->count()} active addresses across all wallets");
+
+        // Find MINIMUM last_synced_height across all addresses (to catch any that haven't synced)
+        $minHeight = $activeAddresses->min('last_synced_height') ?? 0;
+        Log::debug("Using minimum sync height: {$minHeight}");
+
         try {
-            // Process each wallet by querying incoming_transfers for its specific subaddress
-            foreach ($activeWallets as $wallet) {
-                Log::debug("Processing wallet {$wallet->id} (User: {$wallet->user_id})");
+            // Make ONE RPC call for ALL addresses
+            $params = [
+                'in' => true,
+                'out' => true,
+                'pending' => true,
+                'failed' => false,
+                'pool' => true,
+                'account_index' => 0,
+                // Omit subaddr_indices to get ALL subaddresses in account 0
+            ];
+            
+            // Only filter by height if we have a previous sync point
+            if ($minHeight > 0) {
+                $params['min_height'] = $minHeight;
+                $params['max_height'] = $currentHeight;
+            }
+            
+            Log::debug("Making single RPC call for all addresses (min_height: {$minHeight})");
+            $transfersResult = $repository->rpcCall('get_transfers', $params);
+            
+            // Process all transfer types and tag with type
+            $allTransfers = [];
+            foreach (['in', 'out', 'pending', 'pool'] as $type) {
+                if (isset($transfersResult[$type])) {
+                    foreach ($transfersResult[$type] as $tx) {
+                        $tx['transfer_type'] = $type;
+                        $allTransfers[] = $tx;
+                    }
+                }
+            }
+            
+            Log::debug("Received " . count($allTransfers) . " total transfer(s) from RPC");
+
+            // Build address lookup map for efficient matching
+            $addressLookup = [];
+            foreach ($activeAddresses as $addr) {
+                $addressLookup[$addr->address] = $addr;
+            }
+
+            // Process transactions and distribute to appropriate addresses/wallets
+            $processedCount = 0;
+            $walletsToUpdate = [];
+            
+            foreach ($allTransfers as $tx) {
+                $txHash = $tx['txid'] ?? 'unknown';
+                $confirmations = $tx['confirmations'] ?? 0;
+                $minConfirmations = config('monero.min_confirmations', 10);
                 
-                // Get wallet's address info
-                $addressRecord = $wallet->addresses()->first();
-                
-                if (!$addressRecord) {
-                    Log::warning("  No address record found for wallet {$wallet->id}, skipping");
+                // Skip transactions that haven't met minimum confirmations yet (unless in testing mode)
+                if (!config('monero.force_confirmations') && $confirmations < $minConfirmations) {
+                    Log::debug("  Skipping tx " . substr($txHash, 0, 16) . "... with only {$confirmations} confirmations (need {$minConfirmations})");
                     continue;
                 }
                 
-                $accountIndex = $addressRecord->account_index;
-                $addressIndex = $addressRecord->address_index;
-                
-                Log::debug("  Querying transfers for account {$accountIndex}, subaddress {$addressIndex}");
-                
-                // Query incoming transfers for this specific subaddress
-                $incomingResult = $repository->rpcCall('incoming_transfers', [
-                    'transfer_type' => 'available',
-                    'account_index' => $accountIndex,
-                    'subaddr_indices' => [$addressIndex],
-                ]);
-                
-                $incomingTransfers = $incomingResult['transfers'] ?? [];
-                Log::debug("  Found " . count($incomingTransfers) . " incoming transfer(s)");
-                
-                // Process incoming transfers
-                foreach ($incomingTransfers as $transfer) {
-                    // incoming_transfers returns different format, need to adapt to our format
-                    $txData = [
-                        'txid' => $transfer['tx_hash'] ?? null,
-                        'amount' => $transfer['amount'] ?? 0,
-                        'address' => $addressRecord->address,
-                        'confirmations' => $transfer['confirmations'] ?? 0,
-                        'unlock_time' => $transfer['unlock_time'] ?? 0,
-                        'subaddr_index' => [
-                            'major' => $accountIndex,
-                            'minor' => $addressIndex,
-                        ],
-                        'transfer_type' => 'in',
-                        'spent' => $transfer['spent'] ?? false,
-                    ];
-                    
-                    $repository->processWalletTransaction($wallet, $txData, $addressRecord->id);
+                // CASE 1: Transaction TO one of our tracked addresses (incoming)
+                if (isset($tx['address']) && isset($addressLookup[$tx['address']])) {
+                    $targetAddress = $addressLookup[$tx['address']];
+                    $wallet = $targetAddress->wallet;
+                    Log::debug("  Matched {$tx['transfer_type']} tx to address by direct match: " . substr($tx['address'], 0, 20) . "...");
+                    $repository->processWalletTransaction($wallet, $tx, $targetAddress->id);
+                    $walletsToUpdate[$wallet->id] = $wallet;
+                    $processedCount++;
+                    continue;
                 }
                 
-                // Also get outgoing transfers using get_transfers for this subaddress
-                $outgoingResult = $repository->rpcCall('get_transfers', [
-                    'out' => true,
-                    'pending' => true,
-                    'account_index' => $accountIndex,
-                    'subaddr_indices' => [$addressIndex],
-                ]);
-                
-                $outgoingTransfers = [];
-                foreach (['out', 'pending'] as $type) {
-                    if (isset($outgoingResult[$type])) {
-                        foreach ($outgoingResult[$type] as $tx) {
-                            $tx['transfer_type'] = $type;
-                            $outgoingTransfers[] = $tx;
+                // CASE 2: Transaction FROM one of our tracked addresses (outgoing)
+                // Check subaddr_index to see if sender is tracked
+                if (isset($tx['subaddr_index'])) {
+                    $minor = $tx['subaddr_index']['minor'] ?? null;
+                    if ($minor !== null) {
+                        $senderAddress = $activeAddresses->firstWhere('address_index', $minor);
+                        if ($senderAddress) {
+                            $wallet = $senderAddress->wallet;
+                            Log::debug("  Matched {$tx['transfer_type']} tx from tracked address at subaddr_index {$minor}");
+                            $repository->processWalletTransaction($wallet, $tx, $senderAddress->id);
+                            $walletsToUpdate[$wallet->id] = $wallet;
+                            $processedCount++;
+                            // Don't continue - also check if ANY destination is tracked (internal transfer)
                         }
                     }
                 }
                 
-                Log::debug("  Found " . count($outgoingTransfers) . " outgoing transfer(s)");
-                
-                // Process outgoing transfers
-                foreach ($outgoingTransfers as $tx) {
-                    $repository->processWalletTransaction($wallet, $tx, $addressRecord->id);
+                // CASE 3: Internal transfer - check if ANY destination address is tracked
+                // This handles transfers from untracked addresses (like primary 0/0) to our tracked subaddresses
+                if (isset($tx['destinations']) && $tx['transfer_type'] === 'out') {
+                    foreach ($tx['destinations'] as $dest) {
+                        if (isset($dest['address']) && isset($addressLookup[$dest['address']])) {
+                            $receiverAddress = $addressLookup[$dest['address']];
+                            $wallet = $receiverAddress->wallet;
+                            
+                            Log::info("  Internal transfer: Recording DEPOSIT to tracked address " . 
+                                substr($dest['address'], 0, 20) . "... for " . ($dest['amount'] / 1e12) . " XMR");
+                            
+                            // Create a modified transaction object for the receiver's perspective
+                            $receiverTx = $tx;
+                            $receiverTx['address'] = $dest['address']; // Set as receiver's address
+                            $receiverTx['amount'] = $dest['amount']; // Amount received
+                            $receiverTx['transfer_type'] = 'in'; // Override to 'in' for deposit recording
+                            
+                            $repository->processWalletTransaction($wallet, $receiverTx, $receiverAddress->id);
+                            $walletsToUpdate[$wallet->id] = $wallet;
+                            $processedCount++;
+                        }
+                    }
                 }
+            }
+            
+            Log::debug("Processed {$processedCount} transaction(s) for " . count($walletsToUpdate) . " wallet(s)");
 
-                // Update wallet balance
+            // Update sync tracking for ALL addresses to current height
+            // This prevents re-processing same blocks on next sync
+            foreach ($activeAddresses as $addressRecord) {
+                $addressRecord->update([
+                    'last_synced_height' => $currentHeight,
+                    'last_synced_at' => now(),
+                ]);
+            }
+
+            // Update wallet balances for affected wallets
+            foreach ($walletsToUpdate as $wallet) {
                 $wallet->updateBalance();
             }
 
-            Log::debug("=== Monero wallet sync completed ===");
+            Log::debug("=== Monero wallet sync completed (height: {$currentHeight}, 1 RPC call) ===");
 
         } catch (\Exception $e) {
             Log::error("Failed to sync Monero wallets: " . $e->getMessage());

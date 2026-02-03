@@ -33,10 +33,20 @@ class MoneroController extends Controller
 
         $balance = $user->getBalance();
 
+        // Calculate fresh stats from transactions (not stale fields)
+        $balanceData = $xmrWallet->getBalance();
+        $walletStats = [
+            'balance' => $balanceData['balance'],
+            'unlocked_balance' => $balanceData['unlocked_balance'],
+            'total_received' => $xmrWallet->getTotalReceived(),
+            'total_sent' => $xmrWallet->getTotalSent(),
+        ];
+
         return view('monero.index', compact(
             'xmrWallet',
             'recentTransactions',
-            'balance'
+            'balance',
+            'walletStats'
         ));
     }
 
@@ -84,15 +94,10 @@ class MoneroController extends Controller
             $qrCodeDataUri = null;
         }
 
-        // Get current XMR price from database
-        $xmrRate = \App\Models\ExchangeRate::where('crypto_shortname', 'xmr')->first();
-        $xmrPrice = $xmrRate ? $xmrRate->usd_rate : 0;
-
         return view('monero.topup', compact(
             'xmrWallet',
             'currentAddress',
-            'qrCodeDataUri',
-            'xmrPrice'
+            'qrCodeDataUri'
         ));
     }
 
@@ -103,6 +108,10 @@ class MoneroController extends Controller
     {
         $user = $request->user();
         $xmrWallet = MoneroRepository::getOrCreateWalletForUser($user);
+
+        // Get real-time balance from transactions (not stale wallet balance)
+        $balanceData = $user->getXmrBalance();
+        $unlockedBalance = $balanceData['unlocked_balance'];
 
         // Validate withdrawal request
         $validated = $request->validate([
@@ -115,7 +124,7 @@ class MoneroController extends Controller
                 'required',
                 'numeric',
                 'min:0.000000000001', // Minimum XMR amount
-                'max:' . $xmrWallet->unlocked_balance,
+                'max:' . $unlockedBalance,
             ],
             'pin' => 'required|string|size:6',
         ], [
@@ -123,7 +132,7 @@ class MoneroController extends Controller
             'address.regex' => 'Invalid Monero address format.',
             'amount.required' => 'Amount is required.',
             'amount.min' => 'Minimum withdrawal amount is 0.000000000001 XMR.',
-            'amount.max' => 'Insufficient unlocked balance. Available: ' . number_format($xmrWallet->unlocked_balance, 12) . ' XMR.',
+            'amount.max' => 'Insufficient unlocked balance. Available: ' . number_format($unlockedBalance, 12) . ' XMR.',
             'pin.required' => 'Security PIN is required.',
             'pin.size' => 'PIN must be exactly 6 digits.',
         ]);
@@ -146,11 +155,16 @@ class MoneroController extends Controller
         try {
             DB::beginTransaction();
 
-            // Lock wallet to prevent race conditions
+            // Lock wallet to prevent race conditions - MUST BE FIRST
             $xmrWallet = XmrWallet::where('id', $xmrWallet->id)->lockForUpdate()->first();
 
-            // Re-validate balance after lock
-            if ($xmrWallet->unlocked_balance < $validated['amount']) {
+            // Re-validate balance after lock using transaction-based calculation
+            // Clear cache to get fresh balance
+            \Cache::forget('user_xmr_balance_' . $user->id);
+            $balanceData = $user->getXmrBalance();
+            $unlockedBalance = $balanceData['unlocked_balance'];
+
+            if ($unlockedBalance < $validated['amount']) {
                 DB::rollBack();
                 return back()
                     ->withInput()
@@ -194,11 +208,62 @@ class MoneroController extends Controller
             DB::commit();
 
             // Broadcast to Monero network (outside transaction to avoid long locks)
-            $txHash = MoneroRepository::transfer(
-                $xmrWallet->name,
-                $validated['address'],
-                $validated['amount']
-            );
+            // Use multi-address payment logic from Phase 3
+            $txHash = null;
+            
+            // Find addresses that can cover the withdrawal amount
+            $sourceAddresses = MoneroRepository::findAddressesForPayment($xmrWallet, $validated['amount']);
+
+            if (empty($sourceAddresses)) {
+                // Rollback if no addresses found with sufficient balance
+                $withdrawal->delete();
+                $xmrWallet->updateBalance();
+
+                \Log::warning("Withdrawal failed: No addresses with sufficient unlocked balance", [
+                    'user_id' => $user->id,
+                    'amount' => $validated['amount'],
+                    'wallet_balance' => $xmrWallet->unlocked_balance,
+                ]);
+
+                return back()
+                    ->withInput()
+                    ->withErrors(['amount' => 'Unable to find addresses with sufficient unlocked balance. Funds may still be confirming.']);
+            }
+
+            // Use single or multi-address withdrawal
+            if (count($sourceAddresses) === 1 && $sourceAddresses[0]['balance'] >= $validated['amount']) {
+                // Single address has enough - use standard transfer
+                $txHash = MoneroRepository::transfer(
+                    $xmrWallet->name,
+                    $validated['address'],
+                    $validated['amount']
+                );
+            } else {
+                // Multiple addresses needed - use sweep
+                $addressIndices = array_column($sourceAddresses, 'address_index');
+                $accountIndex = $sourceAddresses[0]['account_index'];
+
+                \Log::info("Using multi-address withdrawal", [
+                    'user_id' => $user->id,
+                    'num_addresses' => count($addressIndices),
+                    'address_indices' => $addressIndices,
+                    'amount' => $validated['amount'],
+                ]);
+
+                $result = MoneroRepository::sweepAddresses(
+                    $addressIndices,
+                    $accountIndex,
+                    $validated['address'],
+                    $validated['amount']
+                );
+
+                $txHash = $result['tx_hash'] ?? null;
+                
+                // Update withdrawal with actual fee if available
+                if (isset($result['fee']) && $result['fee'] > 0) {
+                    $withdrawal->update(['fee' => $result['fee']]);
+                }
+            }
 
             if (!$txHash) {
                 // Rollback if broadcast fails

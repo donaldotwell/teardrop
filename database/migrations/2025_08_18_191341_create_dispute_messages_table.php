@@ -19,7 +19,8 @@ return new class extends Migration
                 'system_message',   // Automated system message
                 'status_update',    // Status change notification
                 'evidence_upload',  // Evidence submission
-                'resolution_note'   // Final resolution message
+                'resolution_note',  // Final resolution message
+                'assignment_update' // Admin assignment/reassignment notification
             ])->default('user_message');
 
             $table->boolean('is_internal')->default(false); // Admin-only messages

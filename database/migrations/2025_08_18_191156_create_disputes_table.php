@@ -15,6 +15,10 @@ return new class extends Migration
             $table->foreignId('initiated_by')->constrained('users')->onDelete('cascade'); // User who started dispute
             $table->foreignId('disputed_against')->constrained('users')->onDelete('cascade'); // Other party in dispute
             $table->foreignId('assigned_admin_id')->nullable()->constrained('users')->onDelete('set null'); // Admin handling case
+            $table->foreignId('assigned_moderator_id')->nullable()->constrained('users');
+            $table->timestamp('assigned_at')->nullable();
+            $table->boolean('auto_assigned')->default(false);
+            $table->timestamp('info_request_deadline')->nullable();
 
             $table->enum('type', [
                 'item_not_received',
@@ -59,10 +63,12 @@ return new class extends Migration
 
             $table->decimal('refund_amount', 10, 2)->nullable(); // Amount refunded if applicable
             $table->timestamp('vendor_responded_at')->nullable();
+            $table->timestamp('buyer_responded_at')->nullable();
             $table->timestamp('admin_reviewed_at')->nullable();
             $table->timestamp('resolved_at')->nullable();
             $table->timestamp('closed_at')->nullable();
             $table->timestamp('escalated_at')->nullable();
+            $table->text('escalation_reason')->nullable();
             $table->timestamps();
 
             // Indexes for better performance
@@ -70,6 +76,9 @@ return new class extends Migration
             $table->index(['assigned_admin_id', 'status']);
             $table->index(['type', 'status']);
             $table->index('priority');
+            $table->index('assigned_moderator_id');
+            $table->index(['status', 'assigned_moderator_id']);
+            $table->index(['auto_assigned', 'assigned_at']);
         });
     }
 

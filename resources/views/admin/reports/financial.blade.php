@@ -85,7 +85,7 @@
 
             <div class="bg-white border border-gray-200 rounded-lg p-6">
                 <div class="text-sm text-gray-600 mb-1">Monero Revenue</div>
-                <div class="text-2xl font-semibold text-purple-600">
+                <div class="text-2xl font-semibold text-amber-600">
                     ${{ number_format($revenue->xmr_revenue ?? 0, 2) }}
                 </div>
                 <div class="text-sm text-gray-500 mt-1">
@@ -163,7 +163,7 @@
                     <div class="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
                         <div class="flex items-center space-x-3">
                             <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                                <span class="text-purple-600 font-bold text-sm">ɱ</span>
+                                <span class="text-amber-600 font-bold text-sm">ɱ</span>
                             </div>
                             <div>
                                 <div class="font-medium text-gray-900">Monero (XMR)</div>
@@ -240,7 +240,7 @@
                 </a>
 
                 <a href="{{ route('admin.reports.users') }}"
-                   class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                   class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700">
                     User Report
                 </a>
             </div>

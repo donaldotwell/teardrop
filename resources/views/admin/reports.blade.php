@@ -29,7 +29,7 @@
                     Export All Listings
                 </a>
                 <a href="{{ route('admin.users.export') }}"
-                   class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                   class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700">
                     Export User List
                 </a>
                 <a href="{{ route('admin.reports.financial') }}"
@@ -82,7 +82,7 @@
                 <div class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
                         <div class="text-center p-4 bg-purple-50 rounded-lg">
-                            <div class="text-2xl font-semibold text-purple-600">
+                            <div class="text-2xl font-semibold text-amber-600">
                                 {{ \App\Models\User::whereMonth('created_at', now()->month)->count() }}
                             </div>
                             <div class="text-sm text-gray-600">New This Month</div>
@@ -225,7 +225,7 @@
                             <div class="text-xs text-gray-600">Active Listings</div>
                         </div>
                         <div class="text-center p-3 bg-purple-50 rounded">
-                            <div class="text-lg font-semibold text-purple-600">
+                            <div class="text-lg font-semibold text-amber-600">
                                 {{ \App\Models\Listing::where('is_featured', true)->count() }}
                             </div>
                             <div class="text-xs text-gray-600">Featured</div>

@@ -19,7 +19,7 @@
                 <label for="title" class="block text-sm font-medium text-gray-700 mb-2">Title <span class="text-red-600">*</span></label>
                 <input type="text" name="title" id="title" maxlength="140" required
                        value="{{ old('title', $listing->title) }}"
-                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
                 @error('title')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
@@ -30,7 +30,7 @@
                 <label for="short_description" class="block text-sm font-medium text-gray-700 mb-2">Short Description <span class="text-red-600">*</span></label>
                 <input type="text" name="short_description" id="short_description" maxlength="255" required
                        value="{{ old('short_description', $listing->short_description) }}"
-                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                       class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
                 @error('short_description')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
@@ -40,7 +40,7 @@
             <div>
                 <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Full Description <span class="text-red-600">*</span></label>
                 <textarea name="description" id="description" rows="6" required
-                          class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">{{ old('description', $listing->description) }}</textarea>
+                          class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">{{ old('description', $listing->description) }}</textarea>
                 @error('description')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
@@ -67,7 +67,7 @@
                     <label for="price" class="block text-sm font-medium text-gray-700 mb-2">Price (USD) <span class="text-red-600">*</span></label>
                     <input type="number" name="price" id="price" step="0.01" min="0" required
                            value="{{ old('price', $listing->price) }}"
-                           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
                     @error('price')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -77,7 +77,7 @@
                     <label for="price_shipping" class="block text-sm font-medium text-gray-700 mb-2">Shipping Cost (USD) <span class="text-red-600">*</span></label>
                     <input type="number" name="price_shipping" id="price_shipping" step="0.01" min="0" required
                            value="{{ old('price_shipping', $listing->price_shipping) }}"
-                           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
                     @error('price_shipping')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -87,12 +87,12 @@
                     <label for="quantity" class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
                     <input type="number" name="quantity" id="quantity" min="1"
                            value="{{ old('quantity', $listing->quantity) }}"
-                           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                            @if($listing->quantity === null) disabled @endif>
                     <div class="flex items-center gap-2 mt-2">
                         <input type="checkbox" name="is_unlimited" id="is_unlimited" value="1"
                                @if($listing->quantity === null) checked @endif
-                               class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                               class="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500">
                         <label for="is_unlimited" class="text-sm text-gray-700">Unlimited quantity</label>
                     </div>
                     @error('quantity')
@@ -121,14 +121,14 @@
             <!-- Active Status -->
             <div class="flex items-center gap-2">
                 <input type="checkbox" name="is_active" id="is_active" value="1" {{ old('is_active', $listing->is_active) ? 'checked' : '' }}
-                       class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                       class="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500">
                 <label for="is_active" class="text-sm font-medium text-gray-700">Listing is active</label>
             </div>
 
             <!-- Submit Buttons -->
             <div class="flex items-center gap-4 pt-4 border-t border-gray-200">
                 <button type="submit"
-                        class="px-6 py-2.5 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors">
+                        class="px-6 py-2.5 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 transition-colors">
                     Update Listing
                 </button>
                 <a href="{{ route('vendor.listings.index') }}"

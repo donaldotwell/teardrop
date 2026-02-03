@@ -16,6 +16,11 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('title', 255);
             $table->text('body');
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->foreignId('assigned_moderator_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('moderated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('moderated_at')->nullable();
+            $table->text('moderation_notes')->nullable();
             $table->boolean('is_locked')->default(false);
             $table->boolean('is_pinned')->default(false);
             $table->integer('views_count')->default(0);
@@ -25,6 +30,8 @@ return new class extends Migration
 
             $table->index(['created_at', 'is_pinned']);
             $table->index('last_activity_at');
+            $table->index('status');
+            $table->index('assigned_moderator_id');
         });
     }
 

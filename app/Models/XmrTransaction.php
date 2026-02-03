@@ -10,6 +10,7 @@ class XmrTransaction extends Model
     use HasFactory;
 
     protected $fillable = [
+        'uuid',
         'xmr_wallet_id',
         'xmr_address_id',
         'txid',
@@ -40,6 +41,20 @@ class XmrTransaction extends Model
     ];
 
     /**
+     * The "booting" method of the model.
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function ($transaction) {
+            if (empty($transaction->uuid)) {
+                $transaction->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
+
+    /**
      * Get the wallet that owns the transaction.
      */
     public function wallet()
@@ -58,7 +73,7 @@ class XmrTransaction extends Model
     /**
      * Update transaction confirmations and status.
      */
-    public function updateConfirmations(int $confirmations, int $height = null)
+    public function updateConfirmations(int $confirmations, ?int $height = null)
     {
         $this->confirmations = $confirmations;
 
