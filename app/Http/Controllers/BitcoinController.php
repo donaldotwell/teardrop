@@ -166,16 +166,8 @@ class BitcoinController extends Controller
                     ->withErrors(['amount' => 'Insufficient balance. Another withdrawal may be in progress.']);
             }
 
-            // Calculate USD value at time of withdrawal
-            $usdValue = null;
-            try {
-                $btcRate = \App\Models\ExchangeRate::where('crypto_shortname', 'btc')->first();
-                if ($btcRate) {
-                    $usdValue = $validated['amount'] * $btcRate->usd_rate;
-                }
-            } catch (\Exception $e) {
-                \Log::warning("Failed to calculate USD value for withdrawal: " . $e->getMessage());
-            }
+            // Calculate USD value at time of withdrawal using helper function
+            $usdValue = convert_crypto_to_usd($validated['amount'], 'btc');
 
             // Create withdrawal transaction record FIRST (prevents double-spend)
             $withdrawal = $btcWallet->transactions()->create([

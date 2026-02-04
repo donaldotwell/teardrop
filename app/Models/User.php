@@ -396,6 +396,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the disputes assigned to this moderator.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function moderatorDisputes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Dispute::class, 'assigned_moderator_id');
+    }
+
+    /**
      * Get the dispute messages sent by this user.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany

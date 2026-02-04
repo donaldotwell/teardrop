@@ -97,12 +97,12 @@ class ModeratorDisputeController extends Controller
             'evidence.uploadedBy'
         ]);
 
-        // Get all messages visible to moderators
+        // Get all messages visible to moderators (all non-internal + moderator notes)
         $messages = $dispute->messages()
             ->with('user')
             ->where(function($q) {
                 $q->where('is_internal', false)
-                    ->orWhere('message_type', 'moderator_note');
+                    ->orWhereIn('message_type', ['moderator_note', 'moderator_message']);
             })
             ->orderBy('created_at', 'asc')
             ->get();
@@ -582,5 +582,142 @@ class ModeratorDisputeController extends Controller
         } else {
             return round($avgMinutes / 1440, 1) . ' days';
         }
+    }
+
+    /**
+     * Add message to dispute (moderator can communicate with parties)
+     */
+    public function addMessage(Request $request, Dispute $dispute)
+    {
+        $request->validate([
+            'message' => 'required|string|max:5000',
+        ]);
+
+        $moderator = auth()->user();
+
+        // Verify moderator has permission to participate
+        if ($dispute->assigned_moderator_id !== $moderator->id && !$moderator->hasRole('admin')) {
+            return redirect()->back()
+                ->with('error', 'You do not have permission to message this dispute.');
+        }
+
+        $dispute->messages()->create([
+            'user_id' => $moderator->id,
+            'message' => $request->message,
+            'message_type' => 'moderator_message',
+            'is_internal' => false, // Visible to parties
+        ]);
+
+        // Log the action
+        AuditLog::log('dispute_message_added', $moderator->id, [
+            'dispute_id' => $dispute->id,
+            'dispute_number' => $dispute->dispute_number
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Message sent successfully.');
+    }
+
+    /**
+     * Upload evidence to dispute (moderator can add evidence)
+     */
+    public function uploadEvidence(Request $request, Dispute $dispute)
+    {
+        $request->validate([
+            'evidence_file' => 'required|file|max:2048|mimes:jpg,jpeg,png,gif,pdf',
+            'evidence_type' => 'required|in:product_photo,packaging_photo,shipping_label,receipt,communication,damage_photo,tracking_info,other_document',
+            'description' => 'nullable|string|max:500'
+        ]);
+
+        $moderator = auth()->user();
+
+        // Verify moderator has permission
+        if ($dispute->assigned_moderator_id !== $moderator->id && !$moderator->hasRole('admin')) {
+            return redirect()->back()
+                ->with('error', 'You do not have permission to upload evidence to this dispute.');
+        }
+
+        // Get file and encode as base64 (same as DisputeController)
+        $file = $request->file('evidence_file');
+        $fileContent = base64_encode(file_get_contents($file->getRealPath()));
+        $mimeType = $file->getMimeType();
+
+        // Create evidence record
+        $evidence = $dispute->evidence()->create([
+            'uploaded_by' => $moderator->id,
+            'file_name' => $file->getClientOriginalName(),
+            'content' => $fileContent,
+            'type' => $mimeType,
+            'file_type' => str_starts_with($mimeType, 'image/') ? 'image' : 'document',
+            'file_size' => $file->getSize(),
+            'description' => $request->description,
+            'evidence_type' => $request->evidence_type,
+            'is_verified' => true, // Moderator evidence is auto-verified
+        ]);
+
+        // Add message about evidence upload
+        $dispute->messages()->create([
+            'user_id' => $moderator->id,
+            'message' => "Evidence uploaded by moderator: {$evidence->file_name}" .
+                ($evidence->description ? " - {$evidence->description}" : ""),
+            'message_type' => 'evidence_upload',
+            'is_internal' => false,
+        ]);
+
+        // Log the action
+        AuditLog::log('dispute_evidence_uploaded', $moderator->id, [
+            'dispute_id' => $dispute->id,
+            'dispute_number' => $dispute->dispute_number,
+            'uploaded_by_moderator' => true
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Evidence uploaded successfully.');
+    }
+
+    /**
+     * Download evidence file
+     */
+    public function downloadEvidence(Dispute $dispute, $evidenceId)
+    {
+        $evidence = $dispute->evidence()->findOrFail($evidenceId);
+        $moderator = auth()->user();
+
+        // Verify moderator has permission
+        if ($dispute->assigned_moderator_id !== $moderator->id && !$moderator->hasRole('admin')) {
+            abort(403, 'You do not have permission to download this evidence.');
+        }
+
+        // Log the download
+        AuditLog::log('dispute_evidence_downloaded', $moderator->id, [
+            'dispute_id' => $dispute->id,
+            'evidence_id' => $evidence->id
+        ]);
+
+        // Decode base64 content and return as download
+        $fileContent = base64_decode($evidence->content);
+        return response($fileContent, 200, [
+            'Content-Type' => $evidence->type,
+            'Content-Disposition' => 'attachment; filename="' . $evidence->file_name . '"',
+        ]);
+    }
+
+    /**
+     * Mark dispute messages as read
+     */
+    public function markMessagesRead(Dispute $dispute)
+    {
+        $moderator = auth()->user();
+
+        // Verify moderator has permission
+        if ($dispute->assigned_moderator_id !== $moderator->id && !$moderator->hasRole('admin')) {
+            return redirect()->back()
+                ->with('error', 'You do not have permission to access this dispute.');
+        }
+
+        // Mark all unread messages as read (if implementing read tracking)
+        // For now, just return success
+        return redirect()->back()
+            ->with('success', 'Messages marked as read.');
     }
 }

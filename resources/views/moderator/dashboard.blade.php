@@ -129,6 +129,36 @@
             </div>
         </div>
 
+        {{-- Dispute Management Metrics --}}
+        <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Dispute Management</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="p-4 border border-blue-200 rounded-lg">
+                    <div class="text-sm text-gray-600 mb-1">Open Disputes</div>
+                    <div class="text-2xl font-semibold text-blue-600 mb-2">{{ number_format($stats['open_disputes']) }}</div>
+                    <a href="{{ route('moderator.disputes.index') }}" class="text-sm text-blue-600 hover:text-blue-800">
+                        View All →
+                    </a>
+                </div>
+
+                <div class="p-4 border border-orange-200 rounded-lg">
+                    <div class="text-sm text-gray-600 mb-1">Unassigned</div>
+                    <div class="text-2xl font-semibold text-orange-600 mb-2">{{ number_format($stats['unassigned_disputes']) }}</div>
+                    <a href="{{ route('moderator.disputes.index', ['filter' => 'unassigned']) }}" class="text-sm text-orange-600 hover:text-orange-800">
+                        Assign Now →
+                    </a>
+                </div>
+
+                <div class="p-4 border border-red-200 rounded-lg">
+                    <div class="text-sm text-gray-600 mb-1">High Priority</div>
+                    <div class="text-2xl font-semibold text-red-600 mb-2">{{ number_format($stats['high_priority_disputes']) }}</div>
+                    <a href="{{ route('moderator.disputes.index', ['priority' => 'high']) }}" class="text-sm text-red-600 hover:text-red-800">
+                        Review Now →
+                    </a>
+                </div>
+            </div>
+        </div>
+
         {{-- Quick Moderation Actions --}}
         <div class="bg-white border border-gray-200 rounded-lg p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
@@ -153,6 +183,35 @@
                     <div class="text-2xl font-semibold text-orange-600 mb-2">{{ $stats['suspicious_users'] }}</div>
                     <div class="text-sm text-gray-600">Require review</div>
                 </a>
+            </div>
+        </div>
+
+        {{-- My Personal Statistics --}}
+        <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">My Statistics</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="text-sm text-gray-600 mb-1">Reports Today</div>
+                    <div class="text-2xl font-semibold text-blue-600">{{ number_format($my_stats['reports_today']) }}</div>
+                </div>
+
+                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div class="text-sm text-gray-600 mb-1">Reports This Week</div>
+                    <div class="text-2xl font-semibold text-green-600">{{ number_format($my_stats['reports_this_week']) }}</div>
+                </div>
+
+                <div class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div class="text-sm text-gray-600 mb-1">My Assigned Disputes</div>
+                    <div class="text-2xl font-semibold text-purple-600">{{ number_format($my_stats['my_assigned_disputes']) }}</div>
+                    <a href="{{ route('moderator.disputes.index', ['assigned_to' => 'me']) }}" class="text-xs text-purple-600 hover:text-purple-800 mt-1 inline-block">
+                        View →
+                    </a>
+                </div>
+
+                <div class="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div class="text-sm text-gray-600 mb-1">Disputes This Week</div>
+                    <div class="text-2xl font-semibold text-orange-600">{{ number_format($my_stats['my_disputes_this_week']) }}</div>
+                </div>
             </div>
         </div>
 

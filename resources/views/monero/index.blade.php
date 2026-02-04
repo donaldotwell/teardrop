@@ -87,7 +87,7 @@
                                required
                                step="0.000000000001"
                                min="0.001"
-                               max="{{ $xmrWallet->balance }}"
+                               max="{{ $balance['xmr']['balance'] }}"
                                placeholder="0.000000000000"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-mono
                                       @error('amount') border-red-500 @enderror">
@@ -95,7 +95,7 @@
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                         <p class="mt-1 text-xs text-gray-500">
-                            Available: {{ number_format($xmrWallet->balance, 12) }} XMR
+                            Available: {{ number_format($balance['xmr']['balance'], 12) }} XMR
                         </p>
                     </div>
                 </div>

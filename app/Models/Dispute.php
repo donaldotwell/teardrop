@@ -33,6 +33,7 @@ class Dispute extends Model
             'resolved_at' => 'datetime',
             'closed_at' => 'datetime',
             'escalated_at' => 'datetime',
+            'info_request_deadline' => 'datetime',
             'disputed_amount' => 'decimal:2',
             'refund_amount' => 'decimal:2',
         ];
@@ -361,6 +362,6 @@ class Dispute extends Model
      */
     public function assignedModerator()
     {
-        return $this->belongsTo(User::class, 'assigned_moderator_id');
+        return $this->belongsTo(User::class, 'assigned_moderator_id', 'id');
     }
 }

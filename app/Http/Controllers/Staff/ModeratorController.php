@@ -8,6 +8,7 @@ use App\Models\ForumComment;
 use App\Models\ForumReport;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Models\Dispute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -60,6 +61,16 @@ class ModeratorController extends Controller
             'banned_users' => User::where('status', 'banned')->count(),
             'suspicious_users' => $this->getSuspiciousUsersCount(),
 
+            // Dispute stats
+            'open_disputes' => Dispute::open()->count(),
+            'unassigned_disputes' => Dispute::open()
+                ->whereNull('assigned_moderator_id')
+                ->whereNull('assigned_admin_id')
+                ->count(),
+            'high_priority_disputes' => Dispute::open()
+                ->whereIn('priority', ['high', 'urgent'])
+                ->count(),
+
             // Health metrics
             'total_posts' => ForumPost::count(),
             'total_comments' => ForumComment::count(),
@@ -89,6 +100,19 @@ class ModeratorController extends Controller
             'users_banned_today' => AuditLog::where('user_id', $userId)
                 ->where('action', 'user_banned')
                 ->where('created_at', '>=', $today)
+                ->count(),
+
+            // My dispute stats
+            'my_assigned_disputes' => Dispute::where('assigned_moderator_id', $userId)
+                ->open()
+                ->count(),
+
+            'my_disputes_today' => Dispute::where('assigned_moderator_id', $userId)
+                ->whereDate('assigned_at', $today)
+                ->count(),
+
+            'my_disputes_this_week' => Dispute::where('assigned_moderator_id', $userId)
+                ->where('assigned_at', '>=', $weekStart)
                 ->count(),
 
             'avg_review_time' => $this->getMyAverageReviewTime(),

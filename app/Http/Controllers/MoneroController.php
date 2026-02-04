@@ -110,8 +110,8 @@ class MoneroController extends Controller
         $xmrWallet = MoneroRepository::getOrCreateWalletForUser($user);
 
         // Get real-time balance from transactions (not stale wallet balance)
-        $balanceData = $user->getXmrBalance();
-        $unlockedBalance = $balanceData['unlocked_balance'];
+        $balanceData = $user->getBalance();
+        $unlockedBalance = $balanceData['xmr']['unlocked_balance'];
 
         // Validate withdrawal request
         $validated = $request->validate([
@@ -161,8 +161,8 @@ class MoneroController extends Controller
             // Re-validate balance after lock using transaction-based calculation
             // Clear cache to get fresh balance
             \Cache::forget('user_xmr_balance_' . $user->id);
-            $balanceData = $user->getXmrBalance();
-            $unlockedBalance = $balanceData['unlocked_balance'];
+            $balanceData = $user->getBalance();
+            $unlockedBalance = $balanceData['xmr']['unlocked_balance'];
 
             if ($unlockedBalance < $validated['amount']) {
                 DB::rollBack();
@@ -171,16 +171,8 @@ class MoneroController extends Controller
                     ->withErrors(['amount' => 'Insufficient unlocked balance. Another transaction may be in progress.']);
             }
 
-            // Calculate USD value at time of withdrawal
-            $usdValue = null;
-            try {
-                $xmrRate = \App\Models\ExchangeRate::where('crypto_shortname', 'xmr')->first();
-                if ($xmrRate) {
-                    $usdValue = $validated['amount'] * $xmrRate->usd_rate;
-                }
-            } catch (\Exception $e) {
-                \Log::warning("Failed to calculate USD value for withdrawal: " . $e->getMessage());
-            }
+            // Calculate USD value at time of withdrawal using helper function
+            $usdValue = convert_crypto_to_usd($validated['amount'], 'xmr');
 
             // Create withdrawal transaction record first
             $withdrawal = $xmrWallet->transactions()->create([

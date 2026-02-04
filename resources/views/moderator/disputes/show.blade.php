@@ -34,64 +34,18 @@
                     </button>
                 </form>
 
-                <details class="inline-block relative">
-                    <summary class="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                        Reassign
-                    </summary>
-                    <div class="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-10 p-4">
-                        <form method="POST" action="{{ route('moderator.disputes.reassign-moderator', $dispute) }}">
-                            @csrf
-                            @method('POST')
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-gray-700">
-                                    Transfer to Moderator
-                                </label>
-                                <select name="moderator_id" required class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
-                                    <option value="">Select moderator...</option>
-                                    @foreach($moderators as $moderator)
-                                        @if($moderator->id !== auth()->id())
-                                            <option value="{{ $moderator->id }}">
-                                                {{ $moderator->username_pub }}
-                                            </option>
-                                        @endif
-                                    @endforeach
-                                </select>
-                                <button type="submit"
-                                        class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                                    Transfer Dispute
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </details>
+                <a href="#reassign-form" 
+                   class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                    Reassign
+                </a>
             </div>
         @endif
 
         @if($dispute->status !== 'escalated' && $dispute->assignedModerator && $dispute->assignedModerator->id === auth()->id())
-            <details class="inline-block">
-                <summary class="cursor-pointer px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm inline-block">
-                    Escalate
-                </summary>
-                <div class="absolute mt-2 p-5 border w-96 shadow-lg rounded-md bg-white z-50">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Escalate Dispute</h3>
-                    <form method="POST" action="{{ route('moderator.disputes.escalate', $dispute) }}">
-                        @csrf
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Escalation Reason</label>
-                                <textarea name="escalation_reason" rows="4" required
-                                          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                          placeholder="Explain why this dispute needs admin attention..."></textarea>
-                            </div>
-                            <div class="flex justify-end">
-                                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                                    Escalate to Admin
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </details>
+            <a href="#escalate-form"
+               class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm">
+                Escalate
+            </a>
         @endif
 
         <a href="{{ route('moderator.disputes.index') }}"
@@ -352,6 +306,7 @@
                                 @php
                                     $messageTypeColor = match($message->message_type) {
                                         'user_message' => 'bg-blue-100 text-blue-800',
+                                        'moderator_message' => 'bg-indigo-100 text-indigo-800',
                                         'moderator_note' => 'bg-purple-100 text-purple-800',
                                         'system_message' => 'bg-gray-100 text-gray-800',
                                         'assignment_update' => 'bg-green-100 text-green-800',
@@ -378,6 +333,143 @@
                         No messages yet.
                     </div>
                 @endforelse
+            </div>
+
+            {{-- Add Message Form --}}
+            @if($dispute->assignedModerator && $dispute->assignedModerator->id === auth()->id() && $dispute->status !== 'resolved' && $dispute->status !== 'closed')
+                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                    <form method="POST" action="{{ route('moderator.disputes.add-message', $dispute) }}">
+                        @csrf
+                        <div class="space-y-3">
+                            <label class="block text-sm font-medium text-gray-700">Send Message to Parties</label>
+                            <textarea name="message" rows="3" required
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      placeholder="Write your message here... This message will be visible to both parties."></textarea>
+                            @error('message')
+                                <p class="text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                            <div class="flex justify-end">
+                                <button type="submit"
+                                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+                                    Send Message
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            @endif
+        </div>
+
+        {{-- Evidence Section --}}
+        <div class="bg-white border border-gray-200 rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Evidence & Documentation</h3>
+            </div>
+
+            <div class="p-6">
+                @if($dispute->evidence->count() > 0)
+                    <div class="space-y-4 mb-6">
+                        @foreach($dispute->evidence as $evidence)
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                            <span class="text-blue-600 font-bold">{{ strtoupper(substr($evidence->file_type, 0, 3)) }}</span>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">{{ $evidence->file_name }}</div>
+                                            <div class="text-xs text-gray-600">
+                                                Uploaded by {{ $evidence->uploadedBy->username_pub ?? 'Unknown' }} •
+                                                {{ $evidence->created_at->diffForHumans() }}
+                                                @if($evidence->is_verified)
+                                                    <span class="text-green-600">• Verified</span>
+                                                @endif
+                                            </div>
+                                            @if($evidence->description)
+                                                <div class="text-xs text-gray-600 mt-1">{{ $evidence->description }}</div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <a href="{{ route('moderator.disputes.download-evidence', [$dispute, $evidence->id]) }}"
+                                       class="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 border border-blue-200 rounded">
+                                        Download
+                                    </a>
+                                </div>
+                                
+                                {{-- Display image inline if it's an image --}}
+                                @if($evidence->file_type === 'image')
+                                    <div class="mt-3">
+                                        <img src="data:{{ $evidence->type }};base64,{{ $evidence->content }}" 
+                                             alt="{{ $evidence->file_name }}"
+                                             class="max-w-full h-auto rounded border border-gray-300"
+                                             style="max-height: 400px;">
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center text-gray-500 py-8 mb-6">
+                        No evidence uploaded yet.
+                    </div>
+                @endif
+
+                {{-- Upload Evidence Form --}}
+                @if($dispute->assignedModerator && $dispute->assignedModerator->id === auth()->id() && $dispute->status !== 'resolved' && $dispute->status !== 'closed')
+                    <div class="border-t border-gray-200 pt-6">
+                        <h4 class="text-sm font-medium text-gray-700 mb-3">Upload Evidence</h4>
+                        <form method="POST" action="{{ route('moderator.disputes.upload-evidence', $dispute) }}" enctype="multipart/form-data">
+                            @csrf
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Select File</label>
+                                    <input type="file" name="evidence_file" required accept=".jpg,.jpeg,.png,.pdf"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <p class="text-xs text-gray-500 mt-1">Accepted formats: JPG, PNG, PDF (Max 5MB)</p>
+                                    @error('evidence_file')
+                                        <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Evidence Type</label>
+                                    <select name="evidence_type" required
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">Select type...</option>
+                                        <option value="product_photo">Product Photo</option>
+                                        <option value="packaging_photo">Packaging Photo</option>
+                                        <option value="shipping_label">Shipping Label</option>
+                                        <option value="receipt">Receipt</option>
+                                        <option value="communication">Communication Screenshot</option>
+                                        <option value="damage_photo">Damage Photo</option>
+                                        <option value="tracking_info">Tracking Information</option>
+                                        <option value="other_document">Other Document</option>
+                                    </select>
+                                    @error('evidence_type')
+                                        <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                                    <textarea name="description" rows="2"
+                                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                              placeholder="Describe this evidence..."></textarea>
+                                    @error('description')
+                                        <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div class="flex justify-end">
+                                    <button type="submit"
+                                            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors">
+                                        Upload Evidence
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -432,6 +524,69 @@
                         </form>
                     </div>
                 </div>
+            </div>
+        @endif
+
+        {{-- Reassign Form --}}
+        @if($dispute->assignedModerator && $dispute->assignedModerator->id === auth()->id())
+            <div id="reassign-form" class="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Reassign Dispute</h3>
+                <form method="POST" action="{{ route('moderator.disputes.reassign-moderator', $dispute) }}">
+                    @csrf
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Transfer to Moderator
+                            </label>
+                            <select name="moderator_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                <option value="">Select moderator...</option>
+                                @foreach($moderators as $moderator)
+                                    @if($moderator->id !== auth()->id())
+                                        <option value="{{ $moderator->id }}">
+                                            {{ $moderator->username_pub }}
+                                        </option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="flex justify-end space-x-2">
+                            <a href="#" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                                Cancel
+                            </a>
+                            <button type="submit"
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                Transfer Dispute
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        @endif
+
+        {{-- Escalate Form --}}
+        @if($dispute->status !== 'escalated' && $dispute->assignedModerator && $dispute->assignedModerator->id === auth()->id())
+            <div id="escalate-form" class="bg-white border border-red-200 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-red-900 mb-4">Escalate Dispute to Admin</h3>
+                <form method="POST" action="{{ route('moderator.disputes.escalate', $dispute) }}">
+                    @csrf
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Escalation Reason</label>
+                            <textarea name="escalation_reason" rows="4" required
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                                      placeholder="Explain why this dispute needs admin attention..."></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Provide a detailed explanation for escalating this dispute to an administrator.</p>
+                        </div>
+                        <div class="flex justify-end space-x-2">
+                            <a href="#" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                                Cancel
+                            </a>
+                            <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                                Escalate to Admin
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
         @endif
     </div>

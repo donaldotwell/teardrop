@@ -66,8 +66,12 @@ Route::middleware(['auth', 'moderator'])->name('moderator.')->group(function () 
 
         // Moderation Actions
         Route::post('/{dispute}/add-note', [ModeratorDisputeController::class, 'addNote'])->name('add-note');
+        Route::post('/{dispute}/add-message', [ModeratorDisputeController::class, 'addMessage'])->name('add-message');
         Route::post('/{dispute}/request-info', [ModeratorDisputeController::class, 'requestInfo'])->name('request-info');
         Route::post('/{dispute}/escalate', [ModeratorDisputeController::class, 'escalate'])->name('escalate');
+        Route::post('/{dispute}/upload-evidence', [ModeratorDisputeController::class, 'uploadEvidence'])->name('upload-evidence');
+        Route::get('/{dispute}/evidence/{evidence}/download', [ModeratorDisputeController::class, 'downloadEvidence'])->name('download-evidence');
+        Route::post('/{dispute}/mark-read', [ModeratorDisputeController::class, 'markMessagesRead'])->name('mark-read');
     });
 
     // Forum Moderation Routes

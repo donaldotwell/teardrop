@@ -16,6 +16,7 @@ return new class extends Migration
             $table->enum('message_type', [
                 'user_message',     // Regular message from buyer/vendor
                 'admin_message',    // Message from admin
+                'moderator_message',// Message from moderator
                 'system_message',   // Automated system message
                 'status_update',    // Status change notification
                 'evidence_upload',  // Evidence submission

@@ -164,7 +164,7 @@
                           class="block w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm
                            focus:ring-2 focus:ring-amber-500 focus:border-amber-500
                            transition-all duration-150 placeholder-gray-400 text-base"
-                          placeholder="Add any special instructions or messages..."></textarea>
+                          placeholder="Add any special instructions or messages...">{{ old('note') }}</textarea>
                 @error('note')
                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                 @enderror
