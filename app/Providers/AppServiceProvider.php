@@ -55,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
                     'Disputes' => route('disputes.index'),
                     'Tickets' => route('support.index'),
                     'Forums' => route('forum.index'),
+                    'Staff Keys' => route('market-keys'),
                     'URL Verification' => '#',
                     'Harm Reduction' => '#'
                 ];

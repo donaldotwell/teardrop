@@ -87,6 +87,10 @@
                     </div>
                 </div>
                 <nav class="flex gap-3">
+                    <a href="{{ route('market-keys') }}"
+                       class="px-4 py-2 text-amber-700 border border-amber-300 rounded hover:bg-amber-50">
+                        Staff Keys
+                    </a>
                     <a href="{{ route('login') }}"
                        class="px-4 py-2 text-yellow-700 border border-yellow-300 rounded hover:bg-yellow-50">
                         Login

@@ -6,6 +6,7 @@ use App\Http\Controllers\ForumCommentController;
 use App\Http\Controllers\ForumPostController;
 use App\Http\Controllers\ForumReportController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\MarketKeysController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SupportTicketController;
@@ -36,6 +37,9 @@ Route::prefix('recovery')->name('recovery.')->group(function () {
     Route::get('/reset-password', [\App\Http\Controllers\AccountRecoveryController::class, 'showResetForm'])->name('reset-password');
     Route::post('/reset-password', [\App\Http\Controllers\AccountRecoveryController::class, 'resetPassword'])->name('reset-password.submit');
 });
+
+// Market Keys - Public staff PGP directory (no auth required)
+Route::get('/market-keys', [MarketKeysController::class, 'index'])->name('market-keys');
 
 Route::middleware('auth')->group(function () {
     // Logout route

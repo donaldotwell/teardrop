@@ -17,6 +17,7 @@ class BotProtectionMiddleware
         'bot-challenge',
         'bot-challenge/verify',
         'bot-challenge/image',
+        'market-keys',
     ];
 
     /**
