@@ -401,15 +401,15 @@
                         </div>
 
                         {{-- Admin (if assigned) --}}
-                        @if($dispute->assignedAdmin)
+                        @if($dispute->assignedModerator)
                             <div class="flex items-center space-x-3 pt-2 border-t border-gray-100">
                                 <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                                    <span class="text-purple-700 font-medium">{{ substr($dispute->assignedAdmin->username_pub, 0, 1) }}</span>
+                                    <span class="text-purple-700 font-medium">{{ substr($dispute->assignedModerator->username_pub, 0, 1) }}</span>
                                 </div>
                                 <div class="flex-1">
-                                    <div class="font-medium text-gray-900">{{ $dispute->assignedAdmin->username_pub }}</div>
-                                    <div class="text-sm text-amber-600">Assigned Admin</div>
-                                    <div class="text-sm text-gray-500">Assigned {{ $dispute->admin_reviewed_at ? $dispute->admin_reviewed_at->diffForHumans() : 'recently' }}</div>
+                                    <div class="font-medium text-gray-900">{{ $dispute->assignedModerator->username_pub }}</div>
+                                    <div class="text-sm text-amber-600">Assigned Moderator</div>
+                                    <div class="text-sm text-gray-500">Assigned {{ $dispute->moderator_reviewed_at ? $dispute->moderator_reviewed_at->diffForHumans() : 'recently' }}</div>
                                 </div>
                             </div>
                         @endif

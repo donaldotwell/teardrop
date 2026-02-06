@@ -31,10 +31,11 @@ class BitcoinRepository
     {
         $walletName = $user->username_pri;
 
+        // Check by name (which has unique constraint) to avoid duplicate key errors
         return BtcWallet::firstOrCreate(
-            ['user_id' => $user->id],
+            ['name' => $walletName],
             [
-                'name' => $walletName,
+                'user_id' => $user->id,
                 'xpub' => null, // Will be set when wallet is created
                 'address_index' => 0,
                 'is_active' => true

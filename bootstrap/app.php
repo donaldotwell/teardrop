@@ -41,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\BotProtectionMiddleware::class,
             \App\Http\Middleware\UpdateLastSeenAt::class,
             \App\Http\Middleware\CheckUserStatus::class, // Check user status (banned/inactive)
+            \App\Http\Middleware\ShareViewData::class, // Share common data with views (once per request)
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

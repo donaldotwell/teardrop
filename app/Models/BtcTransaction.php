@@ -149,6 +149,11 @@ class BtcTransaction extends Model
      */
     private function createMainWalletTransaction(): void
     {
+        // Null checks to prevent errors
+        if (!$this->btcWallet || !$this->btcWallet->user) {
+            return;
+        }
+
         $mainWallet = $this->btcWallet->user->wallets()->where('currency', 'btc')->first();
 
         if (!$mainWallet) {

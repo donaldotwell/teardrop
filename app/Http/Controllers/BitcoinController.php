@@ -32,8 +32,6 @@ class BitcoinController extends Controller
             ->limit(20)
             ->get();
 
-        $balance = $user->getBalance();
-
         // Calculate fresh stats from transactions (not stale fields)
         $walletStats = [
             'balance' => $btcWallet->getBalance(),
@@ -44,7 +42,6 @@ class BitcoinController extends Controller
         return view('bitcoin.index', compact(
             'btcWallet',
             'recentTransactions',
-            'balance',
             'walletStats'
         ));
     }

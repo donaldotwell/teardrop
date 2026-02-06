@@ -21,7 +21,9 @@ return new class extends Migration
                 'status_update',    // Status change notification
                 'evidence_upload',  // Evidence submission
                 'resolution_note',  // Final resolution message
-                'assignment_update' // Admin assignment/reassignment notification
+                'assignment_update', // Admin assignment/reassignment notification
+                'moderator_note',     // Internal note from moderator (not visible to users)
+                'escalation'         // Internal message when dispute is escalated to admin (not
             ])->default('user_message');
 
             $table->boolean('is_internal')->default(false); // Admin-only messages

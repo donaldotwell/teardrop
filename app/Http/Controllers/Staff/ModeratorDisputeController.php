@@ -281,7 +281,8 @@ class ModeratorDisputeController extends Controller
         $dispute->messages()->create([
             'user_id' => $moderator->id,
             'message' => $request->note,
-            'message_type' => 'moderator_note',
+            'message_type' => 'moderator_message',
+            // use  'moderator_note' for the message type
             'is_internal' => $request->boolean('is_internal', true),
         ]);
 
@@ -363,7 +364,8 @@ class ModeratorDisputeController extends Controller
         $dispute->messages()->create([
             'user_id' => $moderator->id,
             'message' => "Dispute escalated to admin. Reason: {$request->escalation_reason}",
-            'message_type' => 'escalation',
+            'message_type' => 'status_update',
+            // TODO:  use message_type 'escalation'
             'is_internal' => true,
         ]);
 

@@ -174,7 +174,6 @@ class AdminDisputeController extends Controller
         })->where('status', 'active')
           ->orderBy('username_pub')
           ->get();
-
         return view('admin.disputes.show', compact('dispute', 'messages', 'admins', 'moderators'));
     }
 
@@ -292,10 +291,14 @@ class AdminDisputeController extends Controller
         ]);
 
         $dispute->markAsResolved(
-            $validated['resolution'],
+            // set resolution to custom_resolution
+            'custom_resolution',
+            // TODO: to use all resolution checks in disputes like add buyer_favor,vendor_favor,partial_refund,no_action
             $validated['refund_amount'] ?? null,
             $validated['resolution_notes']
         );
+
+        // TODO: implemment actual refund logic if resolution is buyer_favor or partial_refund
 
         // Add admin resolution message
         $dispute->messages()->create([

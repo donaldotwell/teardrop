@@ -185,13 +185,31 @@ class User extends Authenticatable
      */
     public function getBalance(): array
     {
+        \Log::debug('[User::getBalance] START for user', [
+            'user_id' => $this->id,
+            'username' => $this->username_pub
+        ]);
+
         $wallets = $this->wallets;
         $btcWallet = $this->btcWallet;
         $xmrWallet = $this->xmrWallet;
 
+        \Log::debug('[User::getBalance] Wallets loaded', [
+            'btcWallet_is_null' => is_null($btcWallet),
+            'xmrWallet_is_null' => is_null($xmrWallet),
+            'btcWallet_id' => $btcWallet ? $btcWallet->id : null,
+            'xmrWallet_id' => $xmrWallet ? $xmrWallet->id : null,
+        ]);
+
         // Get balances directly from transaction sums (fast ~0.05s, always fresh)
         $btcBalance = $btcWallet ? $btcWallet->getBalance() : 0;
         $xmrBalanceData = $xmrWallet ? $xmrWallet->getBalance() : ['balance' => 0, 'unlocked_balance' => 0];
+
+        \Log::debug('[User::getBalance] Balance calculated', [
+            'btcBalance' => $btcBalance,
+            'xmrBalance' => $xmrBalanceData['balance'] ?? null,
+            'xmrUnlocked' => $xmrBalanceData['unlocked_balance'] ?? null,
+        ]);
 
         return [
             'btc' => [

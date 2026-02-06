@@ -58,7 +58,10 @@ return new class extends Migration
                 'no_refund',            // No refund, vendor keeps payment
                 'replacement',          // Vendor sends replacement
                 'store_credit',         // Buyer gets store credit
-                'custom_resolution'     // Custom arrangement
+                'custom_resolution',     // Custom arrangement
+                'buyer_favor',           // Dispute resolved in favor of buyer
+                'vendor_favor',          // Dispute resolved in favor of vendor
+                'no_action'             // Dispute closed with no action (e.g. insufficient evidence)
             ])->nullable();
 
             $table->decimal('refund_amount', 10, 2)->nullable(); // Amount refunded if applicable
