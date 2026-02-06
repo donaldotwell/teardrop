@@ -173,6 +173,11 @@
                               {{ request()->routeIs('admin.products.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
                         Products
                     </a>
+                    <a href="{{ route('admin.canaries.index') }}"
+                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                              {{ request()->routeIs('admin.canaries.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                        Canaries
+                    </a>
                     <a href="{{ route('admin.reports') }}"
                        class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
                               {{ request()->routeIs('admin.reports') ? 'bg-yellow-100 text-yellow-700' : '' }}">

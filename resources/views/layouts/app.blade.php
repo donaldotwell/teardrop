@@ -232,29 +232,66 @@
 
     <!-- Footer -->
     <footer class="bg-gray-900 border-t border-gray-800 mt-8">
-        <div class="max-w-7xl mx-auto px-4 py-4">
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <!-- About -->
+                <div>
+                    <h3 class="text-amber-400 font-semibold mb-3 text-sm uppercase">About</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="{{ route('rules') }}" class="text-gray-400 hover:text-amber-400">Site Rules</a></li>
+                        <li><a href="{{ route('market-keys') }}" class="text-gray-400 hover:text-amber-400">Staff Keys</a></li>
+                        <li><a href="{{ route('canary') }}" class="text-gray-400 hover:text-amber-400">Warrant Canary</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Help & Safety -->
+                <div>
+                    <h3 class="text-amber-400 font-semibold mb-3 text-sm uppercase">Help & Safety</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="{{ route('harm-reduction') }}" class="text-gray-400 hover:text-amber-400">Harm Reduction</a></li>
+                        <li><a href="{{ route('support.index') }}" class="text-gray-400 hover:text-amber-400">Support Tickets</a></li>
+                        <li><a href="{{ route('disputes.index') }}" class="text-gray-400 hover:text-amber-400">Dispute Center</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Community -->
+                <div>
+                    <h3 class="text-amber-400 font-semibold mb-3 text-sm uppercase">Community</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="{{ route('forum.index') }}" class="text-gray-400 hover:text-amber-400">Forums</a></li>
+                        <li><a href="{{ route('messages.index') }}" class="text-gray-400 hover:text-amber-400">Messages</a></li>
+                        <li><a href="{{ route('home') }}" class="text-gray-400 hover:text-amber-400">Marketplace</a></li>
+                    </ul>
+                </div>
+                
                 <!-- Exchange Rates -->
-                @if($btcRate && $xmrRate)
-                    <div class="flex items-baseline gap-6 text-sm">
-                        <div class="flex items-baseline gap-2">
-                            <span class="text-amber-400 font-semibold">BTC</span>
-                            <span class="text-gray-600">=</span>
-                            <span class="text-white font-mono">${{ number_format($btcRate->usd_rate, 2) }}</span>
+                <div>
+                    <h3 class="text-amber-400 font-semibold mb-3 text-sm uppercase">Exchange Rates</h3>
+                    @if($btcRate && $xmrRate)
+                        <div class="space-y-2 text-sm">
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-amber-400 font-semibold">BTC</span>
+                                <span class="text-gray-600">=</span>
+                                <span class="text-white font-mono">${{ number_format($btcRate->usd_rate, 2) }}</span>
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-amber-400 font-semibold">XMR</span>
+                                <span class="text-gray-600">=</span>
+                                <span class="text-white font-mono">${{ number_format($xmrRate->usd_rate, 2) }}</span>
+                            </div>
                         </div>
-                        <div class="flex items-baseline gap-2">
-                            <span class="text-amber-400 font-semibold">XMR</span>
-                            <span class="text-gray-600">=</span>
-                            <span class="text-white font-mono">${{ number_format($xmrRate->usd_rate, 2) }}</span>
-                        </div>
-                    </div>
-                @else
-                    <div class="text-gray-500 text-sm">Exchange rates not available.</div>
-                @endif
-
-                <!-- Copyright -->
+                    @else
+                        <p class="text-gray-500 text-sm">Rates not available</p>
+                    @endif
+                </div>
+            </div>
+            
+            <div class="pt-4 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p class="text-xs text-gray-500">
-                    &copy; {{ date('Y') }} {{ config('app.name') }}
+                    &copy; {{ date('Y') }} {{ config('app.name') }} - All rights reserved
+                </p>
+                <p class="text-xs text-gray-600">
+                    Stay safe. Use PGP. Use monero.
                 </p>
             </div>
         </div>

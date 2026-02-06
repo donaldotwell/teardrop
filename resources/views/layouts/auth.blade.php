@@ -91,6 +91,10 @@
                        class="px-4 py-2 text-amber-700 border border-amber-300 rounded hover:bg-amber-50">
                         Staff Keys
                     </a>
+                    <a href="{{ route('canary') }}"
+                       class="px-4 py-2 text-amber-700 border border-amber-300 rounded hover:bg-amber-50">
+                        Canary
+                    </a>
                     <a href="{{ route('login') }}"
                        class="px-4 py-2 text-yellow-700 border border-yellow-300 rounded hover:bg-yellow-50">
                         Login
@@ -141,9 +145,54 @@
         </div>
     </main>
 
-    <footer class="bg-white border-t border-gray-200 py-4">
-        <div class="max-w-4xl mx-auto px-4 text-center">
-            <p class="text-sm text-gray-600">&copy; {{ date('Y') }} {{ config('app.name') }}</p>
+    <footer class="bg-white border-t border-gray-200 py-8">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                <!-- About -->
+                <div>
+                    <h3 class="text-amber-700 font-semibold mb-3 text-sm uppercase">About</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="{{ route('rules') }}" class="text-gray-600 hover:text-amber-700">Site Rules</a></li>
+                        <li><a href="{{ route('market-keys') }}" class="text-gray-600 hover:text-amber-700">Staff Keys</a></li>
+                        <li><a href="{{ route('canary') }}" class="text-gray-600 hover:text-amber-700">Warrant Canary</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Help -->
+                <div>
+                    <h3 class="text-amber-700 font-semibold mb-3 text-sm uppercase">Help</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="{{ route('harm-reduction') }}" class="text-gray-600 hover:text-amber-700">Harm Reduction</a></li>
+                        <li><a href="{{ route('recovery.show') }}" class="text-gray-600 hover:text-amber-700">Account Recovery</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Access -->
+                <div>
+                    <h3 class="text-amber-700 font-semibold mb-3 text-sm uppercase">Access</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="{{ route('login') }}" class="text-gray-600 hover:text-amber-700">Login</a></li>
+                        <li><a href="{{ route('register') }}" class="text-gray-600 hover:text-amber-700">Register</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Market -->
+                <div>
+                    <h3 class="text-amber-700 font-semibold mb-3 text-sm uppercase">Marketplace</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        Secure, anonymous escrow marketplace for the privacy-conscious.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="pt-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p class="text-xs text-gray-500">
+                    &copy; {{ date('Y') }} {{ config('app.name') }} - All rights reserved
+                </p>
+                <p class="text-xs text-gray-600">
+                    Stay safe. Use PGP. Practice OpSec.
+                </p>
+            </div>
         </div>
     </footer>
 </div>

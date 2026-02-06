@@ -51,8 +51,9 @@ class ShareViewData
             'Tickets' => route('support.index'),
             'Forums' => route('forum.index'),
             'Staff Keys' => route('market-keys'),
-            'URL Verification' => '#',
-            'Harm Reduction' => '#'
+            'Canary' => route('canary'),
+            'Site Rules' => route('rules'),
+            'Harm Reduction' => route('harm-reduction'),
         ];
 
         // Load user-specific data if authenticated

@@ -49,7 +49,10 @@ class MarketKeysController extends Controller
             ];
         });
 
-        return view('market-keys.index', compact('admins', 'moderators'));
+        // Determine which layout to use based on authentication
+        $layout = auth()->check() ? 'layouts.app' : 'layouts.auth';
+
+        return view('market-keys.index', compact('admins', 'moderators', 'layout'));
     }
 
     /**

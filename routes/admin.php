@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AdminOrdersController;
 use App\Http\Controllers\Admin\AdminFinalizationWindowController;
 use App\Http\Controllers\Admin\AdminProductCategoryController;
 use App\Http\Controllers\Admin\AdminForumController;
+use App\Http\Controllers\Admin\AdminCanaryController;
 use Illuminate\Support\Facades\Route;
 
 // Admin routes - protected by admin middleware
@@ -159,6 +160,16 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
         Route::put('/{product}', [\App\Http\Controllers\Admin\AdminProductController::class, 'update'])->name('update');
         Route::delete('/{product}', [\App\Http\Controllers\Admin\AdminProductController::class, 'destroy'])->name('destroy');
         Route::post('/{product}/toggle-status', [\App\Http\Controllers\Admin\AdminProductController::class, 'toggleStatus'])->name('toggle-status');
+    });
+
+    // Canaries Management
+    Route::prefix('canaries')->name('canaries.')->group(function () {
+        Route::get('/', [AdminCanaryController::class, 'index'])->name('index');
+        Route::get('/create', [AdminCanaryController::class, 'create'])->name('create');
+        Route::post('/', [AdminCanaryController::class, 'store'])->name('store');
+        Route::get('/{canary}/edit', [AdminCanaryController::class, 'edit'])->name('edit');
+        Route::put('/{canary}', [AdminCanaryController::class, 'update'])->name('update');
+        Route::delete('/{canary}', [AdminCanaryController::class, 'destroy'])->name('destroy');
     });
 
 });

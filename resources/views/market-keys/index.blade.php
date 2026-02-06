@@ -1,4 +1,4 @@
-@extends('layouts.auth')
+@extends($layout ?? 'layouts.app')
 
 @section('title', 'Market Staff Keys')
 

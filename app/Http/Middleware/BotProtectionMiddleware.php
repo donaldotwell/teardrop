@@ -18,6 +18,9 @@ class BotProtectionMiddleware
         'bot-challenge/verify',
         'bot-challenge/image',
         'market-keys',
+        'canary',
+        'rules',
+        'harm-reduction',
     ];
 
     /**

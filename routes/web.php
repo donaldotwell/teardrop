@@ -41,6 +41,15 @@ Route::prefix('recovery')->name('recovery.')->group(function () {
 // Market Keys - Public staff PGP directory (no auth required)
 Route::get('/market-keys', [MarketKeysController::class, 'index'])->name('market-keys');
 
+// Warrant Canary - Public transparency page (no auth required)
+Route::get('/canary', [\App\Http\Controllers\CanaryController::class, 'index'])->name('canary');
+
+// Site Rules - Public rules and guidelines (no auth required)
+Route::get('/rules', [\App\Http\Controllers\RulesController::class, 'index'])->name('rules');
+
+// Harm Reduction - Public safety information (no auth required)
+Route::get('/harm-reduction', [\App\Http\Controllers\HarmReductionController::class, 'index'])->name('harm-reduction');
+
 Route::middleware('auth')->group(function () {
     // Logout route
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
