@@ -285,7 +285,7 @@ class VendorListingController extends Controller
     {
         // Get exchange rate
         $btcRate = ExchangeRate::where('crypto_shortname', 'btc')->firstOrFail();
-        $requiredAmountBtc = $feeUsd / $btcRate->usd_rate;
+        $requiredAmountBtc = round($feeUsd / $btcRate->usd_rate, 8); // Bitcoin supports max 8 decimal places
 
         // Get vendor's Bitcoin wallet
         $vendorBtcWallet = $vendor->btcWallet;
@@ -339,10 +339,8 @@ class VendorListingController extends Controller
             ],
         ]);
 
-        // Mark listing as featured (pending admin confirmation)
-        $listing->update([
-            'is_featured' => true,
-        ]);
+        // NOTE: Listing will be featured automatically when transaction is confirmed by bitcoin:sync
+        // Do NOT mark as featured here - wait for confirmation
     }
 
     /**

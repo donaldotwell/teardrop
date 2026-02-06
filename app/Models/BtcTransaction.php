@@ -141,6 +141,9 @@ class BtcTransaction extends Model
 
             // Create main wallet transaction for withdrawal
             $this->createMainWalletTransaction();
+
+            // Check if this is a feature listing payment
+            $this->processFeaturedListingPayment();
         }
     }
 
@@ -186,6 +189,54 @@ class BtcTransaction extends Model
         ]);
 
         \Log::info("Created main wallet transaction for txid: {$this->txid}");
+    }
+
+    /**
+     * Process featured listing payment after confirmation.
+     */
+    private function processFeaturedListingPayment(): void
+    {
+        // Check if this transaction is for featuring a listing
+        if (!is_array($this->raw_transaction)) {
+            return;
+        }
+
+        $purpose = $this->raw_transaction['purpose'] ?? null;
+        $listingId = $this->raw_transaction['listing_id'] ?? null;
+
+        if ($purpose !== 'feature_listing' || !$listingId) {
+            return;
+        }
+
+        // Find the listing
+        $listing = \App\Models\Listing::find($listingId);
+
+        if (!$listing) {
+            \Log::warning("Featured listing payment confirmed but listing not found: {$listingId}");
+            return;
+        }
+
+        // Check if already featured
+        if ($listing->is_featured) {
+            \Log::debug("Listing {$listingId} is already featured, skipping");
+            return;
+        }
+
+        // Mark listing as featured
+        $listing->update(['is_featured' => true]);
+
+        \Log::info("Listing {$listingId} marked as featured after payment confirmation (txid: {$this->txid})");
+
+        // Notify vendor via message
+        try {
+            \App\Models\UserMessage::create([
+                'sender_id' => 1, // System/Admin
+                'receiver_id' => $listing->user_id,
+                'message' => "Your listing '{$listing->title}' is now featured! Payment confirmed.",
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Failed to send featured listing notification: " . $e->getMessage());
+        }
     }
 
     /**
