@@ -146,6 +146,36 @@
             </div>
         </div>
 
+        {{-- Content Management --}}
+        <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Content Management</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <a href="{{ route('admin.rules.index') }}"
+                   class="p-4 border border-blue-200 rounded-lg hover:border-blue-300 hover:bg-blue-50">
+                    <div class="font-medium text-gray-900 mb-1">Site Rules</div>
+                    <div class="text-sm text-gray-600">Manage marketplace rules</div>
+                </a>
+
+                <a href="{{ route('admin.harm-reduction.index') }}"
+                   class="p-4 border border-purple-200 rounded-lg hover:border-purple-300 hover:bg-purple-50">
+                    <div class="font-medium text-gray-900 mb-1">Harm Reduction</div>
+                    <div class="text-sm text-gray-600">Manage safety content</div>
+                </a>
+
+                <a href="{{ route('admin.canaries.index') }}"
+                   class="p-4 border border-green-200 rounded-lg hover:border-green-300 hover:bg-green-50">
+                    <div class="font-medium text-gray-900 mb-1">Warrant Canaries</div>
+                    <div class="text-sm text-gray-600">Manage transparency reports</div>
+                </a>
+
+                <a href="{{ route('admin.product-categories.index') }}"
+                   class="p-4 border border-yellow-200 rounded-lg hover:border-yellow-300 hover:bg-yellow-50">
+                    <div class="font-medium text-gray-900 mb-1">Product Categories</div>
+                    <div class="text-sm text-gray-600">Manage product categories</div>
+                </a>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {{-- Recent Orders --}}
             <div class="bg-white border border-gray-200 rounded-lg p-6">

@@ -172,4 +172,10 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
         Route::delete('/{canary}', [AdminCanaryController::class, 'destroy'])->name('destroy');
     });
 
+    // Rules Management
+    Route::resource('rules', \App\Http\Controllers\Admin\AdminRuleController::class);
+
+    // Harm Reduction Content Management
+    Route::resource('harm-reduction', \App\Http\Controllers\Admin\AdminHarmReductionController::class);
+
 });

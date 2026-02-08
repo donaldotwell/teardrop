@@ -124,75 +124,92 @@
     {{-- Admin Navigation --}}
     <nav class="bg-white border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between items-center h-16">
+            <div class="flex justify-between items-center py-2">
 
-                {{-- Desktop Navigation --}}
-                <div class="hidden md:flex space-x-1">
-                    <a href="{{ route('admin.dashboard') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.dashboard') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Dashboard
-                    </a>
-                    <a href="{{ route('admin.users.index') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.users.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Users
-                    </a>
-                    <a href="{{ route('admin.orders.index') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.orders.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Orders
-                    </a>
-                    <a href="{{ route('admin.listings.index') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.listings.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Listings
-                    </a>
-                    <a href="{{ route('admin.disputes.index') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.disputes.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Disputes
-                    </a>
-                    <a href="{{ route('admin.support.index') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.support.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Tickets
-                    </a>
-                    <a href="{{ route('admin.forum.index') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.forum.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Forum
-                    </a>
-                    <a href="{{ route('admin.product-categories.index') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.product-categories.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Categories
-                    </a>
-                    <a href="{{ route('admin.products.index') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.products.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Products
-                    </a>
-                    <a href="{{ route('admin.canaries.index') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.canaries.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Canaries
-                    </a>
-                    <a href="{{ route('admin.reports') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.reports') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Reports
-                    </a>
-                    <a href="{{ route('admin.finalization-windows.index') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.finalization-windows.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        FE Windows
-                    </a>
-                    <a href="{{ route('admin.settings') }}"
-                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('admin.settings') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Settings
-                    </a>
+                {{-- Desktop Navigation (2 Rows) --}}
+                <div class="hidden md:block w-full">
+                    {{-- Row 1: Main Management --}}
+                    <div class="flex flex-wrap gap-1 mb-1">
+                        <a href="{{ route('admin.dashboard') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.dashboard') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Dashboard
+                        </a>
+                        <a href="{{ route('admin.users.index') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.users.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Users
+                        </a>
+                        <a href="{{ route('admin.orders.index') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.orders.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Orders
+                        </a>
+                        <a href="{{ route('admin.listings.index') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.listings.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Listings
+                        </a>
+                        <a href="{{ route('admin.disputes.index') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.disputes.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Disputes
+                        </a>
+                        <a href="{{ route('admin.support.index') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.support.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Tickets
+                        </a>
+                        <a href="{{ route('admin.forum.index') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.forum.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Forum
+                        </a>
+                    </div>
+                    
+                    {{-- Row 2: Content & Settings --}}
+                    <div class="flex flex-wrap gap-1">
+                        <a href="{{ route('admin.product-categories.index') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.product-categories.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Categories
+                        </a>
+                        <a href="{{ route('admin.products.index') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.products.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Products
+                        </a>
+                        <a href="{{ route('admin.rules.index') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.rules.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Rules
+                        </a>
+                        <a href="{{ route('admin.harm-reduction.index') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.harm-reduction.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Harm Reduction
+                        </a>
+                        <a href="{{ route('admin.canaries.index') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.canaries.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Canaries
+                        </a>
+                        <a href="{{ route('admin.finalization-windows.index') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.finalization-windows.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            FE Windows
+                        </a>
+                        <a href="{{ route('admin.reports') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.reports') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Reports
+                        </a>
+                        <a href="{{ route('admin.settings') }}"
+                           class="px-3 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                                  {{ request()->routeIs('admin.settings') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                            Settings
+                        </a>
+                    </div>
                 </div>
 
                 {{-- Mobile Navigation Toggle --}}
@@ -205,7 +222,7 @@
                     </summary>
 
                     {{-- Mobile Menu --}}
-                    <div class="absolute left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
+                    <div class="absolute left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
                         <a href="{{ route('admin.dashboard') }}"
                            class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
                             Dashboard
@@ -241,6 +258,22 @@
                         <a href="{{ route('admin.products.index') }}"
                            class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
                             Products
+                        </a>
+                        <a href="{{ route('admin.rules.index') }}"
+                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
+                            Rules
+                        </a>
+                        <a href="{{ route('admin.harm-reduction.index') }}"
+                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
+                            Harm Reduction
+                        </a>
+                        <a href="{{ route('admin.canaries.index') }}"
+                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
+                            Canaries
+                        </a>
+                        <a href="{{ route('admin.finalization-windows.index') }}"
+                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
+                            FE Windows
                         </a>
                         <a href="{{ route('admin.reports') }}"
                            class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
