@@ -93,6 +93,28 @@
 
                 {{-- Vendor User Info & Actions --}}
                 <div class="flex items-center space-x-4">
+                    <!-- Wallet Balances -->
+                    @if(isset($user_balance))
+                    <div class="hidden md:flex items-center gap-4 text-xs">
+                        <div class="flex flex-col">
+                            <div class="flex items-baseline gap-1.5">
+                                <span class="text-purple-300">BTC:</span>
+                                <span class="font-mono font-semibold text-white">{{ $user_balance['btc']['balance'] ?? '0.00000000' }}</span>
+                            </div>
+                            <span class="text-[10px] text-purple-300 font-mono">${{ number_format($user_balance['btc']['usd_value'] ?? 0, 2) }}</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <div class="flex items-baseline gap-1.5">
+                                <span class="text-purple-300">XMR:</span>
+                                <span class="font-mono font-semibold text-white">{{ $user_balance['xmr']['balance'] ?? '0.000000000000' }}</span>
+                            </div>
+                            <span class="text-[10px] text-purple-300 font-mono">${{ number_format($user_balance['xmr']['usd_value'] ?? 0, 2) }}</span>
+                        </div>
+                    </div>
+
+                    <div class="h-6 w-px bg-purple-600 hidden md:block"></div>
+                    @endif
+
                     <div class="flex items-center space-x-3 text-purple-100">
                         <span>{{ auth()->user()->username_pub }}</span>
                         <span class="bg-amber-600 px-2 py-1 rounded text-xs">Vendor</span>

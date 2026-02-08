@@ -78,7 +78,7 @@
 </script>
 
 <div class="min-h-screen flex flex-col">
-    <!-- Modern Header -->
+    <!-- Header -->
     <header class="bg-white border-b border-gray-200 shadow-sm">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex items-center justify-between h-16">
@@ -94,13 +94,19 @@
                     <div class="flex items-center gap-6">
                         <!-- Wallet Balances -->
                         <div class="hidden md:flex items-center gap-4 text-xs">
-                            <div class="flex items-baseline gap-1.5">
-                                <span class="text-gray-500">BTC:</span>
-                                <span class="font-mono font-semibold text-gray-900">{{ $user_balance['btc']['balance'] }}</span>
+                            <div class="flex flex-col">
+                                <div class="flex items-baseline gap-1.5">
+                                    <span class="text-gray-500">BTC:</span>
+                                    <span class="font-mono font-semibold text-gray-900">{{ $user_balance['btc']['balance'] }}</span>
+                                </div>
+                                <span class="text-[10px] text-gray-400 font-mono">${{ number_format($user_balance['btc']['usd_value'], 2) }}</span>
                             </div>
-                            <div class="flex items-baseline gap-1.5">
-                                <span class="text-gray-500">XMR:</span>
-                                <span class="font-mono font-semibold text-gray-900">{{ $user_balance['xmr']['balance'] }}</span>
+                            <div class="flex flex-col">
+                                <div class="flex items-baseline gap-1.5">
+                                    <span class="text-gray-500">XMR:</span>
+                                    <span class="font-mono font-semibold text-gray-900">{{ $user_balance['xmr']['balance'] }}</span>
+                                </div>
+                                <span class="text-[10px] text-gray-400 font-mono">${{ number_format($user_balance['xmr']['usd_value'], 2) }}</span>
                             </div>
                         </div>
                         
@@ -133,7 +139,7 @@
     </header>
 
     <!-- Navigation -->
-    <nav class="bg-amber-100 border-b border-amber-300 shadow-sm">
+    <nav class="bg-white border-b border-gray-200 shadow-sm">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between items-center h-12">
                 <!-- Desktop Menu -->
@@ -142,7 +148,7 @@
                         @php
                             $isActive = request()->url() === $url || request()->fullUrl() === $url;
                         @endphp
-                        <a href="{{ $url }}" class="flex items-center text-sm px-3 py-2 rounded-md transition-colors {{ $isActive ? 'bg-amber-500 text-white font-semibold' : 'text-amber-800 hover:bg-amber-200' }}">
+                        <a href="{{ $url }}" class="flex items-center text-sm px-3 py-2 rounded-md transition-colors {{ $isActive ? 'bg-amber-500 text-white font-semibold' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100' }}">
                             {{ $text }}
                         </a>
                     @endforeach
@@ -150,21 +156,21 @@
 
                 <!-- Mobile Menu Toggle -->
                 <label for="menu-toggle" class="md:hidden p-2 cursor-pointer">
-                    <span class="block w-6 h-0.5 bg-amber-800 mb-1.5"></span>
-                    <span class="block w-6 h-0.5 bg-amber-800 mb-1.5"></span>
-                    <span class="block w-6 h-0.5 bg-amber-800"></span>
+                    <span class="block w-6 h-0.5 bg-gray-700 mb-1.5"></span>
+                    <span class="block w-6 h-0.5 bg-gray-700 mb-1.5"></span>
+                    <span class="block w-6 h-0.5 bg-gray-700"></span>
                 </label>
             </div>
         </div>
 
         <!-- Mobile Menu -->
         <input type="checkbox" id="menu-toggle" class="hidden">
-        <div class="mobile-menu md:hidden bg-amber-200 border-t border-amber-300">
+        <div class="mobile-menu md:hidden bg-white border-t border-gray-200">
             @foreach($navigation_links as $text => $url)
                 @php
                     $isActive = request()->url() === $url || request()->fullUrl() === $url;
                 @endphp
-                <a href="{{ $url }}" class="block px-4 py-3 text-sm font-medium transition-colors {{ $isActive ? 'bg-amber-500 text-white font-semibold' : 'text-amber-800 hover:bg-amber-100' }}">
+                <a href="{{ $url }}" class="block px-4 py-3 text-sm font-medium transition-colors {{ $isActive ? 'bg-amber-500 text-white font-semibold' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50' }}">
                     {{ $text }}
                 </a>
             @endforeach
@@ -172,14 +178,14 @@
     </nav>
 
     <!-- Breadcrumbs -->
-    <div class="bg-amber-50 border-b border-amber-200">
+    <div class="bg-white border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 py-3">
             <nav class="flex items-center space-x-2 text-sm overflow-x-auto">
-                <a href="{{ route('home') }}" class="text-amber-700 hover:text-amber-900 font-medium whitespace-nowrap flex-shrink-0">
+                <a href="{{ route('home') }}" class="text-gray-600 hover:text-gray-900 font-medium whitespace-nowrap flex-shrink-0">
                     Home
                 </a>
-                <span class="text-amber-400 flex-shrink-0">/</span>
-                <div class="truncate text-amber-700">
+                <span class="text-gray-400 flex-shrink-0">/</span>
+                <div class="truncate text-gray-700">
                     @yield('breadcrumbs')
                 </div>
             </nav>
