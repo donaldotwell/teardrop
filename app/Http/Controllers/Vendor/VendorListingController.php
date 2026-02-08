@@ -26,12 +26,21 @@ class VendorListingController extends Controller
     {
         $vendor = auth()->user();
 
-        $listings = Listing::where('user_id', $vendor->id)
+        // Get featured listings (no pagination needed - usually small number)
+        $featuredListings = Listing::where('user_id', $vendor->id)
+            ->where('is_featured', true)
+            ->with(['product.productCategory', 'originCountry', 'destinationCountry', 'media'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Get regular (non-featured) listings with pagination
+        $regularListings = Listing::where('user_id', $vendor->id)
+            ->where('is_featured', false)
             ->with(['product.productCategory', 'originCountry', 'destinationCountry', 'media'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        return view('vendor.listings.index', compact('listings'));
+        return view('vendor.listings.index', compact('featuredListings', 'regularListings'));
     }
 
     /**

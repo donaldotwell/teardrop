@@ -143,6 +143,45 @@ class XmrTransaction extends Model
         $internalWallet->increment('balance', $this->amount);
 
         \Log::info("XMR deposit processed for user {$user->id}: {$this->amount} XMR");
+
+        // Check if this is a featured listing payment (for withdrawals)
+        $this->processFeaturedListingPayment();
+    }
+
+    /**
+     * Process featured listing payment after confirmation.
+     */
+    private function processFeaturedListingPayment(): void
+    {
+        // Check if this transaction is for featuring a listing
+        if (!is_array($this->raw_transaction)) {
+            return;
+        }
+
+        $purpose = $this->raw_transaction['purpose'] ?? null;
+        $listingId = $this->raw_transaction['listing_id'] ?? null;
+
+        if ($purpose !== 'feature_listing' || !$listingId) {
+            return;
+        }
+
+        \Log::info("[FEATURED LISTING XMR] Processing featured listing payment - Txid: {$this->txid}, Listing ID: {$listingId}, Amount: {$this->amount} XMR, Fee USD: " . ($this->raw_transaction['fee_usd'] ?? 'N/A'));
+
+        // Find the listing
+        $listing = \App\Models\Listing::find($listingId);
+
+        if (!$listing) {
+            \Log::warning("[FEATURED LISTING XMR] Featured listing payment confirmed but listing not found: {$listingId} (txid: {$this->txid})");
+            return;
+        }
+
+        // XMR payments are marked as featured immediately in controller, but log it here for tracking
+        if ($listing->is_featured) {
+            \Log::info("[FEATURED LISTING XMR] ✓ Listing {$listingId} ('{$listing->title}') confirmed as featured (txid: {$this->txid}, vendor_id: {$listing->user_id}, status: {$this->status})");
+        } else {
+            \Log::warning("[FEATURED LISTING XMR] Listing {$listingId} payment confirmed but not marked as featured - marking now (txid: {$this->txid})");
+            $listing->update(['is_featured' => true]);
+        }
     }
 
     /**

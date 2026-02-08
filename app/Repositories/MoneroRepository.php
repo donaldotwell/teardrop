@@ -931,6 +931,22 @@ class MoneroRepository
 
             Log::debug("=== Monero wallet sync completed (height: {$currentHeight}, 1 RPC call) ===");
 
+            // Check for any pending featured listing payments that got confirmed
+            Log::debug("Checking for unlocked featured listing payments...");
+            $featuredPayments = XmrTransaction::where('status', 'unlocked')
+                ->whereJsonContains('raw_transaction->purpose', 'feature_listing')
+                ->whereDate('unlocked_at', '>=', now()->subDay())
+                ->get();
+            
+            if ($featuredPayments->count() > 0) {
+                Log::info("[FEATURED LISTING SYNC XMR] Found {$featuredPayments->count()} unlocked featured listing payment(s) in last 24h");
+                foreach ($featuredPayments as $payment) {
+                    $listingId = $payment->raw_transaction['listing_id'] ?? null;
+                    $feeUsd = $payment->raw_transaction['fee_usd'] ?? null;
+                    Log::info("[FEATURED LISTING XMR] Txid: {$payment->txid}, Listing ID: {$listingId}, Fee: \${$feeUsd}, Confirmations: {$payment->confirmations}, Unlocked at: {$payment->unlocked_at}");
+                }
+            }
+
         } catch (\Exception $e) {
             Log::error("Failed to sync Monero wallets: " . $e->getMessage());
             throw $e;
@@ -1047,6 +1063,18 @@ class MoneroRepository
             $xmrAddress->markAsUsed();
         }
 
+        // Calculate USD value at time of transaction using exchange rate model
+        $usdValue = null;
+        try {
+            $xmrRate = \App\Models\ExchangeRate::where('crypto_shortname', 'xmr')->first();
+            if ($xmrRate) {
+                $usdValue = $amount * $xmrRate->usd_rate;
+                Log::debug("Calculated USD value: \${$usdValue} (rate: \${$xmrRate->usd_rate} per XMR)");
+            }
+        } catch (\Exception $e) {
+            Log::warning("Failed to calculate USD value for XMR transaction: " . $e->getMessage());
+        }
+
         // Determine status based on confirmation thresholds
         $confirmations = $txData['confirmations'] ?? 0;
         $unlockTime = $txData['unlock_time'] ?? 0;
@@ -1059,6 +1087,22 @@ class MoneroRepository
             $status = 'unlocked';
         }
 
+        // Check if this is a featured listing payment
+        $isFeaturedPayment = false;
+        if ($type === 'withdrawal') {
+            // Check if this txid is already recorded as featured listing payment
+            $possibleFeaturePayment = XmrTransaction::where('txid', $txHash)
+                ->whereJsonContains('raw_transaction->purpose', 'feature_listing')
+                ->first();
+            
+            if ($possibleFeaturePayment) {
+                $isFeaturedPayment = true;
+                $listingId = $possibleFeaturePayment->raw_transaction['listing_id'] ?? 'unknown';
+                $feeUsd = $possibleFeaturePayment->raw_transaction['fee_usd'] ?? 'unknown';
+                Log::info("[FEATURED LISTING XMR DETECTED] Txid: {$txHash}, Listing ID: {$listingId}, Fee: \${$feeUsd}, Amount: {$amount} XMR, Status: {$status}, Confirmations: {$confirmations}");
+            }
+        }
+
         // Create transaction record
         $transaction = XmrTransaction::create([
             'xmr_wallet_id' => $wallet->id,
@@ -1067,6 +1111,7 @@ class MoneroRepository
             'payment_id' => $txData['payment_id'] ?? null,
             'type' => $type,
             'amount' => $amount,
+            'usd_value' => $usdValue,
             'fee' => $fee,
             'confirmations' => $confirmations,
             'unlock_time' => $unlockTime,
@@ -1077,7 +1122,7 @@ class MoneroRepository
             'unlocked_at' => $status === 'unlocked' ? now() : null,
         ]);
 
-        Log::debug("New XMR transaction detected: {$txHash} ({$type}) for {$amount} XMR");
+        Log::debug("New XMR transaction detected: {$txHash} ({$type}) for {$amount} XMR" . ($usdValue ? " (\${$usdValue} USD)" : '') . ($isFeaturedPayment ? ' [FEATURED LISTING PAYMENT]' : ''));
 
         // Process confirmation if unlocked
         if ($status === 'unlocked') {
@@ -1093,6 +1138,20 @@ class MoneroRepository
         $oldConfirmations = $transaction->confirmations;
         $newConfirmations = $txData['confirmations'] ?? 0;
         $minConfirmations = config('monero.min_confirmations', 10);
+
+        // Calculate USD value if missing (for withdrawal transactions created by controllers)
+        if ($transaction->usd_value === null || $transaction->usd_value == 0) {
+            try {
+                $xmrRate = \App\Models\ExchangeRate::where('crypto_shortname', 'xmr')->first();
+                if ($xmrRate) {
+                    $usdValue = $transaction->amount * $xmrRate->usd_rate;
+                    $transaction->update(['usd_value' => $usdValue]);
+                    Log::debug("          Updated missing USD value: \${$usdValue} (rate: \${$xmrRate->usd_rate} per XMR)");
+                }
+            } catch (\Exception $e) {
+                Log::warning("          Failed to calculate USD value: " . $e->getMessage());
+            }
+        }
 
         // Only update if confirmations have changed
         if ($oldConfirmations === $newConfirmations) {

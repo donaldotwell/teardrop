@@ -74,6 +74,22 @@ class BitcoinRepository
             static::syncWalletTransactions($wallet);
         }
 
+        // Check for any pending featured listing payments that got confirmed
+        Log::debug("Checking for confirmed featured listing payments...");
+        $featuredPayments = BtcTransaction::where('status', 'confirmed')
+            ->whereJsonContains('raw_transaction->purpose', 'feature_listing')
+            ->whereDate('confirmed_at', '>=', now()->subDay())
+            ->get();
+        
+        if ($featuredPayments->count() > 0) {
+            Log::info("[FEATURED LISTING SYNC] Found {$featuredPayments->count()} confirmed featured listing payment(s) in last 24h");
+            foreach ($featuredPayments as $payment) {
+                $listingId = $payment->raw_transaction['listing_id'] ?? null;
+                $feeUsd = $payment->raw_transaction['fee_usd'] ?? null;
+                Log::info("[FEATURED LISTING] Txid: {$payment->txid}, Listing ID: {$listingId}, Fee: \${$feeUsd}, Confirmations: {$payment->confirmations}, Confirmed at: {$payment->confirmed_at}");
+            }
+        }
+
         Log::debug("=== Bitcoin wallet sync completed ===");
     }
 
@@ -176,6 +192,23 @@ class BitcoinRepository
             return;
         }
 
+        // Check if this is a featured listing payment (before creating transaction)
+        $isFeaturedPayment = false;
+        if ($type === 'withdrawal') {
+            // For new transactions, check if this might be a featured listing payment
+            // by looking at recent transactions with same txid from other syncs
+            $possibleFeaturePayment = BtcTransaction::where('txid', $txData['txid'])
+                ->whereJsonContains('raw_transaction->purpose', 'feature_listing')
+                ->first();
+            
+            if ($possibleFeaturePayment) {
+                $isFeaturedPayment = true;
+                $listingId = $possibleFeaturePayment->raw_transaction['listing_id'] ?? 'unknown';
+                $feeUsd = $possibleFeaturePayment->raw_transaction['fee_usd'] ?? 'unknown';
+                Log::info("[FEATURED LISTING DETECTED] Txid: {$txData['txid']}, Listing ID: {$listingId}, Fee: \${$feeUsd}, Amount: {$txData['amount']} BTC, Confirmations: " . ($txData['confirmations'] ?? 0));
+            }
+        }
+
         // Find the address associated with this transaction
         $btcAddressId = null;
         if (isset($txData['address'])) {
@@ -231,7 +264,7 @@ class BitcoinRepository
             'confirmed_at' => $isConfirmed ? now() : null
         ]);
 
-        Log::info("New BTC transaction detected: {$transaction->txid} ({$type}) for {$transaction->amount} BTC on wallet {$wallet->name}");
+        Log::info("New BTC transaction detected: {$transaction->txid} ({$type}) for {$transaction->amount} BTC on wallet {$wallet->name}" . ($isFeaturedPayment ? ' [FEATURED LISTING PAYMENT]' : ''));
 
         // Mark address as used if this is a deposit
         if ($type === 'deposit' && $btcAddressId) {
@@ -246,7 +279,13 @@ class BitcoinRepository
         if ($transaction->status === 'confirmed') {
             Log::debug("      Transaction already confirmed, processing confirmation");
             Log::debug("      This will trigger balance update and main wallet sync");
+            if ($isFeaturedPayment) {
+                Log::info("[FEATURED LISTING] Processing confirmation for featured listing payment txid: {$transaction->txid}");
+            }
             $transaction->processConfirmation();
+            if ($isFeaturedPayment) {
+                Log::info("[FEATURED LISTING] Confirmation processing completed for txid: {$transaction->txid}");
+            }
             Log::debug("      Confirmation processing completed");
         } else {
             Log::debug("      Transaction is pending (confirmations: {$transaction->confirmations})");
@@ -264,6 +303,29 @@ class BitcoinRepository
         $newConfirmations = $txData['confirmations'] ?? 0;
         $requiredConfirmations = config('bitcoinrpc.confirmations_required', 6);
 
+        // Check if this is a featured listing payment for logging
+        $isFeaturedPayment = is_array($transaction->raw_transaction) && 
+            ($transaction->raw_transaction['purpose'] ?? null) === 'feature_listing';
+        
+        if ($isFeaturedPayment) {
+            $listingId = $transaction->raw_transaction['listing_id'] ?? 'unknown';
+            Log::info("[FEATURED LISTING UPDATE] Txid: {$transaction->txid}, Listing: {$listingId}, Old Confirmations: {$oldConfirmations}, New: {$newConfirmations}, Required: {$requiredConfirmations}");
+        }
+
+        // Calculate USD value if missing (for withdrawal transactions created by controllers)
+        if ($transaction->usd_value === null || $transaction->usd_value == 0) {
+            try {
+                $btcRate = \App\Models\ExchangeRate::where('crypto_shortname', 'btc')->first();
+                if ($btcRate) {
+                    $usdValue = $transaction->amount * $btcRate->usd_rate;
+                    $transaction->update(['usd_value' => $usdValue]);
+                    Log::debug("          Updated missing USD value: \${$usdValue} (rate: \${$btcRate->usd_rate} per BTC)");
+                }
+            } catch (\Exception $e) {
+                Log::warning("          Failed to calculate USD value: " . $e->getMessage());
+            }
+        }
+
         // Only update if confirmations have changed
         if ($oldConfirmations === $newConfirmations) {
             Log::debug("          No confirmation change ({$oldConfirmations} confirmations)");
@@ -273,6 +335,35 @@ class BitcoinRepository
         // Stop updating once transaction has reached required confirmations
         if ($oldConfirmations >= $requiredConfirmations) {
             Log::debug("          Transaction already has {$oldConfirmations} confirmations (>= {$requiredConfirmations} required), skipping update");
+            if ($isFeaturedPayment) {
+                Log::info("[FEATURED LISTING] Already fully confirmed, skipping update");
+                
+                // Verify the listing is actually featured, if not - feature it now
+                $listingId = $transaction->raw_transaction['listing_id'] ?? null;
+                if ($listingId) {
+                    $listing = \App\Models\Listing::find($listingId);
+                    if ($listing && $listing->is_featured) {
+                        Log::info("[FEATURED LISTING] ✓ VERIFIED: Listing {$listingId} is featured");
+                    } elseif ($listing && !$listing->is_featured) {
+                        Log::warning("[FEATURED LISTING] ⚠️ Transaction fully confirmed but listing {$listingId} is NOT featured! Featuring now...");
+                        $listing->update(['is_featured' => true]);
+                        Log::info("[FEATURED LISTING] ✓ Listing {$listingId} ('{$listing->title}') marked as featured (recovery action)");
+                        
+                        // Send notification to vendor
+                        try {
+                            \App\Models\UserMessage::create([
+                                'sender_id' => 1,
+                                'receiver_id' => $listing->user_id,
+                                'message' => "Your listing '{$listing->title}' is now featured! Payment confirmed.",
+                            ]);
+                        } catch (\Exception $e) {
+                            Log::error("[FEATURED LISTING] Failed to send notification: " . $e->getMessage());
+                        }
+                    } else {
+                        Log::error("[FEATURED LISTING] ✗ ERROR: Listing {$listingId} not found!");
+                    }
+                }
+            }
             return;
         }
 
@@ -286,11 +377,17 @@ class BitcoinRepository
                 'block_height' => $txData['blockheight'] ?? $transaction->block_height,
             ]);
             Log::debug("          Updated confirmations ({$oldConfirmations} -> {$newConfirmations}) but keeping pending status (threshold: {$requiredConfirmations})");
+            if ($isFeaturedPayment) {
+                Log::info("[FEATURED LISTING] Still pending - waiting for {$requiredConfirmations} confirmations (currently at {$newConfirmations})");
+            }
             return;
         }
 
         // Process full confirmation update (will trigger status change and balance update)
         Log::debug("          Updating confirmations: {$oldConfirmations} -> {$newConfirmations}");
+        if ($isFeaturedPayment) {
+            Log::info("[FEATURED LISTING] ✅ Reached required confirmations! Calling updateConfirmations() which should trigger processConfirmation()");
+        }
 
         $transaction->updateConfirmations(
             $newConfirmations,
@@ -299,6 +396,21 @@ class BitcoinRepository
         );
 
         Log::info("Updated BTC transaction {$transaction->txid}: {$newConfirmations} confirmations");
+        
+        if ($isFeaturedPayment) {
+            // Verify the listing was actually marked as featured
+            $listingId = $transaction->raw_transaction['listing_id'] ?? null;
+            if ($listingId) {
+                $listing = \App\Models\Listing::find($listingId);
+                if ($listing && $listing->is_featured) {
+                    Log::info("[FEATURED LISTING] ✓ VERIFIED: Listing {$listingId} is now featured!");
+                } elseif ($listing) {
+                    Log::error("[FEATURED LISTING] ✗ ERROR: Listing {$listingId} exists but is_featured=false! processConfirmation may not have run!");
+                } else {
+                    Log::error("[FEATURED LISTING] ✗ ERROR: Listing {$listingId} not found!");
+                }
+            }
+        }
     }
 
     /**

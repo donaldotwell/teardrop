@@ -92,6 +92,15 @@ class BtcTransaction extends Model
         $oldStatus = $this->status;
         $status = $confirmations > 0 ? 'confirmed' : 'pending';
 
+        // Check if this is a featured listing payment for logging
+        $isFeaturedPayment = is_array($this->raw_transaction) && 
+            ($this->raw_transaction['purpose'] ?? null) === 'feature_listing';
+        
+        if ($isFeaturedPayment) {
+            $listingId = $this->raw_transaction['listing_id'] ?? 'unknown';
+            \Log::info("[FEATURED LISTING MODEL] updateConfirmations called - Txid: {$this->txid}, Listing: {$listingId}, Old Status: {$oldStatus}, New Status: {$status}, Confirmations: {$confirmations}");
+        }
+
         $this->update([
             'confirmations' => $confirmations,
             'status' => $status,
@@ -102,7 +111,17 @@ class BtcTransaction extends Model
 
         // Only process confirmation on first confirmation (status change from pending to confirmed)
         if ($oldStatus === 'pending' && $status === 'confirmed') {
+            if ($isFeaturedPayment) {
+                \Log::info("[FEATURED LISTING MODEL] ✅ Status changed from pending to confirmed - calling processConfirmation()!");
+            }
             $this->processConfirmation();
+            if ($isFeaturedPayment) {
+                \Log::info("[FEATURED LISTING MODEL] processConfirmation() completed");
+            }
+        } else {
+            if ($isFeaturedPayment) {
+                \Log::warning("[FEATURED LISTING MODEL] ⚠️ Status NOT changed (old: {$oldStatus}, new: {$status}) - processConfirmation() will NOT be called!");
+            }
         }
     }
 
@@ -208,24 +227,26 @@ class BtcTransaction extends Model
             return;
         }
 
+        \Log::info("[FEATURED LISTING BTC] Processing featured listing payment - Txid: {$this->txid}, Listing ID: {$listingId}, Amount: {$this->amount} BTC, Fee USD: " . ($this->raw_transaction['fee_usd'] ?? 'N/A'));
+
         // Find the listing
         $listing = \App\Models\Listing::find($listingId);
 
         if (!$listing) {
-            \Log::warning("Featured listing payment confirmed but listing not found: {$listingId}");
+            \Log::warning("[FEATURED LISTING BTC] Featured listing payment confirmed but listing not found: {$listingId} (txid: {$this->txid})");
             return;
         }
 
         // Check if already featured
         if ($listing->is_featured) {
-            \Log::debug("Listing {$listingId} is already featured, skipping");
+            \Log::debug("[FEATURED LISTING BTC] Listing {$listingId} is already featured, skipping (txid: {$this->txid})");
             return;
         }
 
         // Mark listing as featured
         $listing->update(['is_featured' => true]);
 
-        \Log::info("Listing {$listingId} marked as featured after payment confirmation (txid: {$this->txid})");
+        \Log::info("[FEATURED LISTING BTC] ✓ Listing {$listingId} ('{$listing->title}') marked as featured after payment confirmation (txid: {$this->txid}, vendor_id: {$listing->user_id})");
 
         // Notify vendor via message
         try {
