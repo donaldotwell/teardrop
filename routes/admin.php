@@ -57,6 +57,7 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
     // Dispute Management Routes
     Route::prefix('disputes')->name('disputes.')->group(function () {
         Route::get('/', [AdminDisputeController::class, 'index'])->name('index');
+        Route::get('/export', [AdminDisputeController::class, 'export'])->name('export');
         Route::get('/{dispute}', [AdminDisputeController::class, 'show'])->name('show');
         Route::post('/{dispute}/assign', [AdminDisputeController::class, 'assign'])->name('assign');
         Route::post('/{dispute}/reassign-moderator', [AdminDisputeController::class, 'reassignModerator'])->name('reassign-moderator');

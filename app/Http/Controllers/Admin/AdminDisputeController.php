@@ -13,7 +13,6 @@ use App\Repositories\BitcoinRepository;
 use App\Repositories\MoneroRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class AdminDisputeController extends Controller
@@ -761,15 +760,15 @@ class AdminDisputeController extends Controller
             abort(404, 'Evidence not found.');
         }
 
-        // Check if file exists
-        if (!Storage::disk('private')->exists($evidence->file_path)) {
-            abort(404, 'File not found.');
-        }
+        // Return the base64 decoded content as a downloadable response
+        $content = base64_decode($evidence->content);
+        $mimeType = $evidence->type;
+        $fileName = $evidence->file_name;
 
-        return Storage::disk('private')->download(
-            $evidence->file_path,
-            $evidence->file_name
-        );
+        return response($content, 200)
+            ->header('Content-Type', $mimeType)
+            ->header('Content-Disposition', 'inline; filename="' . $fileName . '"')
+            ->header('Content-Length', strlen($content));
     }
 
     /**

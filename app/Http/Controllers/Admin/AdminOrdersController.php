@@ -211,7 +211,7 @@ class AdminOrdersController extends Controller
         // Weekly revenue data for the last 8 weeks
         $weeklyRevenue = Order::where('status', 'completed')
             ->where('updated_at', '>=', now()->subWeeks(8))
-            ->selectRaw('YEARWEEK(updated_at, 1) as week_year, WEEK(updated_at, 1) as week, SUM(usd_price) as revenue, COUNT(*) as order_count')
+            ->selectRaw("TO_CHAR(updated_at, 'IYYY-IW') as week_year, EXTRACT(WEEK FROM updated_at)::int as week, SUM(usd_price) as revenue, COUNT(*) as order_count")
             ->groupBy('week_year', 'week')
             ->orderBy('week_year')
             ->orderBy('week')
@@ -226,7 +226,7 @@ class AdminOrdersController extends Controller
 
         // Monthly user growth for the last 12 months
         $monthlyUsers = User::where('created_at', '>=', now()->subMonths(12))
-            ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as count')
+            ->selectRaw('EXTRACT(YEAR FROM created_at)::int as year, EXTRACT(MONTH FROM created_at)::int as month, COUNT(*) as count')
             ->groupBy('year', 'month')
             ->orderBy('year')
             ->orderBy('month')
@@ -247,8 +247,8 @@ class AdminOrdersController extends Controller
             ->where('orders.status', 'completed')
             ->where('users.vendor_level', '>', 0)
             ->groupBy('users.id')
-            ->having('revenue', '>', 0)
-            ->orderBy('revenue', 'desc')
+            ->havingRaw('SUM(orders.usd_price) > 0')
+            ->orderByRaw('SUM(orders.usd_price) DESC')
             ->limit(10)
             ->get();
 
@@ -327,9 +327,7 @@ class AdminOrdersController extends Controller
             'active_last_7_days' => User::where('last_seen', '>=', now()->subDays(7))->count(),
             'active_last_30_days' => User::where('last_seen', '>=', now()->subDays(30))->count(),
             'users_with_orders' => User::whereHas('orders')->count(),
-            'repeat_customers' => User::whereHas('orders', function($query) {
-                $query->havingRaw('COUNT(*) > 1');
-            })->count(),
+            'repeat_customers' => User::whereRaw('(SELECT COUNT(*) FROM orders WHERE orders.user_id = users.id) > 1')->count(),
         ];
 
         return view('admin.reports', compact(

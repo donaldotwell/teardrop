@@ -53,29 +53,32 @@ class AdminController extends Controller
         // Weekly revenue data
         $weeklyRevenue = Order::where('status', 'completed')
             ->where('updated_at', '>=', now()->subWeeks(4))
-            ->selectRaw('WEEK(updated_at) as week, SUM(usd_price) as revenue')
+            ->selectRaw('EXTRACT(WEEK FROM updated_at) as week, SUM(usd_price) as revenue')
             ->groupBy('week')
             ->orderBy('week')
             ->get();
 
         // Monthly user growth
         $monthlyUsers = User::where('created_at', '>=', now()->subMonths(6))
-            ->selectRaw('MONTH(created_at) as month, COUNT(*) as count')
+            ->selectRaw('EXTRACT(MONTH FROM created_at)::int as month, COUNT(*) as count')
             ->groupBy('month')
             ->orderBy('month')
             ->get();
 
         // Top vendors by revenue
-
         $topVendors = User::withSum([
             'venderOrders as revenue' => function ($query) {
                 $query->where('status', 'completed');
             }
         ], 'usd_price')
-            ->having('revenue', '>', 0)
-            ->orderBy('revenue', 'desc')
+            ->whereHas('venderOrders', function ($query) {
+                $query->where('status', 'completed');
+            })
+            ->orderByDesc('revenue')
             ->limit(10)
-            ->get();
+            ->get()
+            ->filter(fn($user) => $user->revenue > 0)
+            ->values();
 
         return view('admin.reports', compact(
             'weeklyRevenue',
@@ -104,7 +107,7 @@ class AdminController extends Controller
         // Monthly revenue breakdown
         $monthlyRevenue = Order::where('status', 'completed')
             ->where('created_at', '>=', now()->subMonths(12))
-            ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(usd_price) as revenue, COUNT(*) as order_count')
+            ->selectRaw('EXTRACT(YEAR FROM created_at)::int as year, EXTRACT(MONTH FROM created_at)::int as month, SUM(usd_price) as revenue, COUNT(*) as order_count')
             ->groupBy('year', 'month')
             ->orderBy('year')
             ->orderBy('month')
@@ -115,7 +118,7 @@ class AdminController extends Controller
         $releasedEscrow = \App\Models\EscrowWallet::where('status', 'released')->count();
 
         // Fee collection stats
-        $vendorConversions = \App\Models\WalletTransaction::where('description', 'like', '%vendor_conversion%')
+        $vendorConversions = \App\Models\WalletTransaction::where('comment', 'like', '%vendor_conversion%')
             ->count();
 
         return view('admin.reports.financial', compact(
@@ -136,7 +139,7 @@ class AdminController extends Controller
     {
         // User growth over time
         $userGrowth = User::where('created_at', '>=', now()->subMonths(12))
-            ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as count')
+            ->selectRaw('EXTRACT(YEAR FROM created_at)::int as year, EXTRACT(MONTH FROM created_at)::int as month, COUNT(*) as count')
             ->groupBy('year', 'month')
             ->orderBy('year')
             ->orderBy('month')
@@ -233,7 +236,7 @@ class AdminController extends Controller
                 case 'financial':
                     fputcsv($file, ['Month', 'Year', 'Revenue (USD)', 'Order Count']);
                     $data = Order::where('status', 'completed')
-                        ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(usd_price) as revenue, COUNT(*) as order_count')
+                        ->selectRaw('EXTRACT(YEAR FROM created_at)::int as year, EXTRACT(MONTH FROM created_at)::int as month, SUM(usd_price) as revenue, COUNT(*) as order_count')
                         ->groupBy('year', 'month')
                         ->orderBy('year')
                         ->orderBy('month')
