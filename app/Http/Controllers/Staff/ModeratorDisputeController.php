@@ -327,7 +327,8 @@ class ModeratorDisputeController extends Controller
         $dispute->messages()->create([
             'user_id' => $moderator->id,
             'message' => "Information requested from {$request->target}: {$request->request_message}",
-            'message_type' => 'info_request',
+            // 'message_type' => 'info_request', // TODO: consider adding specific message type for info requests
+            'message_type' => 'moderator_message',
             'is_internal' => false,
         ]);
 
