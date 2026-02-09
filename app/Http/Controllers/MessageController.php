@@ -14,8 +14,8 @@ class MessageController extends Controller
         // Get the logged-in user
         $user = $request->user();
 
-        // Fetch user thread and each thread's latest message
-        $threads = $user->threads()
+        // Fetch all user threads (both sent and received) with latest message
+        $threads = $user->allThreads()
             ->with(['latestMessage.order', 'user', 'receiver'])
             ->paginate();
 
@@ -50,7 +50,7 @@ class MessageController extends Controller
         // Get the logged-in user
         $user = $request->user();
 
-        // Validate user is part of the thread. TODO: streamline this check
+        // Ensure the logged-in user is part of the thread
         if ($thread->user_id !== $user->id && $thread->receiver_id !== $user->id) {
             abort(403, 'You are not authorized to send a message to this thread.');
         }

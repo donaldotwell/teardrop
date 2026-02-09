@@ -182,7 +182,7 @@
                     {{-- Add Message Form --}}
                     @if($dispute->isOpen())
                         <div class="border-t border-gray-200 p-4">
-                            <form action="{{ route('disputes.add-message', $dispute) }}" method="POST">
+                            <form action="{{ route('disputes.messages.store', $dispute) }}" method="POST">
                                 @csrf
                                 <div class="space-y-3">
                                     <textarea name="message" rows="3" placeholder="Type your message..." required
@@ -260,7 +260,7 @@
                                 Upload Evidence
                             </summary>
                             <div class="mt-3 p-4 bg-gray-50 rounded-lg">
-                                <form action="{{ route('disputes.upload-evidence', $dispute) }}" method="POST" enctype="multipart/form-data">
+                                <form action="{{ route('disputes.evidence.store', $dispute) }}" method="POST" enctype="multipart/form-data">
                                     @csrf
                                     <div class="space-y-3">
                                         <div>

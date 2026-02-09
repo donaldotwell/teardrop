@@ -201,46 +201,5 @@
             </div>
         </div>
 
-        {{-- Danger Zone --}}
-        <div class="bg-white border-2 border-red-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-red-600 mb-4">Danger Zone</h3>
-
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div class="flex items-start justify-between">
-                    <div class="flex-1">
-                        <h4 class="font-medium text-red-900 mb-2">Delete Account</h4>
-                        <p class="text-sm text-red-800 mb-2">
-                            Permanently delete your account and all associated data. This action cannot be undone.
-                        </p>
-                        <ul class="text-xs text-red-700 space-y-1 mb-3">
-                            <li>• All orders and transaction history will be deleted</li>
-                            <li>• Your listings will be removed</li>
-                            <li>• Wallet balances will be lost (withdraw first!)</li>
-                            <li>• Forum posts and messages will be deleted</li>
-                            <li>• This action requires PGP and password verification</li>
-                        </ul>
-                        @if(empty($user->pgp_pub_key))
-                            <p class="text-xs text-red-600 font-semibold">
-                                ⚠ You must configure a PGP key before you can delete your account.
-                            </p>
-                        @endif
-                    </div>
-                    <div class="ml-4">
-                        @if(!empty($user->pgp_pub_key))
-                            <a href="{{ route('profile.delete-account.show') }}"
-                               class="px-4 py-2 bg-red-600 text-white font-medium rounded hover:bg-red-700 text-sm whitespace-nowrap">
-                                Delete Account
-                            </a>
-                        @else
-                            <a href="{{ route('profile.pgp') }}"
-                               class="px-4 py-2 bg-gray-400 text-white font-medium rounded cursor-not-allowed text-sm whitespace-nowrap"
-                               title="Configure PGP key first">
-                                Delete Account
-                            </a>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 @endsection

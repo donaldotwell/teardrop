@@ -113,6 +113,15 @@ class MoneroController extends Controller
         $balanceData = $user->getBalance();
         $unlockedBalance = $balanceData['xmr']['unlocked_balance'];
 
+        // For vendors, calculate disputed amount hold
+        $disputedHold = 0;
+        if ($user->hasRole('vendor')) {
+            $disputedAmounts = $user->getActiveDisputedAmounts();
+            $disputedHold = $disputedAmounts['xmr'];
+        }
+
+        $availableBalance = max(0, $unlockedBalance - $disputedHold);
+
         // Validate withdrawal request
         $validated = $request->validate([
             'address' => [
@@ -124,7 +133,7 @@ class MoneroController extends Controller
                 'required',
                 'numeric',
                 'min:0.000000000001', // Minimum XMR amount
-                'max:' . $unlockedBalance,
+                'max:' . $availableBalance,
             ],
             'pin' => 'required|string|size:6',
         ], [
@@ -132,7 +141,9 @@ class MoneroController extends Controller
             'address.regex' => 'Invalid Monero address format.',
             'amount.required' => 'Amount is required.',
             'amount.min' => 'Minimum withdrawal amount is 0.000000000001 XMR.',
-            'amount.max' => 'Insufficient unlocked balance. Available: ' . number_format($unlockedBalance, 12) . ' XMR.',
+            'amount.max' => $disputedHold > 0
+                ? 'Insufficient unlocked balance. Available: ' . number_format($availableBalance, 12) . ' XMR (disputed hold: ' . number_format($disputedHold, 12) . ' XMR).'
+                : 'Insufficient unlocked balance. Available: ' . number_format($availableBalance, 12) . ' XMR.',
             'pin.required' => 'Security PIN is required.',
             'pin.size' => 'PIN must be exactly 6 digits.',
         ]);
@@ -158,13 +169,14 @@ class MoneroController extends Controller
             // Lock wallet to prevent race conditions - MUST BE FIRST
             $xmrWallet = XmrWallet::where('id', $xmrWallet->id)->lockForUpdate()->first();
 
-            // Re-validate balance after lock using transaction-based calculation
+            // Re-validate balance after lock using transaction-based calculation (including disputed hold)
             // Clear cache to get fresh balance
             \Cache::forget('user_xmr_balance_' . $user->id);
             $balanceData = $user->getBalance();
             $unlockedBalance = $balanceData['xmr']['unlocked_balance'];
+            $availableAfterLock = max(0, $unlockedBalance - $disputedHold);
 
-            if ($unlockedBalance < $validated['amount']) {
+            if ($availableAfterLock < $validated['amount']) {
                 DB::rollBack();
                 return back()
                     ->withInput()

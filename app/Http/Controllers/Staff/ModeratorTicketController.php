@@ -262,6 +262,205 @@ class ModeratorTicketController extends Controller
     }
 
     /**
+     * Assign ticket to current moderator (self-assign shortcut)
+     */
+    public function assignMe(SupportTicket $supportTicket)
+    {
+        $moderator = auth()->user();
+
+        // Check if ticket is already assigned to someone else
+        if ($supportTicket->assigned_to && $supportTicket->assigned_to !== $moderator->id) {
+            return redirect()->back()
+                ->with('error', 'This ticket is already assigned to another team member.');
+        }
+
+        // Check moderator workload
+        $currentWorkload = $this->getModeratorWorkload($moderator->id);
+        if ($currentWorkload >= config('tickets.max_moderator_workload', 15)) {
+            return redirect()->back()
+                ->with('error', 'You have reached your maximum ticket assignment limit.');
+        }
+
+        $supportTicket->assignTo($moderator);
+
+        AuditLog::log('ticket_self_assigned', $moderator->id, [
+            'ticket_id' => $supportTicket->id,
+            'ticket_number' => $supportTicket->ticket_number,
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Ticket assigned to you successfully.');
+    }
+
+    /**
+     * Reassign ticket to another staff member
+     */
+    public function reassignStaff(Request $request, SupportTicket $supportTicket)
+    {
+        $request->validate([
+            'staff_id' => 'required|exists:users,id',
+        ]);
+
+        $moderator = auth()->user();
+
+        if (!$this->canModeratorAccessTicket($supportTicket, $moderator)) {
+            abort(403, 'You cannot reassign this ticket.');
+        }
+
+        $newStaff = User::findOrFail($request->staff_id);
+
+        // Verify the target user is a moderator or admin
+        if (!$newStaff->hasAnyRole(['moderator', 'admin'])) {
+            return redirect()->back()
+                ->with('error', 'Tickets can only be assigned to moderators or admins.');
+        }
+
+        $previousAssignee = $supportTicket->assignedTo?->username_pub ?? 'Unassigned';
+
+        $supportTicket->update(['assigned_to' => $newStaff->id]);
+
+        $supportTicket->messages()->create([
+            'user_id' => $moderator->id,
+            'message' => "Ticket reassigned from {$previousAssignee} to {$newStaff->username_pub}",
+            'message_type' => 'assignment_update',
+            'is_internal' => true,
+        ]);
+
+        AuditLog::log('ticket_reassigned', $moderator->id, [
+            'ticket_id' => $supportTicket->id,
+            'ticket_number' => $supportTicket->ticket_number,
+            'from' => $previousAssignee,
+            'to' => $newStaff->username_pub,
+        ]);
+
+        return redirect()->back()
+            ->with('success', "Ticket reassigned to {$newStaff->username_pub}.");
+    }
+
+    /**
+     * Update ticket status
+     */
+    public function updateStatus(Request $request, SupportTicket $supportTicket)
+    {
+        $request->validate([
+            'status' => 'required|in:open,pending,in_progress,on_hold,resolved,closed',
+        ]);
+
+        $moderator = auth()->user();
+
+        if (!$this->canModeratorAccessTicket($supportTicket, $moderator)) {
+            abort(403, 'You cannot update this ticket.');
+        }
+
+        $supportTicket->updateStatus($request->status, $moderator);
+
+        AuditLog::log('ticket_status_updated', $moderator->id, [
+            'ticket_id' => $supportTicket->id,
+            'ticket_number' => $supportTicket->ticket_number,
+            'new_status' => $request->status,
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Ticket status updated to ' . str_replace('_', ' ', $request->status) . '.');
+    }
+
+    /**
+     * Update ticket priority
+     */
+    public function updatePriority(Request $request, SupportTicket $supportTicket)
+    {
+        $request->validate([
+            'priority' => 'required|in:low,medium,high,urgent',
+        ]);
+
+        $moderator = auth()->user();
+
+        if (!$this->canModeratorAccessTicket($supportTicket, $moderator)) {
+            abort(403, 'You cannot update this ticket.');
+        }
+
+        $supportTicket->updatePriority($request->priority, $moderator);
+
+        AuditLog::log('ticket_priority_updated', $moderator->id, [
+            'ticket_id' => $supportTicket->id,
+            'ticket_number' => $supportTicket->ticket_number,
+            'new_priority' => $request->priority,
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Ticket priority updated to ' . $request->priority . '.');
+    }
+
+    /**
+     * Add a message to the ticket
+     */
+    public function addMessage(Request $request, SupportTicket $supportTicket)
+    {
+        $request->validate([
+            'message' => 'required|string|max:2000',
+            'is_internal' => 'boolean',
+        ]);
+
+        $moderator = auth()->user();
+
+        if (!$this->canModeratorAccessTicket($supportTicket, $moderator)) {
+            abort(403, 'You cannot respond to this ticket.');
+        }
+
+        $supportTicket->messages()->create([
+            'user_id' => $moderator->id,
+            'message' => $request->message,
+            'message_type' => 'staff_message',
+            'is_internal' => $request->boolean('is_internal', false),
+        ]);
+
+        // Update first response time if not set
+        if (!$supportTicket->first_response_at) {
+            $supportTicket->update(['first_response_at' => now()]);
+        }
+
+        // Auto-assign if not assigned
+        if (!$supportTicket->assigned_to) {
+            $supportTicket->update(['assigned_to' => $moderator->id]);
+        }
+
+        AuditLog::log('ticket_message_added', $moderator->id, [
+            'ticket_id' => $supportTicket->id,
+            'ticket_number' => $supportTicket->ticket_number,
+            'is_internal' => $request->boolean('is_internal'),
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Message added successfully.');
+    }
+
+    /**
+     * Download a ticket attachment as base64 decoded response
+     */
+    public function downloadAttachment(SupportTicket $supportTicket, \App\Models\SupportTicketAttachment $attachment)
+    {
+        $moderator = auth()->user();
+
+        if (!$this->canModeratorAccessTicket($supportTicket, $moderator)) {
+            abort(403, 'You cannot access this ticket.');
+        }
+
+        // Verify attachment belongs to this ticket
+        if ($attachment->support_ticket_id !== $supportTicket->id) {
+            abort(404, 'Attachment not found for this ticket.');
+        }
+
+        $content = base64_decode($attachment->content);
+        $mimeType = $attachment->type;
+        $fileName = $attachment->file_name;
+
+        return response($content, 200)
+            ->header('Content-Type', $mimeType)
+            ->header('Content-Disposition', 'inline; filename="' . $fileName . '"')
+            ->header('Content-Length', strlen($content));
+    }
+
+    /**
      * Escalate ticket to admin
      */
     public function escalate(Request $request, SupportTicket $supportTicket)

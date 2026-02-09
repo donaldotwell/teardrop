@@ -65,7 +65,6 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
         Route::post('/{dispute}/close', [AdminDisputeController::class, 'close'])->name('close');
         Route::post('/{dispute}/add-admin-message', [AdminDisputeController::class, 'addAdminMessage'])->name('add-admin-message');
         Route::post('/{dispute}/update-priority', [AdminDisputeController::class, 'updatePriority'])->name('update-priority');
-        Route::get('/export', [AdminDisputeController::class, 'export'])->name('export');
         Route::get('/{dispute}/evidence/{evidence}/download', [AdminDisputeController::class, 'downloadEvidence'])->name('download-evidence');
         Route::post('/{dispute}/evidence/{evidence}/verify', [AdminDisputeController::class, 'verifyEvidence'])->name('verify-evidence');
     });
@@ -74,21 +73,20 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
 
         // Admin ticket management
         Route::get('/', [AdminSupportTicketController::class, 'index'])->name('index');
+        Route::get('/export', [AdminSupportTicketController::class, 'export'])->name('export');
+        Route::get('/stats', [AdminSupportTicketController::class, 'getStats'])->name('stats');
         Route::get('/{supportTicket}', [AdminSupportTicketController::class, 'show'])->name('show');
         Route::post('/{supportTicket}/assign', [AdminSupportTicketController::class, 'assign'])->name('assign');
         Route::post('/{supportTicket}/reassign-staff', [AdminSupportTicketController::class, 'reassignStaff'])->name('reassign-staff');
         Route::post('/{supportTicket}/update-status', [AdminSupportTicketController::class, 'updateStatus'])->name('update-status');
-        Route::post('/{supportTicket}/update-priority', [AdminSupportTicketController::class, 'update-priority'])->name('update-priority');
+        Route::post('/{supportTicket}/update-priority', [AdminSupportTicketController::class, 'updatePriority'])->name('update-priority');
         Route::post('/{supportTicket}/add-message', [AdminSupportTicketController::class, 'addMessage'])->name('add-message');
         Route::post('/{supportTicket}/resolve', [AdminSupportTicketController::class, 'resolve'])->name('resolve');
         Route::post('/{supportTicket}/close', [AdminSupportTicketController::class, 'close'])->name('close');
-        Route::get('/export', [AdminSupportTicketController::class, 'export'])->name('export');
         Route::get('/{supportTicket}/attachment/{attachment}/download', [AdminSupportTicketController::class, 'downloadAttachment'])->name('download-attachment');
 
-        Route::get('/export', [AdminSupportTicketController::class, 'export'])->name('export');
         Route::post('/auto-assign', [AdminSupportTicketController::class, 'autoAssign'])->name('auto-assign');
         Route::post('/bulk-action', [AdminSupportTicketController::class, 'bulkAction'])->name('bulk-action');
-        Route::get('/stats', [AdminSupportTicketController::class, 'getStats'])->name('stats');
     });
 
     // Forum Management Routes
@@ -173,9 +171,9 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
     });
 
     // Rules Management
-    Route::resource('rules', \App\Http\Controllers\Admin\AdminRuleController::class);
+    Route::resource('rules', \App\Http\Controllers\Admin\AdminRuleController::class)->except(['show']);
 
     // Harm Reduction Content Management
-    Route::resource('harm-reduction', \App\Http\Controllers\Admin\AdminHarmReductionController::class);
+    Route::resource('harm-reduction', \App\Http\Controllers\Admin\AdminHarmReductionController::class)->except(['show']);
 
 });

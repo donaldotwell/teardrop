@@ -18,119 +18,101 @@
 @section('content')
     <div class="space-y-6">
 
-        {{-- Date Range Filter --}}
-        <div class="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Report Period</h3>
-
-            <form method="GET" action="{{ route('admin.reports.financial') }}" class="flex items-end gap-4">
-                <div>
-                    <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                    <input type="date"
-                           name="start_date"
-                           id="start_date"
-                           value="{{ $startDate }}"
-                           class="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
-                </div>
-
-                <div>
-                    <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                    <input type="date"
-                           name="end_date"
-                           id="end_date"
-                           value="{{ $endDate }}"
-                           class="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
-                </div>
-
-                <button type="submit"
-                        class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700">
-                    Update Report
-                </button>
-
-                <a href="{{ route('admin.reports.export', 'financial') }}"
-                   class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                    Export CSV
-                </a>
-            </form>
+        {{-- Export Action --}}
+        <div class="flex justify-end">
+            <a href="{{ route('admin.reports.export', 'financial') }}"
+               class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                Export CSV
+            </a>
         </div>
 
         {{-- Revenue Summary --}}
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="bg-white border border-gray-200 rounded-lg p-6">
-                <div class="text-sm text-gray-600 mb-1">Total Revenue</div>
+                <div class="text-sm text-gray-600 mb-1">Total USD Revenue</div>
                 <div class="text-2xl font-semibold text-green-600">
-                    ${{ number_format($revenue->total_revenue ?? 0, 2) }}
+                    ${{ number_format($totalUsdRevenue, 2) }}
                 </div>
-                <div class="text-sm text-gray-500 mt-1">
-                    {{ number_format($revenue->total_orders ?? 0) }} orders
-                </div>
+                <div class="text-sm text-gray-500 mt-1">All completed orders</div>
             </div>
 
             <div class="bg-white border border-gray-200 rounded-lg p-6">
-                <div class="text-sm text-gray-600 mb-1">Average Order Value</div>
-                <div class="text-2xl font-semibold text-blue-600">
-                    ${{ number_format($revenue->avg_order_value ?? 0, 2) }}
-                </div>
-                <div class="text-sm text-gray-500 mt-1">Per completed order</div>
-            </div>
-
-            <div class="bg-white border border-gray-200 rounded-lg p-6">
-                <div class="text-sm text-gray-600 mb-1">Bitcoin Revenue</div>
+                <div class="text-sm text-gray-600 mb-1">Bitcoin Volume</div>
                 <div class="text-2xl font-semibold text-orange-600">
-                    ${{ number_format($revenue->btc_revenue ?? 0, 2) }}
+                    {{ number_format($btcRevenue, 8) }} BTC
                 </div>
-                <div class="text-sm text-gray-500 mt-1">
-                    {{ $revenue->total_revenue > 0 ? number_format(($revenue->btc_revenue / $revenue->total_revenue) * 100, 1) : 0 }}% of total
-                </div>
+                <div class="text-sm text-gray-500 mt-1">Total BTC received</div>
             </div>
 
             <div class="bg-white border border-gray-200 rounded-lg p-6">
-                <div class="text-sm text-gray-600 mb-1">Monero Revenue</div>
+                <div class="text-sm text-gray-600 mb-1">Monero Volume</div>
                 <div class="text-2xl font-semibold text-amber-600">
-                    ${{ number_format($revenue->xmr_revenue ?? 0, 2) }}
+                    {{ number_format($xmrRevenue, 8) }} XMR
                 </div>
-                <div class="text-sm text-gray-500 mt-1">
-                    {{ $revenue->total_revenue > 0 ? number_format(($revenue->xmr_revenue / $revenue->total_revenue) * 100, 1) : 0 }}% of total
+                <div class="text-sm text-gray-500 mt-1">Total XMR received</div>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <div class="text-sm text-gray-600 mb-1">Vendor Conversions</div>
+                <div class="text-2xl font-semibold text-purple-600">
+                    {{ number_format($vendorConversions) }}
                 </div>
+                <div class="text-sm text-gray-500 mt-1">Fee transactions</div>
             </div>
         </div>
 
-        {{-- Daily Revenue Chart --}}
-        <div class="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Daily Revenue Trend</h3>
+        {{-- Escrow Stats --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Active Escrow Balance</h3>
+                <div class="text-3xl font-bold text-blue-600">{{ number_format($activeEscrow, 8) }}</div>
+                <p class="text-sm text-gray-500 mt-1">Funds currently held in escrow</p>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Released Escrow Transactions</h3>
+                <div class="text-3xl font-bold text-green-600">{{ number_format($releasedEscrow) }}</div>
+                <p class="text-sm text-gray-500 mt-1">Escrow wallets successfully released</p>
+            </div>
+        </div>
 
-            @if($dailyRevenue->isNotEmpty())
-                <div class="space-y-2">
-                    @php
-                        $maxRevenue = $dailyRevenue->max('revenue');
-                    @endphp
-                    @foreach($dailyRevenue as $day)
-                        <div class="flex items-center">
-                            <div class="w-24 text-sm text-gray-600">
-                                {{ \Carbon\Carbon::parse($day->date)->format('M d') }}
-                            </div>
-                            <div class="flex-1 mx-4">
-                                <div class="bg-gray-200 rounded-full h-6 relative">
-                                    <div class="bg-green-500 h-6 rounded-full flex items-center justify-end pr-2"
-                                         style="width: {{ $maxRevenue > 0 ? ($day->revenue / $maxRevenue) * 100 : 0 }}%">
-                                        @if($day->revenue > 0)
-                                            <span class="text-white text-xs font-medium">
-                                                ${{ number_format($day->revenue, 0) }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="w-16 text-sm text-gray-600 text-right">
-                                {{ $day->orders }} orders
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                <div class="text-center text-gray-500 py-8">
-                    No revenue data for the selected period.
-                </div>
-            @endif
+        {{-- Monthly Revenue Table --}}
+        <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Monthly Revenue (Last 12 Months)</h3>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Revenue (USD)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Orders</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Order Value</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse($monthlyRevenue as $row)
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ \Carbon\Carbon::createFromDate($row->year, $row->month, 1)->format('M Y') }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                                    ${{ number_format($row->revenue, 2) }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ $row->order_count }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    ${{ $row->order_count > 0 ? number_format($row->revenue / $row->order_count, 2) : '0.00' }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-center text-gray-500">No revenue data available</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         {{-- Revenue Breakdown --}}
@@ -143,7 +125,7 @@
                     <div class="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
                         <div class="flex items-center space-x-3">
                             <div class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                                <span class="text-orange-600 font-bold text-sm">₿</span>
+                                <span class="text-orange-600 font-bold text-sm">B</span>
                             </div>
                             <div>
                                 <div class="font-medium text-gray-900">Bitcoin (BTC)</div>
@@ -152,18 +134,21 @@
                         </div>
                         <div class="text-right">
                             <div class="font-semibold text-gray-900">
-                                ${{ number_format($revenue->btc_revenue ?? 0, 2) }}
+                                {{ number_format($btcRevenue, 8) }} BTC
                             </div>
                             <div class="text-sm text-gray-500">
-                                {{ $revenue->total_revenue > 0 ? number_format(($revenue->btc_revenue / $revenue->total_revenue) * 100, 1) : 0 }}%
+                                @php
+                                    $totalCrypto = $btcRevenue + $xmrRevenue;
+                                @endphp
+                                {{ $totalCrypto > 0 ? number_format(($btcRevenue / $totalCrypto) * 100, 1) : 0 }}% of crypto volume
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
+                    <div class="flex items-center justify-between p-4 bg-amber-50 rounded-lg">
                         <div class="flex items-center space-x-3">
-                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                                <span class="text-amber-600 font-bold text-sm">ɱ</span>
+                            <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                                <span class="text-amber-600 font-bold text-sm">M</span>
                             </div>
                             <div>
                                 <div class="font-medium text-gray-900">Monero (XMR)</div>
@@ -172,10 +157,10 @@
                         </div>
                         <div class="text-right">
                             <div class="font-semibold text-gray-900">
-                                ${{ number_format($revenue->xmr_revenue ?? 0, 2) }}
+                                {{ number_format($xmrRevenue, 8) }} XMR
                             </div>
                             <div class="text-sm text-gray-500">
-                                {{ $revenue->total_revenue > 0 ? number_format(($revenue->xmr_revenue / $revenue->total_revenue) * 100, 1) : 0 }}%
+                                {{ $totalCrypto > 0 ? number_format(($xmrRevenue / $totalCrypto) * 100, 1) : 0 }}% of crypto volume
                             </div>
                         </div>
                     </div>
@@ -188,37 +173,33 @@
 
                 <div class="space-y-4">
                     <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span class="text-sm text-gray-600">Total Orders</span>
-                        <span class="font-medium text-gray-900">{{ number_format($revenue->total_orders ?? 0) }}</span>
+                        <span class="text-sm text-gray-600">Total USD Revenue</span>
+                        <span class="font-medium text-gray-900">${{ number_format($totalUsdRevenue, 2) }}</span>
                     </div>
 
                     <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span class="text-sm text-gray-600">Total Revenue</span>
-                        <span class="font-medium text-gray-900">${{ number_format($revenue->total_revenue ?? 0, 2) }}</span>
+                        <span class="text-sm text-gray-600">BTC Volume</span>
+                        <span class="font-medium text-gray-900">{{ number_format($btcRevenue, 8) }} BTC</span>
                     </div>
 
                     <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span class="text-sm text-gray-600">Average Order Value</span>
-                        <span class="font-medium text-gray-900">${{ number_format($revenue->avg_order_value ?? 0, 2) }}</span>
+                        <span class="text-sm text-gray-600">XMR Volume</span>
+                        <span class="font-medium text-gray-900">{{ number_format($xmrRevenue, 8) }} XMR</span>
                     </div>
 
                     <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span class="text-sm text-gray-600">Revenue per Day</span>
-                        <span class="font-medium text-gray-900">
-                            @php
-                                $days = \Carbon\Carbon::parse($startDate)->diffInDays(\Carbon\Carbon::parse($endDate)) + 1;
-                                $revenuePerDay = $days > 0 ? ($revenue->total_revenue ?? 0) / $days : 0;
-                            @endphp
-                            ${{ number_format($revenuePerDay, 2) }}
-                        </span>
+                        <span class="text-sm text-gray-600">Active Escrow</span>
+                        <span class="font-medium text-gray-900">{{ number_format($activeEscrow, 8) }}</span>
+                    </div>
+
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-sm text-gray-600">Released Escrows</span>
+                        <span class="font-medium text-gray-900">{{ number_format($releasedEscrow) }}</span>
                     </div>
 
                     <div class="flex justify-between items-center py-2">
-                        <span class="text-sm text-gray-600">Report Period</span>
-                        <span class="font-medium text-gray-900">
-                            {{ \Carbon\Carbon::parse($startDate)->format('M d') }} -
-                            {{ \Carbon\Carbon::parse($endDate)->format('M d, Y') }}
-                        </span>
+                        <span class="text-sm text-gray-600">Vendor Conversions</span>
+                        <span class="font-medium text-gray-900">{{ number_format($vendorConversions) }}</span>
                     </div>
                 </div>
             </div>

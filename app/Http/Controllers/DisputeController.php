@@ -338,6 +338,34 @@ class DisputeController extends Controller
     }
 
     /**
+     * Download dispute evidence as base64 encoded image response.
+     */
+    public function downloadEvidence(Dispute $dispute, DisputeEvidence $evidence)
+    {
+        $user = auth()->user();
+
+        // Check if user can access this dispute
+        if (!$dispute->canUserParticipate($user)) {
+            abort(403, 'You cannot access this dispute.');
+        }
+
+        // Verify evidence belongs to this dispute
+        if ($evidence->dispute_id !== $dispute->id) {
+            abort(404, 'Evidence not found for this dispute.');
+        }
+
+        // Return the base64 decoded content as a downloadable response
+        $content = base64_decode($evidence->content);
+        $mimeType = $evidence->type;
+        $fileName = $evidence->file_name;
+
+        return response($content, 200)
+            ->header('Content-Type', $mimeType)
+            ->header('Content-Disposition', 'inline; filename="' . $fileName . '"')
+            ->header('Content-Length', strlen($content));
+    }
+
+    /**
      * Assign dispute to moderator with lowest workload
      */
     private function assignToAvailableModerator()

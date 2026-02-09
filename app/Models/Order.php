@@ -84,16 +84,6 @@ class Order extends Model
     }
 
     /**
-     * Get the listings associated with the order.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function listings() : \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(Listing::class);
-    }
-
-    /**
      * Get the dispute associated with this order.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasOne

@@ -153,10 +153,9 @@ class XmrWallet extends Model
     {
         $minConfirmations = config('monero.min_confirmations', 10);
         
-        // Sum all confirmed incoming transactions
-        // 'incoming' = from blockchain sync, 'deposit' = from internal transfers (escrow release, etc.)
+        // Sum all confirmed deposit transactions
         $totalIncoming = $this->transactions()
-            ->whereIn('type', ['incoming', 'deposit'])
+            ->where('type', 'deposit')
             ->whereIn('status', ['confirmed', 'unlocked'])
             ->sum('amount');
         
@@ -171,7 +170,7 @@ class XmrWallet extends Model
         
         // Unlocked balance (only fully confirmed transactions)
         $unlockedIncoming = $this->transactions()
-            ->whereIn('type', ['incoming', 'deposit'])
+            ->where('type', 'deposit')
             ->where('status', 'unlocked')
             ->where('confirmations', '>=', $minConfirmations)
             ->sum('amount');
@@ -192,7 +191,7 @@ class XmrWallet extends Model
     public function getTotalReceived(): float
     {
         return $this->transactions()
-            ->whereIn('type', ['incoming', 'deposit'])
+            ->where('type', 'deposit')
             ->whereIn('status', ['confirmed', 'unlocked'])
             ->sum('amount');
     }

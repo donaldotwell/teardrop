@@ -30,6 +30,7 @@ return new class extends Migration
             $table->timestamp('confirmed_at')->nullable();
             $table->timestamp('unlocked_at')->nullable();
             $table->timestamps();
+            $table->softDeletes();
 
             $table->index(['xmr_wallet_id', 'type']);
             $table->index(['status', 'confirmations']);

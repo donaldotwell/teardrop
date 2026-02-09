@@ -357,8 +357,9 @@ class VendorListingController extends Controller
      */
     private function processFeatureMoneroPayment(Listing $listing, $vendor, $feeUsd)
     {
-        // Calculate required Monero amount using helper function
-        $requiredAmountXmr = convert_usd_to_crypto($feeUsd, 'xmr');
+        // Calculate required Monero amount using ExchangeRate model
+        $xmrRate = ExchangeRate::where('crypto_shortname', 'xmr')->firstOrFail();
+        $requiredAmountXmr = round($feeUsd / $xmrRate->usd_rate, 12); // Monero supports 12 decimal places
 
         // Get vendor's Monero wallet
         $vendorXmrWallet = $vendor->xmrWallet;
@@ -454,10 +455,8 @@ class VendorListingController extends Controller
             ],
         ]);
 
-        // Mark listing as featured
-        $listing->update([
-            'is_featured' => true,
-        ]);
+        // NOTE: Listing will be featured automatically when transaction is confirmed by monero:sync
+        // Do NOT mark as featured here - wait for confirmation (consistent with BTC behavior)
 
         \Log::info('Feature listing payment processed', [
             'listing_id' => $listing->id,

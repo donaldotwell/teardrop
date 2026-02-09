@@ -28,10 +28,9 @@ return new class extends Migration
             $table->index(['currency', 'status']);
         });
 
-        // Add escrow wallet reference to orders table
+        // Add escrow funded timestamp to orders table
         Schema::table('orders', function (Blueprint $table) {
-            $table->foreignId('escrow_wallet_id')->nullable()->after('txid')->constrained();
-            $table->timestamp('escrow_funded_at')->nullable()->after('escrow_wallet_id');
+            $table->timestamp('escrow_funded_at')->nullable()->after('txid');
         });
     }
 
@@ -41,8 +40,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->dropForeign(['escrow_wallet_id']);
-            $table->dropColumn(['escrow_wallet_id', 'escrow_funded_at']);
+            $table->dropColumn(['escrow_funded_at']);
         });
 
         Schema::dropIfExists('escrow_wallets');

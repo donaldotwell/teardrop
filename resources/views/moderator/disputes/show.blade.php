@@ -170,7 +170,7 @@
                                 </div>
                                 <div>
                                     <div class="text-sm font-medium text-gray-900">
-                                        <a href="{{ route('profile.show', $dispute->initiatedBy->username_pub) }}"
+                                        <a target="_blank" href="{{ route('profile.show_public_view', $dispute->initiatedBy->username_pub) }}"
                                            class="hover:text-blue-600">
                                             {{ $dispute->initiatedBy->username_pub }}
                                         </a>
@@ -197,7 +197,7 @@
                                 </div>
                                 <div>
                                     <div class="text-sm font-medium text-gray-900">
-                                        <a href="{{ route('profile.show', $dispute->disputedAgainst->username_pub) }}"
+                                        <a target="_blank" href="{{ route('vendor.show', $dispute->disputedAgainst->username_pub) }}"
                                            class="hover:text-blue-600">
                                             {{ $dispute->disputedAgainst->username_pub }}
                                         </a>
@@ -558,6 +558,91 @@
                                 Transfer Dispute
                             </button>
                         </div>
+                    </div>
+                </form>
+            </div>
+        @endif
+
+        {{-- Resolve Dispute (moderator) --}}
+        @if($dispute->assignedModerator && $dispute->assignedModerator->id === auth()->id() && $dispute->isOpen())
+            <div class="bg-white border border-green-200 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-green-900 mb-4">Resolve Dispute</h3>
+
+                {{-- Vendor Balance Info --}}
+                @if($vendorBalance)
+                    <div class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded text-sm">
+                        <div class="font-medium text-gray-700 mb-2">Vendor Balance ({{ $dispute->disputedAgainst->username_pub }})</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <span class="text-gray-500">BTC:</span>
+                                <span class="font-mono">{{ number_format($vendorBalance['btc']['balance'], 8) }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">XMR:</span>
+                                <span class="font-mono">{{ number_format($vendorBalance['xmr']['unlocked_balance'], 12) }}</span>
+                            </div>
+                        </div>
+                        @if($vendorDisputedAmounts['btc'] > 0 || $vendorDisputedAmounts['xmr'] > 0)
+                            <div class="mt-2 pt-2 border-t border-gray-200 text-red-600">
+                                <span class="font-medium">Active Dispute Holds:</span>
+                                @if($vendorDisputedAmounts['btc'] > 0)
+                                    <span class="ml-2">BTC: {{ number_format($vendorDisputedAmounts['btc'], 8) }}</span>
+                                @endif
+                                @if($vendorDisputedAmounts['xmr'] > 0)
+                                    <span class="ml-2">XMR: {{ number_format($vendorDisputedAmounts['xmr'], 12) }}</span>
+                                @endif
+                            </div>
+                        @endif
+                        @if($dispute->order)
+                            <div class="mt-2 pt-2 border-t border-gray-200">
+                                <span class="text-gray-500">Order Currency:</span>
+                                <span class="font-medium uppercase">{{ $dispute->order->currency ?? 'btc' }}</span>
+                                <span class="text-gray-500 ml-2">Disputed:</span>
+                                <span class="font-medium">${{ number_format($dispute->disputed_amount, 2) }} USD</span>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('moderator.disputes.resolve', $dispute) }}">
+                    @csrf
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Resolution</label>
+                            <select name="resolution" required class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                <option value="">Select resolution...</option>
+                                <option value="buyer_favor">In favor of buyer (full refund)</option>
+                                <option value="vendor_favor">In favor of vendor (no refund)</option>
+                                <option value="partial_refund">Partial refund</option>
+                                <option value="no_action">No action required</option>
+                            </select>
+                            @error('resolution')
+                                <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Refund Amount (USD)</label>
+                            <input type="number" name="refund_amount" step="0.01" min="0" max="{{ $dispute->disputed_amount }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                   placeholder="0.00">
+                            <p class="text-xs text-gray-500 mt-1">Required for partial refund. Max: ${{ number_format($dispute->disputed_amount, 2) }}</p>
+                            @error('refund_amount')
+                                <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Resolution Notes</label>
+                            <textarea name="resolution_notes" rows="3" required
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                      placeholder="Explain the resolution decision..."></textarea>
+                            @error('resolution_notes')
+                                <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <button type="submit"
+                                class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium">
+                            Resolve Dispute
+                        </button>
                     </div>
                 </form>
             </div>

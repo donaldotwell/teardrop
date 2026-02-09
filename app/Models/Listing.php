@@ -153,8 +153,7 @@ class Listing extends Model
     public function viewers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(User::class, 'listing_views')
-            ->withPivot('viewed_at')
-            ->withTimestamps();
+            ->withPivot('viewed_at');
     }
 
     /**

@@ -104,6 +104,15 @@ class BitcoinController extends Controller
         $user = $request->user();
         $btcWallet = BitcoinRepository::getOrCreateWalletForUser($user);
 
+        // For vendors, calculate disputed amount hold
+        $disputedHold = 0;
+        if ($user->hasRole('vendor')) {
+            $disputedAmounts = $user->getActiveDisputedAmounts();
+            $disputedHold = $disputedAmounts['btc'];
+        }
+
+        $availableBalance = max(0, $btcWallet->balance - $disputedHold);
+
         // Validate withdrawal request
         $validated = $request->validate([
             'address' => [
@@ -115,7 +124,7 @@ class BitcoinController extends Controller
                 'required',
                 'numeric',
                 'min:0.00001',
-                'max:' . $btcWallet->balance,
+                'max:' . $availableBalance,
             ],
             'pin' => 'required|string|size:6',
         ], [
@@ -123,7 +132,9 @@ class BitcoinController extends Controller
             'address.regex' => 'Invalid Bitcoin address format.',
             'amount.required' => 'Amount is required.',
             'amount.min' => 'Minimum withdrawal amount is 0.00001 BTC.',
-            'amount.max' => 'Insufficient balance. Available: ' . number_format($btcWallet->balance, 8) . ' BTC.',
+            'amount.max' => $disputedHold > 0
+                ? 'Insufficient balance. Available: ' . number_format($availableBalance, 8) . ' BTC (disputed hold: ' . number_format($disputedHold, 8) . ' BTC).'
+                : 'Insufficient balance. Available: ' . number_format($availableBalance, 8) . ' BTC.',
             'pin.required' => 'Security PIN is required.',
             'pin.size' => 'PIN must be exactly 6 digits.',
         ]);
@@ -155,8 +166,9 @@ class BitcoinController extends Controller
             // Lock the wallet row to prevent concurrent withdrawals
             $btcWallet = BtcWallet::where('id', $btcWallet->id)->lockForUpdate()->first();
 
-            // Re-validate balance after acquiring lock
-            if ($btcWallet->balance < $validated['amount']) {
+            // Re-validate balance after acquiring lock (including disputed hold)
+            $availableAfterLock = max(0, $btcWallet->balance - $disputedHold);
+            if ($availableAfterLock < $validated['amount']) {
                 DB::rollBack();
                 return back()
                     ->withInput()
@@ -185,8 +197,6 @@ class BitcoinController extends Controller
 
             // Update balance to reflect pending withdrawal
             $btcWallet->updateBalance();
-
-            DB::commit();
 
             DB::commit();
 

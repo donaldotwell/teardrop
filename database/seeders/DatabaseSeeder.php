@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             ProductsSeeder::class,
             RolesSeeder::class,
             FinalizationWindowSeeder::class,
+            HarmReductionSeeder::class,
+            RulesSeeder::class,
         ]);
         
         // Step 2: Seed users with roles (only in non-production environments)

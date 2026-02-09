@@ -311,6 +311,43 @@
                             {{-- Resolve Dispute --}}
                             <div class="border border-gray-200 rounded-lg p-4">
                                 <h4 class="font-medium text-gray-900 mb-3">Resolve Dispute</h4>
+
+                                {{-- Vendor Balance Info --}}
+                                @if($vendorBalance)
+                                    <div class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded text-sm">
+                                        <div class="font-medium text-gray-700 mb-2">Vendor Balance ({{ $dispute->disputedAgainst->username_pub }})</div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <span class="text-gray-500">BTC:</span>
+                                                <span class="font-mono">{{ number_format($vendorBalance['btc']['balance'], 8) }}</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-500">XMR:</span>
+                                                <span class="font-mono">{{ number_format($vendorBalance['xmr']['unlocked_balance'], 12) }}</span>
+                                            </div>
+                                        </div>
+                                        @if($vendorDisputedAmounts['btc'] > 0 || $vendorDisputedAmounts['xmr'] > 0)
+                                            <div class="mt-2 pt-2 border-t border-gray-200 text-red-600">
+                                                <span class="font-medium">Active Dispute Holds:</span>
+                                                @if($vendorDisputedAmounts['btc'] > 0)
+                                                    <span class="ml-2">BTC: {{ number_format($vendorDisputedAmounts['btc'], 8) }}</span>
+                                                @endif
+                                                @if($vendorDisputedAmounts['xmr'] > 0)
+                                                    <span class="ml-2">XMR: {{ number_format($vendorDisputedAmounts['xmr'], 12) }}</span>
+                                                @endif
+                                            </div>
+                                        @endif
+                                        @if($dispute->order)
+                                            <div class="mt-2 pt-2 border-t border-gray-200">
+                                                <span class="text-gray-500">Order Currency:</span>
+                                                <span class="font-medium uppercase">{{ $dispute->order->currency ?? 'btc' }}</span>
+                                                <span class="text-gray-500 ml-2">Disputed:</span>
+                                                <span class="font-medium">${{ number_format($dispute->disputed_amount, 2) }} USD</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+
                                 <form action="{{ route('admin.disputes.resolve', $dispute) }}" method="POST" class="space-y-3">
                                     @csrf
                                     <div>

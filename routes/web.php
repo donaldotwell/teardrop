@@ -160,7 +160,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [\App\Http\Controllers\BitcoinController::class, 'index'])->name('index');
         Route::get('/topup', [\App\Http\Controllers\BitcoinController::class, 'topup'])->name('topup');
         Route::post('/withdraw', [\App\Http\Controllers\BitcoinController::class, 'withdraw'])->name('withdraw');
-        Route::get('/transaction/{transaction}', [\App\Http\Controllers\BitcoinController::class, 'transaction'])->name('transaction');
     });
 
     // Monero wallet routes
@@ -187,11 +186,6 @@ Route::middleware('auth')->prefix('disputes')->name('disputes.')->group(function
 
     // Add message to dispute
     Route::post('/{dispute}/messages', [DisputeController::class, 'addMessage'])->name('messages.store');
-
-    // Add message to dispute
-    Route::post('/disputes/{dispute}/add-message', [DisputeController::class, 'addMessage'])->name('add-message');
-    Route::post('/disputes/{dispute}/upload-evidence', [DisputeController::class, 'uploadEvidence'])->name('upload-evidence');
-    Route::get('/disputes/{dispute}/evidence/{evidence}/download', [DisputeController::class, 'downloadEvidence'])->name('download-evidence');
 
     // Upload evidence
     Route::post('/{dispute}/evidence', [DisputeController::class, 'uploadEvidence'])->name('evidence.store');

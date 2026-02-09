@@ -29,6 +29,7 @@ return new class extends Migration
             $table->string('admin_fee_txid')->nullable();
             $table->string('txid')->nullable(); // Blockchain transaction ID for completed orders
             $table->timestamp('completed_at')->nullable();
+            $table->timestamp('shipped_at')->nullable();
             $table->timestamp('cancelled_at')->nullable();
             $table->text('cancellation_reason')->nullable();
             $table->text('notes')->nullable();

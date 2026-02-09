@@ -85,6 +85,176 @@ class AdminController extends Controller
     }
 
     /**
+     * Display financial report page
+     */
+    public function financialReport()
+    {
+        // Revenue by currency
+        $btcRevenue = Order::where('status', 'completed')
+            ->where('currency', 'btc')
+            ->sum('crypto_value');
+
+        $xmrRevenue = Order::where('status', 'completed')
+            ->where('currency', 'xmr')
+            ->sum('crypto_value');
+
+        $totalUsdRevenue = Order::where('status', 'completed')
+            ->sum('usd_price');
+
+        // Monthly revenue breakdown
+        $monthlyRevenue = Order::where('status', 'completed')
+            ->where('created_at', '>=', now()->subMonths(12))
+            ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(usd_price) as revenue, COUNT(*) as order_count')
+            ->groupBy('year', 'month')
+            ->orderBy('year')
+            ->orderBy('month')
+            ->get();
+
+        // Escrow stats
+        $activeEscrow = \App\Models\EscrowWallet::where('status', 'active')->sum('balance');
+        $releasedEscrow = \App\Models\EscrowWallet::where('status', 'released')->count();
+
+        // Fee collection stats
+        $vendorConversions = \App\Models\WalletTransaction::where('description', 'like', '%vendor_conversion%')
+            ->count();
+
+        return view('admin.reports.financial', compact(
+            'btcRevenue',
+            'xmrRevenue',
+            'totalUsdRevenue',
+            'monthlyRevenue',
+            'activeEscrow',
+            'releasedEscrow',
+            'vendorConversions'
+        ));
+    }
+
+    /**
+     * Display users report page
+     */
+    public function usersReport()
+    {
+        // User growth over time
+        $userGrowth = User::where('created_at', '>=', now()->subMonths(12))
+            ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as count')
+            ->groupBy('year', 'month')
+            ->orderBy('year')
+            ->orderBy('month')
+            ->get();
+
+        // User role breakdown
+        $roleBreakdown = DB::table('role_user')
+            ->join('roles', 'roles.id', '=', 'role_user.role_id')
+            ->selectRaw('roles.name, COUNT(*) as count')
+            ->groupBy('roles.name')
+            ->get();
+
+        // Active vs inactive users
+        $userStatus = [
+            'active' => User::where('status', 'active')->count(),
+            'banned' => User::where('status', 'banned')->count(),
+            'inactive' => User::where('last_seen_at', '<', now()->subDays(30))->count(),
+            'total' => User::count(),
+        ];
+
+        // Top buyers by order count
+        $topBuyers = User::withCount(['orders' => function ($q) {
+            $q->where('status', 'completed');
+        }])
+            ->having('orders_count', '>', 0)
+            ->orderByDesc('orders_count')
+            ->limit(20)
+            ->get();
+
+        // Vendor stats
+        $vendorCount = User::whereHas('roles', fn($q) => $q->where('name', 'vendor'))->count();
+
+        return view('admin.reports.users', compact(
+            'userGrowth',
+            'roleBreakdown',
+            'userStatus',
+            'topBuyers',
+            'vendorCount'
+        ));
+    }
+
+    /**
+     * Export report data as CSV
+     */
+    public function exportReport(string $type)
+    {
+        $filename = "report_{$type}_" . now()->format('Y-m-d') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function () use ($type) {
+            $file = fopen('php://output', 'w');
+
+            switch ($type) {
+                case 'orders':
+                    fputcsv($file, ['ID', 'UUID', 'Buyer', 'Listing', 'Currency', 'USD Price', 'Crypto Value', 'Status', 'Created At']);
+                    Order::with(['user', 'listing'])->chunk(500, function ($orders) use ($file) {
+                        foreach ($orders as $order) {
+                            fputcsv($file, [
+                                $order->id,
+                                $order->uuid,
+                                $order->user->username_pub ?? 'N/A',
+                                $order->listing->title ?? 'N/A',
+                                $order->currency,
+                                $order->usd_price,
+                                $order->crypto_value,
+                                $order->status,
+                                $order->created_at->toDateTimeString(),
+                            ]);
+                        }
+                    });
+                    break;
+
+                case 'users':
+                    fputcsv($file, ['ID', 'Username', 'Status', 'Vendor Level', 'Orders Count', 'Last Seen', 'Created At']);
+                    User::withCount('orders')->chunk(500, function ($users) use ($file) {
+                        foreach ($users as $user) {
+                            fputcsv($file, [
+                                $user->id,
+                                $user->username_pub,
+                                $user->status,
+                                $user->vendor_level ?? 0,
+                                $user->orders_count,
+                                $user->last_seen_at?->toDateTimeString() ?? 'Never',
+                                $user->created_at->toDateTimeString(),
+                            ]);
+                        }
+                    });
+                    break;
+
+                case 'financial':
+                    fputcsv($file, ['Month', 'Year', 'Revenue (USD)', 'Order Count']);
+                    $data = Order::where('status', 'completed')
+                        ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(usd_price) as revenue, COUNT(*) as order_count')
+                        ->groupBy('year', 'month')
+                        ->orderBy('year')
+                        ->orderBy('month')
+                        ->get();
+                    foreach ($data as $row) {
+                        fputcsv($file, [$row->month, $row->year, number_format($row->revenue, 2), $row->order_count]);
+                    }
+                    break;
+
+                default:
+                    fputcsv($file, ['Error']);
+                    fputcsv($file, ['Unknown report type: ' . $type]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
      * Display settings page
      */
     public function settings()

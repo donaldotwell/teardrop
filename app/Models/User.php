@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Repositories\RolesRepository;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are guarded.
@@ -245,17 +246,30 @@ class User extends Authenticatable
      */
     public function messages() : \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(UserMessage::class, 'sender_id')->orWhere('receiver_id', $this->id);
+        return $this->hasMany(UserMessage::class, 'sender_id');
     }
 
     /**
-     * Get the threads associated with the user.
+     * Get the threads associated with the user (as sender or receiver).
+     * Uses a scoped where clause to avoid the orWhere eager-loading bug.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function threads() : \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(MessageThread::class, 'user_id')->orWhere('receiver_id', $this->id);
+        return $this->hasMany(MessageThread::class, 'user_id');
+    }
+
+    /**
+     * Get all threads where user is participant (sender or receiver).
+     * Use this instead of threads() when you need both sent and received.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function allThreads()
+    {
+        return MessageThread::where('user_id', $this->id)
+            ->orWhere('receiver_id', $this->id);
     }
 
     /**
@@ -431,6 +445,33 @@ class User extends Authenticatable
     public function disputeMessages(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(DisputeMessage::class);
+    }
+
+    /**
+     * Get total disputed amounts (USD) for active (non-resolved/closed) disputes
+     * where this user is the vendor (disputed_against).
+     * Returns amounts in crypto by converting from USD via the order's currency.
+     *
+     * @return array{btc: float, xmr: float}
+     */
+    public function getActiveDisputedAmounts(): array
+    {
+        $activeDisputes = $this->disputesAgainst()
+            ->whereNotIn('status', ['resolved', 'closed'])
+            ->with('order')
+            ->get();
+
+        $totals = ['btc' => 0.0, 'xmr' => 0.0];
+
+        foreach ($activeDisputes as $dispute) {
+            $currency = $dispute->order->currency ?? 'btc';
+            $cryptoAmount = convert_usd_to_crypto($dispute->disputed_amount, $currency);
+            if (isset($totals[$currency])) {
+                $totals[$currency] += $cryptoAmount;
+            }
+        }
+
+        return $totals;
     }
 
     /**

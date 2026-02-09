@@ -26,12 +26,12 @@ class Sale extends Model
     }
 
     /**
-     * Get the product associated with the sale.
+     * Get the listing associated with the sale.
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
-    public function product() : \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function listing() : \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Listing::class);
     }
 }

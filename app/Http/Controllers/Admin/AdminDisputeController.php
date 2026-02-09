@@ -4,10 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\BtcWallet;
+use App\Models\XmrWallet;
 use App\Models\Dispute;
 use App\Models\DisputeEvidence;
 use App\Models\User;
+use App\Repositories\BitcoinRepository;
+use App\Repositories\MoneroRepository;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -174,7 +179,13 @@ class AdminDisputeController extends Controller
         })->where('status', 'active')
           ->orderBy('username_pub')
           ->get();
-        return view('admin.disputes.show', compact('dispute', 'messages', 'admins', 'moderators'));
+
+        // Get vendor balance for resolution context
+        $vendor = $dispute->disputedAgainst;
+        $vendorBalance = $vendor ? $vendor->getBalance() : null;
+        $vendorDisputedAmounts = $vendor ? $vendor->getActiveDisputedAmounts() : ['btc' => 0, 'xmr' => 0];
+
+        return view('admin.disputes.show', compact('dispute', 'messages', 'admins', 'moderators', 'vendorBalance', 'vendorDisputedAmounts'));
     }
 
     /**
@@ -280,7 +291,7 @@ class AdminDisputeController extends Controller
     }
 
     /**
-     * Resolve dispute
+     * Resolve dispute with actual refund processing
      */
     public function resolve(Request $request, Dispute $dispute)
     {
@@ -290,26 +301,312 @@ class AdminDisputeController extends Controller
             'resolution_notes' => 'required|string|max:1000',
         ]);
 
+        $resolution = $validated['resolution'];
+        $refundUsd = null;
+
+        // Determine the USD refund amount based on resolution
+        if ($resolution === 'buyer_favor') {
+            $refundUsd = $dispute->disputed_amount;
+        } elseif ($resolution === 'partial_refund') {
+            $refundUsd = $validated['refund_amount'] ?? 0;
+            if ($refundUsd <= 0) {
+                return redirect()->back()
+                    ->with('error', 'A refund amount is required for partial refund resolution.')
+                    ->withInput();
+            }
+        }
+
+        // Process actual refund for buyer_favor or partial_refund
+        if ($refundUsd && $refundUsd > 0) {
+            $order = $dispute->order;
+            $currency = $order->currency ?? 'btc';
+            $vendor = $dispute->disputedAgainst;
+            $buyer = $dispute->initiatedBy;
+            $refundCrypto = convert_usd_to_crypto($refundUsd, $currency);
+
+            try {
+                DB::beginTransaction();
+
+                if ($currency === 'btc') {
+                    $vendorBtcWallet = BtcWallet::where('user_id', $vendor->id)->lockForUpdate()->first();
+                    $buyerBtcWallet = BtcWallet::where('user_id', $buyer->id)->first();
+
+                    if (!$vendorBtcWallet || $vendorBtcWallet->getBalance() < $refundCrypto) {
+                        DB::rollBack();
+                        return redirect()->back()
+                            ->with('error', 'Vendor has insufficient BTC balance for refund. Available: '
+                                . number_format($vendorBtcWallet ? $vendorBtcWallet->getBalance() : 0, 8) . ' BTC, Required: '
+                                . number_format($refundCrypto, 8) . ' BTC.')
+                            ->withInput();
+                    }
+
+                    if (!$buyerBtcWallet) {
+                        DB::rollBack();
+                        return redirect()->back()
+                            ->with('error', 'Buyer does not have a BTC wallet.')
+                            ->withInput();
+                    }
+
+                    // Get buyer receiving address
+                    $buyerAddress = $buyerBtcWallet->getCurrentAddress() ?? $buyerBtcWallet->generateNewAddress();
+
+                    // Create withdrawal transaction on vendor's wallet
+                    $vendorBtcWallet->transactions()->create([
+                        'btc_address_id' => null,
+                        'txid' => null,
+                        'type' => 'withdrawal',
+                        'amount' => $refundCrypto,
+                        'usd_value' => $refundUsd,
+                        'fee' => 0,
+                        'confirmations' => 0,
+                        'status' => 'pending',
+                        'raw_transaction' => [
+                            'purpose' => 'dispute_refund',
+                            'order_id' => $order->id,
+                            'order_uuid' => $order->uuid,
+                            'dispute_id' => $dispute->id,
+                            'dispute_uuid' => $dispute->uuid,
+                            'resolution' => $resolution,
+                            'refund_usd' => $refundUsd,
+                            'recipient_address' => $buyerAddress->address,
+                            'recipient_user_id' => $buyer->id,
+                            'initiated_by' => auth()->id(),
+                            'initiated_at' => now()->toIso8601String(),
+                        ],
+                    ]);
+
+                    // Create deposit transaction on buyer's wallet
+                    $buyerBtcWallet->transactions()->create([
+                        'btc_address_id' => $buyerAddress->id,
+                        'txid' => null,
+                        'type' => 'deposit',
+                        'amount' => $refundCrypto,
+                        'usd_value' => $refundUsd,
+                        'fee' => 0,
+                        'confirmations' => 0,
+                        'status' => 'pending',
+                        'raw_transaction' => [
+                            'purpose' => 'dispute_refund',
+                            'order_id' => $order->id,
+                            'order_uuid' => $order->uuid,
+                            'dispute_id' => $dispute->id,
+                            'dispute_uuid' => $dispute->uuid,
+                            'resolution' => $resolution,
+                            'refund_usd' => $refundUsd,
+                            'sender_user_id' => $vendor->id,
+                            'initiated_by' => auth()->id(),
+                            'initiated_at' => now()->toIso8601String(),
+                        ],
+                    ]);
+
+                    // Update both wallet balances
+                    $vendorBtcWallet->updateBalance();
+                    $buyerBtcWallet->updateBalance();
+
+                    DB::commit();
+
+                    // Broadcast the actual BTC transfer outside the DB transaction
+                    try {
+                        $repository = new BitcoinRepository();
+                        $txid = $repository->sendBitcoin(
+                            $vendor->username_pri,
+                            $buyerAddress->address,
+                            $refundCrypto
+                        );
+
+                        if ($txid) {
+                            // Update both transaction records with the txid
+                            $vendorBtcWallet->transactions()
+                                ->whereNull('txid')
+                                ->where('raw_transaction->purpose', 'dispute_refund')
+                                ->where('raw_transaction->dispute_id', $dispute->id)
+                                ->update(['txid' => $txid]);
+
+                            $buyerBtcWallet->transactions()
+                                ->whereNull('txid')
+                                ->where('raw_transaction->purpose', 'dispute_refund')
+                                ->where('raw_transaction->dispute_id', $dispute->id)
+                                ->update(['txid' => $txid]);
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('BTC refund broadcast failed for dispute ' . $dispute->uuid, [
+                            'exception' => $e->getMessage(),
+                            'dispute_id' => $dispute->id,
+                            'amount' => $refundCrypto,
+                        ]);
+                        // Transaction records remain with null txid — sync commands will pick them up
+                    }
+
+                } elseif ($currency === 'xmr') {
+                    $vendorXmrWallet = XmrWallet::where('user_id', $vendor->id)->lockForUpdate()->first();
+                    $buyerXmrWallet = XmrWallet::where('user_id', $buyer->id)->first();
+
+                    $vendorBalance = $vendorXmrWallet ? $vendorXmrWallet->getBalance() : ['balance' => 0, 'unlocked_balance' => 0];
+                    $vendorUnlocked = $vendorBalance['unlocked_balance'] ?? 0;
+
+                    if (!$vendorXmrWallet || $vendorUnlocked < $refundCrypto) {
+                        DB::rollBack();
+                        return redirect()->back()
+                            ->with('error', 'Vendor has insufficient XMR balance for refund. Available: '
+                                . number_format($vendorUnlocked, 12) . ' XMR, Required: '
+                                . number_format($refundCrypto, 12) . ' XMR.')
+                            ->withInput();
+                    }
+
+                    if (!$buyerXmrWallet) {
+                        DB::rollBack();
+                        return redirect()->back()
+                            ->with('error', 'Buyer does not have an XMR wallet.')
+                            ->withInput();
+                    }
+
+                    // Get buyer receiving address
+                    $buyerAddress = $buyerXmrWallet->getCurrentAddress() ?? $buyerXmrWallet->generateNewAddress();
+
+                    // Create withdrawal transaction on vendor's wallet
+                    $vendorXmrWallet->transactions()->create([
+                        'xmr_address_id' => null,
+                        'txid' => null,
+                        'payment_id' => null,
+                        'type' => 'withdrawal',
+                        'amount' => $refundCrypto,
+                        'usd_value' => $refundUsd,
+                        'fee' => 0,
+                        'confirmations' => 0,
+                        'unlock_time' => 0,
+                        'height' => null,
+                        'status' => 'pending',
+                        'raw_transaction' => [
+                            'purpose' => 'dispute_refund',
+                            'order_id' => $order->id,
+                            'order_uuid' => $order->uuid,
+                            'dispute_id' => $dispute->id,
+                            'dispute_uuid' => $dispute->uuid,
+                            'resolution' => $resolution,
+                            'refund_usd' => $refundUsd,
+                            'recipient_address' => $buyerAddress->address,
+                            'recipient_user_id' => $buyer->id,
+                            'initiated_by' => auth()->id(),
+                            'initiated_at' => now()->toIso8601String(),
+                        ],
+                    ]);
+
+                    // Create deposit transaction on buyer's wallet
+                    $buyerXmrWallet->transactions()->create([
+                        'xmr_address_id' => $buyerAddress->id,
+                        'txid' => null,
+                        'payment_id' => null,
+                        'type' => 'deposit',
+                        'amount' => $refundCrypto,
+                        'usd_value' => $refundUsd,
+                        'fee' => 0,
+                        'confirmations' => 0,
+                        'unlock_time' => 0,
+                        'height' => null,
+                        'status' => 'pending',
+                        'raw_transaction' => [
+                            'purpose' => 'dispute_refund',
+                            'order_id' => $order->id,
+                            'order_uuid' => $order->uuid,
+                            'dispute_id' => $dispute->id,
+                            'dispute_uuid' => $dispute->uuid,
+                            'resolution' => $resolution,
+                            'refund_usd' => $refundUsd,
+                            'sender_user_id' => $vendor->id,
+                            'initiated_by' => auth()->id(),
+                            'initiated_at' => now()->toIso8601String(),
+                        ],
+                    ]);
+
+                    // Update both wallet balances
+                    $vendorXmrWallet->updateBalance();
+                    $buyerXmrWallet->updateBalance();
+
+                    DB::commit();
+
+                    // Broadcast the actual XMR transfer outside the DB transaction
+                    try {
+                        $txHash = MoneroRepository::transfer(
+                            $vendorXmrWallet->name,
+                            $buyerAddress->address,
+                            $refundCrypto
+                        );
+
+                        if ($txHash) {
+                            // Update both transaction records with the txid
+                            $vendorXmrWallet->transactions()
+                                ->whereNull('txid')
+                                ->where('raw_transaction->purpose', 'dispute_refund')
+                                ->where('raw_transaction->dispute_id', $dispute->id)
+                                ->update(['txid' => $txHash]);
+
+                            $buyerXmrWallet->transactions()
+                                ->whereNull('txid')
+                                ->where('raw_transaction->purpose', 'dispute_refund')
+                                ->where('raw_transaction->dispute_id', $dispute->id)
+                                ->update(['txid' => $txHash]);
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('XMR refund broadcast failed for dispute ' . $dispute->uuid, [
+                            'exception' => $e->getMessage(),
+                            'dispute_id' => $dispute->id,
+                            'amount' => $refundCrypto,
+                        ]);
+                        // Transaction records remain with null txid — sync commands will pick them up
+                    }
+                }
+
+                // Log the refund
+                AuditLog::log('dispute_refund_processed', auth()->id(), [
+                    'dispute_id' => $dispute->id,
+                    'dispute_uuid' => $dispute->uuid,
+                    'order_id' => $order->id,
+                    'resolution' => $resolution,
+                    'refund_usd' => $refundUsd,
+                    'refund_crypto' => $refundCrypto,
+                    'currency' => $currency,
+                    'vendor_id' => $vendor->id,
+                    'buyer_id' => $buyer->id,
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                \Log::error('Dispute refund failed', [
+                    'dispute_id' => $dispute->id,
+                    'exception' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
+                return redirect()->back()
+                    ->with('error', 'Failed to process refund: ' . $e->getMessage())
+                    ->withInput();
+            }
+        }
+
+        // Mark dispute as resolved
         $dispute->markAsResolved(
-            // set resolution to custom_resolution
-            'custom_resolution',
-            // TODO: to use all resolution checks in disputes like add buyer_favor,vendor_favor,partial_refund,no_action
-            $validated['refund_amount'] ?? null,
+            $resolution,
+            $refundUsd,
             $validated['resolution_notes']
         );
 
-        // TODO: implemment actual refund logic if resolution is buyer_favor or partial_refund
-
         // Add admin resolution message
+        $refundInfo = '';
+        if ($refundUsd && $refundUsd > 0) {
+            $currency = $dispute->order->currency ?? 'btc';
+            $refundCrypto = convert_usd_to_crypto($refundUsd, $currency);
+            $refundInfo = " Refund: \${$refundUsd} USD (" . number_format($refundCrypto, $currency === 'btc' ? 8 : 12) . " " . strtoupper($currency) . ").";
+        }
+
         $dispute->messages()->create([
             'user_id' => auth()->id(),
-            'message' => "Dispute resolved: {$validated['resolution']}. Notes: {$validated['resolution_notes']}",
+            'message' => "Dispute resolved: {$resolution}.{$refundInfo} Notes: {$validated['resolution_notes']}",
             'message_type' => 'resolution_note',
             'is_internal' => false,
         ]);
 
         return redirect()->route('admin.disputes.index')
-            ->with('success', 'Dispute resolved successfully.');
+            ->with('success', 'Dispute resolved successfully.' . ($refundUsd ? " Refund of \${$refundUsd} processed." : ''));
     }
 
     /**

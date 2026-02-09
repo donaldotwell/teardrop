@@ -23,7 +23,8 @@ return new class extends Migration
                 'resolution_note',  // Final resolution message
                 'assignment_update', // Admin assignment/reassignment notification
                 'moderator_note',     // Internal note from moderator (not visible to users)
-                'escalation'         // Internal message when dispute is escalated to admin (not
+                'escalation',         // Internal message when dispute is escalated to admin (not visible to users)
+                'info_request'
             ])->default('user_message');
 
             $table->boolean('is_internal')->default(false); // Admin-only messages
