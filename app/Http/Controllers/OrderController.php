@@ -88,6 +88,19 @@ class OrderController extends Controller
             ]);
         }
 
+        // Check if listing's product and category are active
+        $product = $listing->product;
+        if (!$product || !$product->is_active) {
+            return redirect()->route('home')
+                ->with('error', 'This product is no longer available.');
+        }
+
+        $category = $product->productCategory;
+        if (!$category || !$category->is_active) {
+            return redirect()->route('home')
+                ->with('error', 'This product category is no longer available.');
+        }
+
         // Check if vendor has PGP public key configured
         if (empty($listing->user->pgp_pub_key)) {
             return redirect()->back()->withErrors([
@@ -351,6 +364,19 @@ class OrderController extends Controller
             return redirect()->back()->withErrors([
                 'error' => 'You cannot purchase your own product.',
             ]);
+        }
+
+        // Check if listing's product and category are active
+        $product = $listing->product;
+        if (!$product || !$product->is_active) {
+            return redirect()->route('home')
+                ->with('error', 'This product is no longer available.');
+        }
+
+        $category = $product->productCategory;
+        if (!$category || !$category->is_active) {
+            return redirect()->route('home')
+                ->with('error', 'This product category is no longer available.');
         }
 
         // Validate request

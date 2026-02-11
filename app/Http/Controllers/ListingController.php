@@ -16,7 +16,11 @@ class ListingController extends Controller
     public function create() : \Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View|\Illuminate\Foundation\Application| \Illuminate\Contracts\View\View
     {
         $countries = \App\Models\Country::all();
-        $productCategories = \App\Models\ProductCategory::with('products')->get();
+        $productCategories = \App\Models\ProductCategory::where('product_categories.is_active', true)
+            ->with(['products' => function ($query) {
+                $query->where('products.is_active', true);
+            }])
+            ->get();
         return view('listings.create', [
             'countries' => $countries,
             'productCategories' => $productCategories,
@@ -31,16 +35,34 @@ class ListingController extends Controller
      */
     public function show(Request $request, Listing $listing)
     {
+        // Check if listing's product and category are active
+        $product = $listing->product;
+        if (!$product || !$product->is_active) {
+            return redirect()->route('home')
+                ->with('error', 'This product is no longer available.');
+        }
+
+        $category = $product->productCategory;
+        if (!$category || !$category->is_active) {
+            return redirect()->route('home')
+                ->with('error', 'This product category is no longer available.');
+        }
+
         // Record unique view for authenticated users only
         $listing->recordView(auth()->id());
 
         $listing->load(['media', 'user', 'originCountry', 'destinationCountry', 'reviews.user']);
 
-        $productCategories = \App\Models\ProductCategory::with(['products' => function($query) {
-            $query->withCount('listings');
-        }])
-        ->withCount('listings')
-        ->get();
+        $productCategories = \App\Models\ProductCategory::where('product_categories.is_active', true)
+            ->with(['products' => function($query) {
+                $query->where('products.is_active', true)->withCount(['listings' => function ($q) {
+                    $q->where('listings.is_active', true);
+                }]);
+            }])
+            ->withCount(['listings' => function ($query) {
+                $query->where('listings.is_active', true);
+            }])
+            ->get();
 
         // Calculate total price including shipping
         $totalPrice = $listing->price + $listing->price_shipping;
@@ -79,9 +101,15 @@ class ListingController extends Controller
             'payment_method' => 'required|in:escrow,direct',
         ]);
 
-        // Ensure product belongs to selected category
+        // Ensure product belongs to selected category and both are active
         $product = \App\Models\Product::where('id', $data['product_id'])
             ->where('product_category_id', $data['product_category_id'])
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        // Verify the category is also active
+        $category = \App\Models\ProductCategory::where('id', $data['product_category_id'])
+            ->where('is_active', true)
             ->firstOrFail();
 
         $listing = Listing::create([

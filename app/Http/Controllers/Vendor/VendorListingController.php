@@ -49,7 +49,11 @@ class VendorListingController extends Controller
     public function create()
     {
         $countries = Country::all();
-        $productCategories = ProductCategory::with('products')->get();
+        $productCategories = ProductCategory::where('product_categories.is_active', true)
+            ->with(['products' => function ($query) {
+                $query->where('products.is_active', true);
+            }])
+            ->get();
 
         return view('vendor.listings.create', compact('countries', 'productCategories'));
     }
@@ -80,9 +84,15 @@ class VendorListingController extends Controller
             'payment_method' => 'required|in:escrow,direct',
         ]);
 
-        // Ensure product belongs to selected category
+        // Ensure product belongs to selected category and both are active
         $product = Product::where('id', $data['product_id'])
             ->where('product_category_id', $data['product_category_id'])
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        // Verify the category is also active
+        $category = ProductCategory::where('id', $data['product_category_id'])
+            ->where('is_active', true)
             ->firstOrFail();
 
         // Handle unlimited quantity (null means unlimited)
@@ -138,7 +148,11 @@ class VendorListingController extends Controller
         }
 
         $countries = Country::all();
-        $productCategories = ProductCategory::with('products')->get();
+        $productCategories = ProductCategory::where('product_categories.is_active', true)
+            ->with(['products' => function ($query) {
+                $query->where('products.is_active', true);
+            }])
+            ->get();
 
         return view('vendor.listings.edit', compact('listing', 'countries', 'productCategories'));
     }

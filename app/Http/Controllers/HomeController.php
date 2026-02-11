@@ -31,7 +31,13 @@ class HomeController extends Controller
                     $query->orderBy('order');
                 }
             ])
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->whereHas('product', function ($query) {
+                $query->where('products.is_active', true)
+                    ->whereHas('productCategory', function ($q) {
+                        $q->where('product_categories.is_active', true);
+                    });
+            });
 
             // Apply search filter
             if ($searchQuery) {
@@ -92,7 +98,13 @@ class HomeController extends Controller
                 }
             ])
             ->where('is_featured', true)
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->whereHas('product', function ($query) {
+                $query->where('products.is_active', true)
+                    ->whereHas('productCategory', function ($q) {
+                        $q->where('product_categories.is_active', true);
+                    });
+            });
 
             // Apply search filter
             if ($searchQuery) {
@@ -154,7 +166,13 @@ class HomeController extends Controller
                 }
             ])
             ->where('is_featured', true)
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->whereHas('product', function ($query) {
+                $query->where('products.is_active', true)
+                    ->whereHas('productCategory', function ($q) {
+                        $q->where('product_categories.is_active', true);
+                    });
+            });
 
             // Base query for regular listings (not sponsored)
             $regularQuery = Listing::with([
@@ -167,7 +185,13 @@ class HomeController extends Controller
                 }
             ])
             ->where('is_featured', false)
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->whereHas('product', function ($query) {
+                $query->where('products.is_active', true)
+                    ->whereHas('productCategory', function ($q) {
+                        $q->where('product_categories.is_active', true);
+                    });
+            });
 
             // Apply search filter to both queries
             if ($searchQuery) {

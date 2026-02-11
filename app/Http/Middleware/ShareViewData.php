@@ -26,11 +26,17 @@ class ShareViewData
             return ExchangeRate::where('crypto_shortname', 'xmr')->first();
         });
 
-        // Load categories (cached for 1 hour)
+        // Load active categories (cached for 1 hour)
         $productCategories = cache()->remember('product_categories_with_counts', 3600, function () {
-            return ProductCategory::withCount('listings')
+            return ProductCategory::where('product_categories.is_active', true)
+                ->withCount(['listings' => function ($query) {
+                    $query->where('listings.is_active', true);
+                }])
                 ->with(['products' => function ($query) {
-                    $query->withCount('listings');
+                    $query->where('products.is_active', true)
+                        ->withCount(['listings' => function ($q) {
+                            $q->where('listings.is_active', true);
+                        }]);
                 }])
                 ->get();
         });
