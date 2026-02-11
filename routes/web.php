@@ -25,6 +25,9 @@ Route::prefix('auth')->group(function () {
     // Login routes
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login');
+    // PGP Login MFA Challenge
+    Route::get('/login/pgp-challenge', [AuthController::class, 'showPgpLoginChallenge'])->name('login.pgp-challenge');
+    Route::post('/login/pgp-challenge', [AuthController::class, 'verifyPgpLoginChallenge'])->name('login.pgp-challenge.verify');
     // Register routes
     Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register');
