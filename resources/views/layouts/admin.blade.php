@@ -123,176 +123,96 @@
 
     {{-- Admin Navigation --}}
     <nav class="bg-white border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between items-center py-2">
+        <div class="max-w-7xl mx-auto px-4 py-2">
+            {{-- Row 1: Main Management --}}
+            <div class="flex flex-wrap items-center gap-1 pb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-amber-700 mr-2 select-none">Manage</span>
+                <span class="text-gray-300 mr-1">|</span>
+                <a href="{{ route('admin.dashboard') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.dashboard') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Dashboard
+                </a>
+                <a href="{{ route('admin.users.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.users.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Users
+                </a>
+                <a href="{{ route('admin.orders.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.orders.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Orders
+                </a>
+                <a href="{{ route('admin.listings.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.listings.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Listings
+                </a>
+                <a href="{{ route('admin.disputes.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.disputes.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Disputes
+                </a>
+                <a href="{{ route('admin.support.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.support.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Tickets
+                </a>
+                <a href="{{ route('admin.forum.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.forum.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Forum
+                </a>
+            </div>
 
-                {{-- Desktop Navigation (2 Rows) --}}
-                <div class="hidden md:block w-full">
-                    {{-- Row 1: Main Management --}}
-                    <div class="flex items-center gap-1 pb-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-amber-700 mr-2 select-none">Manage</span>
-                        <span class="text-gray-300 mr-1">|</span>
-                        <a href="{{ route('admin.dashboard') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.dashboard') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Dashboard
-                        </a>
-                        <a href="{{ route('admin.users.index') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.users.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Users
-                        </a>
-                        <a href="{{ route('admin.orders.index') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.orders.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Orders
-                        </a>
-                        <a href="{{ route('admin.listings.index') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.listings.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Listings
-                        </a>
-                        <a href="{{ route('admin.disputes.index') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.disputes.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Disputes
-                        </a>
-                        <a href="{{ route('admin.support.index') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.support.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Tickets
-                        </a>
-                        <a href="{{ route('admin.forum.index') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.forum.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Forum
-                        </a>
-                    </div>
+            {{-- Divider --}}
+            <div class="border-t border-gray-100"></div>
 
-                    {{-- Divider --}}
-                    <div class="border-t border-gray-100"></div>
-
-                    {{-- Row 2: Content & Settings --}}
-                    <div class="flex items-center gap-1 pt-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 mr-2 select-none">Content</span>
-                        <span class="text-gray-300 mr-1">|</span>
-                        <a href="{{ route('admin.product-categories.index') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.product-categories.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Categories
-                        </a>
-                        <a href="{{ route('admin.products.index') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.products.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Products
-                        </a>
-                        <a href="{{ route('admin.rules.index') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.rules.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Rules
-                        </a>
-                        <a href="{{ route('admin.harm-reduction.index') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.harm-reduction.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Harm Reduction
-                        </a>
-                        <a href="{{ route('admin.canaries.index') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.canaries.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Canaries
-                        </a>
-                        <a href="{{ route('admin.finalization-windows.index') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.finalization-windows.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            FE Windows
-                        </a>
-                        <span class="text-gray-300 mx-1">|</span>
-                        <a href="{{ route('admin.reports') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.reports') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Reports
-                        </a>
-                        <a href="{{ route('admin.settings') }}"
-                           class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                                  {{ request()->routeIs('admin.settings') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
-                            Settings
-                        </a>
-                    </div>
-                </div>
-
-                {{-- Mobile Navigation Toggle --}}
-                <details class="md:hidden">
-                    <summary class="p-2 cursor-pointer">
-                        <span class="sr-only">Open admin menu</span>
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
-                    </summary>
-
-                    {{-- Mobile Menu --}}
-                    <div class="absolute left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
-                        <a href="{{ route('admin.dashboard') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Dashboard
-                        </a>
-                        <a href="{{ route('admin.users.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Users
-                        </a>
-                        <a href="{{ route('admin.orders.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Orders
-                        </a>
-                        <a href="{{ route('admin.listings.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Listings
-                        </a>
-                        <a href="{{ route('admin.disputes.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Disputes
-                        </a>
-                        <a href="{{ route('admin.support.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Tickets
-                        </a>
-                        <a href="{{ route('admin.forum.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Forum
-                        </a>
-                        <a href="{{ route('admin.product-categories.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Categories
-                        </a>
-                        <a href="{{ route('admin.products.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Products
-                        </a>
-                        <a href="{{ route('admin.rules.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Rules
-                        </a>
-                        <a href="{{ route('admin.harm-reduction.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Harm Reduction
-                        </a>
-                        <a href="{{ route('admin.canaries.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Canaries
-                        </a>
-                        <a href="{{ route('admin.finalization-windows.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            FE Windows
-                        </a>
-                        <a href="{{ route('admin.reports') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
-                            Reports
-                        </a>
-                        <a href="{{ route('admin.settings') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50">
-                            Settings
-                        </a>
-                    </div>
-                </details>
+            {{-- Row 2: Content & Settings --}}
+            <div class="flex flex-wrap items-center gap-1 pt-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 mr-2 select-none">Content</span>
+                <span class="text-gray-300 mr-1">|</span>
+                <a href="{{ route('admin.product-categories.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.product-categories.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Categories
+                </a>
+                <a href="{{ route('admin.products.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.products.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Products
+                </a>
+                <a href="{{ route('admin.rules.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.rules.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Rules
+                </a>
+                <a href="{{ route('admin.harm-reduction.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.harm-reduction.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Harm Reduction
+                </a>
+                <a href="{{ route('admin.canaries.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.canaries.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Canaries
+                </a>
+                <a href="{{ route('admin.finalization-windows.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.finalization-windows.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    FE Windows
+                </a>
+                <span class="text-gray-300 mx-1">|</span>
+                <a href="{{ route('admin.reports') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.reports') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Reports
+                </a>
+                <a href="{{ route('admin.settings') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.settings') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Settings
+                </a>
             </div>
         </div>
     </nav>
