@@ -9,14 +9,14 @@ use App\Jobs\UpdateVendorEarlyFinalizationStats;
 
 
 Schedule::command('bitcoin:sync')
-    ->everyTenMinutes()
+    ->everyMinute()
     ->withoutOverlapping()
     ->onFailure(function () {
         Log::error('Bitcoin sync command failed');
     });
 
 Schedule::command('monero:sync')
-    ->everyFiveMinutes()
+    ->everyMinute()
     ->withoutOverlapping()
     ->onFailure(function () {
         Log::error('Monero sync command failed');
