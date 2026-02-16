@@ -525,11 +525,13 @@ class AdminDisputeController extends Controller
 
                     // Broadcast the actual XMR transfer outside the DB transaction
                     try {
-                        $txHash = MoneroRepository::transfer(
-                            $vendorXmrWallet->name,
+                        $repository = new MoneroRepository();
+                        $transferResult = $repository->transfer(
+                            $vendorXmrWallet,
                             $buyerAddress->address,
                             $refundCrypto
                         );
+                        $txHash = $transferResult['tx_hash'];
 
                         if ($txHash) {
                             // Update both transaction records with the txid

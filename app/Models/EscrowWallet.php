@@ -11,11 +11,18 @@ class EscrowWallet extends Model
         'order_id',
         'currency',
         'wallet_name',
-        'wallet_password_hash',
+        'wallet_password_encrypted',
         'address',
         'balance',
         'status',
         'released_at',
+    ];
+
+    /**
+     * Hidden attributes.
+     */
+    protected $hidden = [
+        'wallet_password_encrypted',
     ];
 
     protected $casts = [
@@ -95,6 +102,7 @@ class EscrowWallet extends Model
 
     /**
      * Update Monero balance from blockchain.
+     * Per-wallet architecture: look up by wallet_name (unique per escrow).
      */
     private function updateMoneroBalance(): void
     {

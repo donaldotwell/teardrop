@@ -169,11 +169,10 @@ class MoneroController extends Controller
             // Lock wallet to prevent race conditions - MUST BE FIRST
             $xmrWallet = XmrWallet::where('id', $xmrWallet->id)->lockForUpdate()->first();
 
-            // Re-validate balance after lock using transaction-based calculation (including disputed hold)
-            // Clear cache to get fresh balance
-            \Cache::forget('user_xmr_balance_' . $user->id);
-            $balanceData = $user->getBalance();
-            $unlockedBalance = $balanceData['xmr']['unlocked_balance'];
+            // Re-validate balance after lock using LIVE RPC balance (not cached columns).
+            // Critical financial operation — must confirm actual on-chain spendable funds.
+            $rpcBalance = $xmrWallet->getRpcBalance();
+            $unlockedBalance = $rpcBalance['unlocked_balance'];
             $availableAfterLock = max(0, $unlockedBalance - $disputedHold);
 
             if ($availableAfterLock < $validated['amount']) {
@@ -212,61 +211,22 @@ class MoneroController extends Controller
             DB::commit();
 
             // Broadcast to Monero network (outside transaction to avoid long locks)
-            // Use multi-address payment logic from Phase 3
             $txHash = null;
-            
-            // Find addresses that can cover the withdrawal amount
-            $sourceAddresses = MoneroRepository::findAddressesForPayment($xmrWallet, $validated['amount']);
 
-            if (empty($sourceAddresses)) {
-                // Rollback if no addresses found with sufficient balance
-                $withdrawal->delete();
-                $xmrWallet->updateBalance();
-
-                \Log::warning("Withdrawal failed: No addresses with sufficient unlocked balance", [
-                    'user_id' => $user->id,
-                    'amount' => $validated['amount'],
-                    'wallet_balance' => $xmrWallet->unlocked_balance,
-                ]);
-
-                return back()
-                    ->withInput()
-                    ->withErrors(['amount' => 'Unable to find addresses with sufficient unlocked balance. Funds may still be confirming.']);
-            }
-
-            // Use single or multi-address withdrawal
-            if (count($sourceAddresses) === 1 && $sourceAddresses[0]['balance'] >= $validated['amount']) {
-                // Single address has enough - use standard transfer
-                $txHash = MoneroRepository::transfer(
-                    $xmrWallet->name,
+            try {
+                $repository = new MoneroRepository();
+                $result = $repository->transfer(
+                    $xmrWallet,
                     $validated['address'],
                     $validated['amount']
                 );
-            } else {
-                // Multiple addresses needed - use sweep
-                $addressIndices = array_column($sourceAddresses, 'address_index');
-                $accountIndex = $sourceAddresses[0]['account_index'];
-
-                \Log::info("Using multi-address withdrawal", [
+                $txHash = $result['tx_hash'];
+            } catch (\Exception $e) {
+                \Log::error("Monero transfer failed", [
                     'user_id' => $user->id,
-                    'num_addresses' => count($addressIndices),
-                    'address_indices' => $addressIndices,
                     'amount' => $validated['amount'],
+                    'error' => $e->getMessage(),
                 ]);
-
-                $result = MoneroRepository::sweepAddresses(
-                    $addressIndices,
-                    $accountIndex,
-                    $validated['address'],
-                    $validated['amount']
-                );
-
-                $txHash = $result['tx_hash'] ?? null;
-                
-                // Update withdrawal with actual fee if available
-                if (isset($result['fee']) && $result['fee'] > 0) {
-                    $withdrawal->update(['fee' => $result['fee']]);
-                }
             }
 
             if (!$txHash) {
@@ -290,7 +250,7 @@ class MoneroController extends Controller
             ]);
 
             return redirect()->route('monero.index')
-                ->with('success', 'Withdrawal initiated successfully. Transaction hash: ' . $txHash);
+                ->with('success', 'Withdrawal initiated successfully.');
 
         } catch (\Exception $e) {
             DB::rollBack();

@@ -132,6 +132,15 @@ class OrderController extends Controller
 
         $user_balance = $user->getBalance();
 
+        // For XMR, use actual on-chain balance from RPC (DB records may be stale)
+        if ($data['currency'] === 'xmr' && $user->xmrWallet) {
+            $rpcBalance = $user->xmrWallet->getRpcBalance();
+            if ($rpcBalance['balance'] > 0 || $rpcBalance['unlocked_balance'] > 0) {
+                $user_balance['xmr']['balance'] = $rpcBalance['balance'];
+                $user_balance['xmr']['unlocked_balance'] = $rpcBalance['unlocked_balance'];
+            }
+        }
+
         // Calculate total price including shipping
         $usd_price = ($listing->price * $data['quantity']) + $listing->price_shipping;
 
@@ -146,10 +155,15 @@ class OrderController extends Controller
         // Total amount needed = transaction amount + fee
         $totalNeeded = $crypto_value + $estimatedFee;
 
-        if ($totalNeeded > $user_balance[$data['currency']]['balance']) {
+        // For XMR, check unlocked_balance (locked funds cannot be spent)
+        $availableBalance = $data['currency'] === 'xmr'
+            ? $user_balance[$data['currency']]['unlocked_balance']
+            : $user_balance[$data['currency']]['balance'];
+
+        if ($totalNeeded > $availableBalance) {
             $feeDisplay = $estimatedFee > 0 ? " (including ~{$estimatedFee} {$data['currency']} network fee)" : "";
             return redirect()->back()->withErrors([
-                'error' => "Insufficient balance for this transaction. Your current balance is {$user_balance[$data['currency']]['balance']} {$data['currency']} which is not enough to cover the transaction of {$crypto_value} {$data['currency']}{$feeDisplay}.",
+                'error' => "Insufficient balance for this transaction. Your current balance is {$availableBalance} {$data['currency']} which is not enough to cover the transaction of {$crypto_value} {$data['currency']}{$feeDisplay}.",
             ]);
         }
 
@@ -222,10 +236,10 @@ class OrderController extends Controller
             ]);
         }
 
-        // Check if order is in valid state
-        if ($order->status !== 'pending' && $order->status !== 'shipped') {
+        // Check if order has shipped_at timestamp (vendor must mark as shipped before buyer can complete)
+        if ($order->shipped_at === null) {
             return redirect()->back()->withErrors([
-                'error' => 'This order cannot be completed. Current status: ' . $order->status
+            'error' => 'Order must be marked as shipped by the vendor before you can complete it. Current status: ' . $order->status
             ]);
         }
 
@@ -412,6 +426,16 @@ class OrderController extends Controller
 
         // Recheck balance including transaction fees
         $user_balance = $user->getBalance();
+
+        // For XMR, use actual on-chain balance from RPC (DB records may be stale)
+        if ($data['currency'] === 'xmr' && $user->xmrWallet) {
+            $rpcBalance = $user->xmrWallet->getRpcBalance();
+            if ($rpcBalance['balance'] > 0 || $rpcBalance['unlocked_balance'] > 0) {
+                $user_balance['xmr']['balance'] = $rpcBalance['balance'];
+                $user_balance['xmr']['unlocked_balance'] = $rpcBalance['unlocked_balance'];
+            }
+        }
+
         // Calculate total price including shipping
         $usd_price = ($listing->price * $data['quantity']) + $listing->price_shipping;
         $crypto_value = convert_usd_to_crypto($usd_price, $data['currency']);
@@ -425,10 +449,15 @@ class OrderController extends Controller
         // Total amount needed = transaction amount + fee
         $totalNeeded = $crypto_value + $estimatedFee;
 
-        if ($totalNeeded > $user_balance[$data['currency']]['balance']) {
+        // For XMR, check unlocked_balance (locked funds cannot be spent)
+        $availableBalance = $data['currency'] === 'xmr'
+            ? $user_balance[$data['currency']]['unlocked_balance']
+            : $user_balance[$data['currency']]['balance'];
+
+        if ($totalNeeded > $availableBalance) {
             $feeDisplay = $estimatedFee > 0 ? " + {$estimatedFee} fee" : "";
             return redirect()->back()->withErrors([
-                'error' => "Insufficient balance. Needed: {$crypto_value}{$feeDisplay} {$data['currency']}, Available: {$user_balance[$data['currency']]['balance']} {$data['currency']}",
+                'error' => "Insufficient balance. Needed: {$crypto_value}{$feeDisplay} {$data['currency']}, Available: {$availableBalance} {$data['currency']}",
             ]);
         }
 
@@ -566,15 +595,19 @@ class OrderController extends Controller
                     ]);
 
                     // 5. Create wallet transaction record for buyer (for balance tracking)
-                    $wallet = $user->wallets()->where('currency', $data['currency'])->firstOrFail();
-                    $wallet->transactions()->create([
-                        'amount' => -$crypto_value,
-                        'type' => 'order_escrow',
-                        'comment' => "Sent to escrow for order #{$order->uuid}",
-                    ]);
+                    // For BTC, use the legacy wallet model. For XMR, the buyer withdrawal
+                    // is recorded as an XmrTransaction in EscrowService::fundMoneroEscrow().
+                    if ($data['currency'] === 'btc') {
+                        $wallet = $user->wallets()->where('currency', 'btc')->firstOrFail();
+                        $wallet->transactions()->create([
+                            'amount' => -$crypto_value,
+                            'type' => 'order_escrow',
+                            'comment' => "Sent to escrow for order #{$order->uuid}",
+                        ]);
 
-                    // 6. Update buyer's wallet balance
-                    $wallet->decrement('balance', $crypto_value);
+                        // 6. Update buyer's wallet balance
+                        $wallet->decrement('balance', $crypto_value);
+                    }
 
                     // 7. Create message to vendor
                     $messageContent = "New order #{$order->uuid}:\n";

@@ -113,6 +113,13 @@ class XmrTransaction extends Model
 
         // Update user's internal XMR wallet
         $user = $this->wallet->user;
+
+        // Escrow wallets have user_id = null — no internal wallet to update
+        if (!$user) {
+            \Log::debug("XmrTransaction {$this->id} belongs to escrow wallet (no user), skipping processConfirmation");
+            return;
+        }
+
         $internalWallet = $user->wallets()->where('currency', 'xmr')->first();
 
         if (!$internalWallet) {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BtcWallet;
 use App\Models\Country;
 use App\Models\ExchangeRate;
+use App\Models\User;
 use App\Models\Listing;
 use App\Models\Product;
 use App\Models\ProductCategory;
@@ -392,12 +393,17 @@ class VendorListingController extends Controller
             throw new \Exception('Insufficient Monero balance. Required: ' . number_format($requiredAmountXmr, 8) . ' XMR, Available: ' . number_format($totalBalance, 8) . ' XMR');
         }
 
-        // Get admin wallet
-        $adminWalletName = config('fees.admin_xmr_wallet_name', 'admin_xmr');
-        $adminXmrWallet = XmrWallet::where('name', $adminWalletName)->first();
+        // Get admin XMR wallet via BTC admin wallet owner.
+        // All XMR wallets share the master wallet name, so name-based lookup is unreliable.
+        $adminBtcWallet = BtcWallet::where('name', config('fees.admin_btc_wallet_name', 'admin'))->first();
+        if (!$adminBtcWallet || !$adminBtcWallet->user_id) {
+            throw new \Exception('Admin wallet not configured. Please contact support.');
+        }
 
+        $adminUser = User::find($adminBtcWallet->user_id);
+        $adminXmrWallet = $adminUser?->xmrWallet;
         if (!$adminXmrWallet) {
-            throw new \Exception('Admin Monero wallet not configured. Please contact support.');
+            throw new \Exception('Admin Monero wallet not found. Please contact support.');
         }
 
         // Get admin address
@@ -406,45 +412,14 @@ class VendorListingController extends Controller
             throw new \Exception('Admin Monero wallet has no address. Please contact support.');
         }
 
-        // Find addresses that can cover the payment (using Phase 3 multi-address logic)
-        $sourceAddresses = MoneroRepository::findAddressesForPayment($vendorXmrWallet, $requiredAmountXmr);
-
-        if (empty($sourceAddresses)) {
-            throw new \Exception('Unable to find addresses with sufficient unlocked balance.');
-        }
-
-        $txid = null;
-
-        // Use single or multi-address payment depending on balance distribution
-        if (count($sourceAddresses) === 1 && $sourceAddresses[0]['balance'] >= $requiredAmountXmr) {
-            // Single address has enough funds
-            $txid = MoneroRepository::transfer(
-                $vendorXmrWallet->name,
-                $adminAddress->address,
-                $requiredAmountXmr
-            );
-        } else {
-            // Multiple addresses needed - use sweep
-            $addressIndices = array_column($sourceAddresses, 'address_index');
-            $accountIndex = $sourceAddresses[0]['account_index'];
-
-            \Log::info('Using multi-address payment for feature listing', [
-                'listing_id' => $listing->id,
-                'vendor_id' => $vendor->id,
-                'num_addresses' => count($addressIndices),
-                'address_indices' => $addressIndices,
-                'amount' => $requiredAmountXmr,
-            ]);
-
-            $result = MoneroRepository::sweepAddresses(
-                $addressIndices,
-                $accountIndex,
-                $adminAddress->address,
-                $requiredAmountXmr
-            );
-
-            $txid = $result['tx_hash'] ?? null;
-        }
+        // Send XMR from vendor's per-wallet file to admin wallet
+        $repository = new MoneroRepository();
+        $transferResult = $repository->transfer(
+            $vendorXmrWallet,
+            $adminAddress->address,
+            $requiredAmountXmr
+        );
+        $txid = $transferResult['tx_hash'];
 
         if (!$txid) {
             throw new \Exception('Failed to send Monero transaction.');

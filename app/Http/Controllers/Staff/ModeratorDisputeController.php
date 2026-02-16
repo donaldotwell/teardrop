@@ -623,13 +623,15 @@ class ModeratorDisputeController extends Controller
 
                     DB::commit();
 
-                    // Broadcast XMR transfer
+                    // Broadcast XMR transfer from vendor's per-wallet file
                     try {
-                        $txHash = MoneroRepository::transfer(
-                            $vendorXmrWallet->name,
+                        $repository = new MoneroRepository();
+                        $transferResult = $repository->transfer(
+                            $vendorXmrWallet,
                             $buyerAddress->address,
                             $refundCrypto
                         );
+                        $txHash = $transferResult['tx_hash'];
 
                         if ($txHash) {
                             $vendorXmrWallet->transactions()

@@ -27,6 +27,8 @@ return new class extends Migration
             $table->unsignedBigInteger('finalization_window_id')->nullable();
             $table->string('direct_payment_txid')->nullable();
             $table->string('admin_fee_txid')->nullable();
+            $table->decimal('admin_fee_crypto', 20, 12)->nullable(); // Admin fee owed in crypto (collected on vendor withdrawal)
+            $table->string('admin_fee_currency', 3)->nullable(); // Currency of the admin fee (btc/xmr)
             $table->string('txid')->nullable(); // Blockchain transaction ID for completed orders
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('shipped_at')->nullable();

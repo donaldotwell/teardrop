@@ -9,28 +9,28 @@ use App\Jobs\UpdateVendorEarlyFinalizationStats;
 
 
 Schedule::command('bitcoin:sync')
-    ->everyMinute()
+    ->everyTenMinutes()
     ->withoutOverlapping()
     ->onFailure(function () {
         Log::error('Bitcoin sync command failed');
     });
 
 Schedule::command('monero:sync')
-    ->everyMinute()
+    ->everyFiveMinutes()
     ->withoutOverlapping()
     ->onFailure(function () {
         Log::error('Monero sync command failed');
     });
 
 // Force confirm Monero transactions (testing/development only)
-if (config('monero.force_confirmations')) {
-    Schedule::command('monero:force-confirm')
-        ->everyMinute()
-        ->withoutOverlapping()
-        ->onFailure(function () {
-            Log::error('Monero force confirm command failed');
-        });
-}
+// if (config('monero.force_confirmations')) {
+//     Schedule::command('monero:force-confirm')
+//         ->everyMinute()
+//         ->withoutOverlapping()
+//         ->onFailure(function () {
+//             Log::error('Monero force confirm command failed');
+//         });
+// }
 
 Schedule::command('exchange:update')
     ->hourly()

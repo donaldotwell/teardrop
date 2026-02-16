@@ -6,6 +6,8 @@ use App\Models\Order;
 use App\Models\EscrowWallet;
 use App\Models\BtcWallet;
 use App\Models\XmrWallet;
+use App\Models\XmrTransaction;
+use App\Models\User;
 use App\Repositories\BitcoinRepository;
 use App\Repositories\MoneroRepository;
 use Illuminate\Support\Facades\Log;
@@ -73,7 +75,7 @@ class EscrowService
             'order_id' => $order->id,
             'currency' => 'btc',
             'wallet_name' => $walletName,
-            'wallet_password_hash' => null,
+            'wallet_password_encrypted' => null,
             'address' => $address,
             'balance' => 0,
             'status' => 'active',
@@ -88,50 +90,47 @@ class EscrowService
     }
 
     /**
-     * Create Monero escrow wallet using subaddress from master wallet.
-     * NEW ARCHITECTURE: Uses subaddress from master wallet (account 0) with escrow label.
+     * Create Monero escrow wallet — per-order wallet file on RPC.
      */
     private function createMoneroEscrow(Order $order, string $walletName): EscrowWallet
     {
-        $masterWalletName = config('monero.master_wallet_name', 'teardrop_master');
+        $repository = new MoneroRepository();
 
-        // Create escrow subaddress in account 0 (same as users, differentiated by label)
-        // RPC automatically assigns next available address_index
-        $subaddressData = MoneroRepository::createSubaddress(
-            $masterWalletName,
-            0, // account_index = 0 (master wallet only has account 0)
-            "Escrow Order #{$order->id}"
-        );
-
-        if (!$subaddressData || !isset($subaddressData['address'])) {
-            throw new \Exception("Failed to create Monero escrow subaddress for order #{$order->id}");
+        if (!$repository->isRpcAvailable()) {
+            throw new \Exception("Monero RPC service is not available");
         }
 
-        $address = $subaddressData['address'];
-        $createdAddressIndex = $subaddressData['address_index'];
+        // Deterministic password for the escrow wallet file
+        $rawPassword = MoneroRepository::generateWalletPassword('escrow_order_' . $order->id);
+        $encryptedPassword = Crypt::encryptString($rawPassword);
 
-        // Create XmrWallet record for escrow (points to master wallet)
-        $xmrWallet = \App\Models\XmrWallet::create([
-            'user_id' => null, // Escrow wallets don't belong to users
-            'name' => $masterWalletName,
-            'primary_address' => $address,
-            'view_key' => null,
-            'spend_key_encrypted' => null,
-            'seed_encrypted' => null,
-            'password_hash' => null,
-            'height' => 0,
+        // Create a dedicated wallet file on RPC (e.g. "escrow_order_42_xmr")
+        $walletData = $repository->createWalletFile($walletName, $rawPassword);
+
+        // Create XmrWallet record (no user_id — this is an escrow wallet)
+        $xmrWallet = XmrWallet::create([
+            'user_id' => null,
+            'name' => $walletName,
+            'primary_address' => $walletData['address'],
+            'view_key' => $walletData['view_key'],
+            'spend_key_encrypted' => $walletData['spend_key'] ? Crypt::encryptString($walletData['spend_key']) : null,
+            'seed_encrypted' => $walletData['seed'] ? Crypt::encryptString($walletData['seed']) : null,
+            'password_encrypted' => $encryptedPassword,
+            'height' => $walletData['height'],
             'balance' => 0,
             'unlocked_balance' => 0,
             'is_active' => true,
         ]);
 
-        // Create XmrAddress record (account 0, escrow identified by label)
+        // Create initial address record
         $xmrWallet->addresses()->create([
-            'address' => $address,
-            'account_index' => 0, // Same account as users
-            'address_index' => $createdAddressIndex,
+            'address' => $walletData['address'],
+            'account_index' => 0,
+            'address_index' => 0,
             'label' => "Escrow Order #{$order->id}",
             'balance' => 0,
+            'total_received' => 0,
+            'tx_count' => 0,
             'is_used' => false,
         ]);
 
@@ -139,20 +138,16 @@ class EscrowService
         $escrowWallet = EscrowWallet::create([
             'order_id' => $order->id,
             'currency' => 'xmr',
-            'wallet_name' => $masterWalletName, // CRITICAL: Store master wallet name (not unique order name)
-            'wallet_password_hash' => null, // No password needed with subaddress
-            'address' => $address,
-            'account_index' => 0, // Master wallet account
-            'address_index' => $createdAddressIndex, // Subaddress index
+            'wallet_name' => $walletName,
+            'wallet_password_encrypted' => $encryptedPassword,
+            'address' => $walletData['address'],
             'balance' => 0,
             'status' => 'active',
         ]);
 
-        Log::info("Monero escrow subaddress created for order #{$order->id}", [
-            'master_wallet' => $masterWalletName,
-            'account_index' => 0,
-            'address_index' => $createdAddressIndex,
-            'address' => $address,
+        Log::info("Monero escrow wallet created for order #{$order->id}", [
+            'wallet_name' => $walletName,
+            'address' => $walletData['address'],
         ]);
 
         return $escrowWallet;
@@ -240,79 +235,37 @@ class EscrowService
     {
         $buyerWallet = $buyer->xmrWallet;
         if (!$buyerWallet) {
-            throw new \Exception("Buyer does not have a Monero wallet");
+            Log::info("Creating XMR wallet for buyer #{$buyer->id} during escrow funding");
+            $buyerWallet = MoneroRepository::getOrCreateWalletForUser($buyer);
         }
 
-        // Try to find addresses that can cover the payment
-        $sourceAddresses = MoneroRepository::findAddressesForPayment($buyerWallet, $order->crypto_value);
-
-        if (empty($sourceAddresses)) {
-            throw new \Exception("Insufficient Monero balance across all addresses");
-        }
-
-        $txid = null;
-
-        // If only one address has enough funds, use standard transfer
-        if (count($sourceAddresses) === 1 && $sourceAddresses[0]['balance'] >= $order->crypto_value) {
-            // Single address has enough - use standard transfer
-            $txid = MoneroRepository::transfer(
-                $buyerWallet->name,
-                $escrowWallet->address,
-                $order->crypto_value
+        // Pre-flight: verify actual on-chain balance before attempting transfer.
+        $rpcBalance = $buyerWallet->getRpcBalance();
+        if ($rpcBalance['unlocked_balance'] < $order->crypto_value) {
+            throw new \Exception(
+                "Insufficient Monero balance for escrow. " .
+                "Required: {$order->crypto_value} XMR, " .
+                "Available (on-chain): {$rpcBalance['unlocked_balance']} XMR"
             );
-        } else {
-            // Multiple addresses needed - use sweep
-            $addressIndices = array_column($sourceAddresses, 'address_index');
-            $accountIndex = $sourceAddresses[0]['account_index'];
-
-            Log::info("Using multi-address payment for escrow", [
-                'order_id' => $order->id,
-                'num_addresses' => count($addressIndices),
-                'address_indices' => $addressIndices,
-            ]);
-
-            $result = MoneroRepository::sweepAddresses(
-                $addressIndices,
-                $accountIndex,
-                $escrowWallet->address,
-                $order->crypto_value
-            );
-
-            if (!$result) {
-                throw new \Exception("Failed to sweep addresses for escrow payment");
-            }
-
-            $txid = $result['tx_hash'];
         }
 
-        if (!$txid) {
-            throw new \Exception("Failed to send Monero to escrow");
-        }
+        // Send from buyer's per-user wallet to the escrow wallet address
+        $repository = new MoneroRepository();
+        $result = $repository->transfer($buyerWallet, $escrowWallet->address, $order->crypto_value);
+
+        $txid = $result['tx_hash'];
 
         Log::info("Monero sent to escrow for order #{$order->id}", [
             'txid' => $txid,
             'amount' => $order->crypto_value,
+            'fee' => $result['fee'],
             'escrow_address' => $escrowWallet->address,
         ]);
 
-        // Create transaction record for internal transfer (so updateBalance works)
-        $xmrWallet = XmrWallet::where('name', $escrowWallet->wallet_name)->first();
-        if ($xmrWallet) {
-            $xmrWallet->transactions()->create([
-                'txid' => $txid,
-                'amount' => $order->crypto_value,
-                'type' => 'deposit',
-                'status' => 'unlocked',
-                'address' => $escrowWallet->address,
-                'height' => 0,
-            ]);
+        // Set EscrowWallet balance directly from the known transfer amount
+        $escrowWallet->update(['balance' => $order->crypto_value]);
 
-            // Update balance immediately for internal transfer
-            $xmrWallet->updateBalance();
-            $escrowWallet->update(['balance' => $xmrWallet->unlocked_balance]);
-        }
-
-        // Mark order as funded immediately (internal transfers are instant)
+        // Mark order as funded immediately (internal transfer)
         $order->update(['escrow_funded_at' => now()]);
 
         Log::info("Escrow wallet funded for order #{$order->id}", [
@@ -332,6 +285,40 @@ class EscrowService
      */
     public function releaseEscrow(EscrowWallet $escrowWallet, Order $order): array
     {
+
+        // For XMR escrow, always refresh from actual on-chain data before release.
+        // The DB balance may be stale or differ from actual wallet balance.
+        if ($escrowWallet->currency === 'xmr') {
+            $escrowXmrWallet = XmrWallet::where('name', $escrowWallet->wallet_name)->first();
+            if ($escrowXmrWallet) {
+                $rpcBalance = $escrowXmrWallet->getRpcBalance();
+
+                // Always update DB with authoritative RPC values
+                $escrowWallet->update(['balance' => $rpcBalance['unlocked_balance']]);
+                $escrowXmrWallet->update([
+                    'balance' => $rpcBalance['balance'],
+                    'unlocked_balance' => $rpcBalance['unlocked_balance'],
+                ]);
+                $escrowWallet->refresh();
+
+                Log::info("Refreshed XMR escrow balance from RPC before release", [
+                    'escrow_wallet_id' => $escrowWallet->id,
+                    'order_id' => $order->id,
+                    'rpc_balance' => $rpcBalance['balance'],
+                    'rpc_unlocked' => $rpcBalance['unlocked_balance'],
+                    'db_balance' => $escrowWallet->balance,
+                ]);
+
+                // Funds exist but aren't spendable yet (waiting for confirmations)
+                if ($rpcBalance['balance'] > 0 && $rpcBalance['unlocked_balance'] <= 0) {
+                    throw new \Exception(
+                        "Escrow funds are still being confirmed on the Monero network. This typically takes 10-15 minutes. " .
+                        "Please check back soon and we'll release your funds as soon as they're ready!"
+                    );
+                }
+            }
+        }
+
         if (!$escrowWallet->canRelease()) {
             throw new \Exception("Escrow wallet cannot be released");
         }
@@ -479,187 +466,118 @@ class EscrowService
     }
 
     /**
-     * Release Monero escrow to vendor and admin.
+     * Release Monero escrow to vendor.
+     * Uses sweep_all to send the entire escrow balance (minus network fee) to the seller.
+     * Admin fees are tracked in DB on the order and collected on vendor withdrawal.
+     * This avoids multi-destination transfer math that fails when
+     * seller + admin + networkFee > walletBalance.
      */
     private function releaseMoneroEscrow(EscrowWallet $escrowWallet, Order $order): array
     {
         $seller = $order->listing->user;
 
-        // Calculate amounts (97% to seller, 3% to admin)
-        $serviceFeePercent = config('fees.order_completion_percent', 3);
-        $serviceFeeAmount = round(($escrowWallet->balance * $serviceFeePercent) / 100, 12);
-        $sellerAmount = round($escrowWallet->balance - $serviceFeeAmount, 12);
-
-        Log::info("Releasing Monero escrow for order #{$order->id}", [
-            'total_balance' => $escrowWallet->balance,
-            'seller_amount' => $sellerAmount,
-            'service_fee' => $serviceFeeAmount,
-            'seller_id' => $seller->id,
-        ]);
-
-        // Get seller XMR wallet
+        // Get or create seller XMR wallet (vendor may not have one yet)
         $sellerWallet = $seller->xmrWallet;
         if (!$sellerWallet) {
-            throw new \Exception("Seller does not have a Monero wallet");
+            Log::info("Creating XMR wallet for seller #{$seller->id} during escrow release");
+            $sellerWallet = MoneroRepository::getOrCreateWalletForUser($seller);
         }
 
-        // Get seller's preferred address (unused address or generate new one)
         $sellerAddress = $sellerWallet->getCurrentAddress();
         if (!$sellerAddress) {
-            Log::info("Seller has no unused address, generating new one", [
-                'seller_id' => $seller->id,
-                'wallet_id' => $sellerWallet->id,
-            ]);
             $sellerAddress = $sellerWallet->generateNewAddress();
         }
 
-        // Get admin wallet and address
-        $adminWalletName = config('fees.admin_xmr_wallet_name', 'admin_xmr');
-        $adminWallet = XmrWallet::where('name', $adminWalletName)->first();
-        if (!$adminWallet) {
-            throw new \Exception("Admin Monero wallet not found. Contact administrator.");
-        }
-
-        $adminAddress = $adminWallet->addresses()->first();
-        if (!$adminAddress) {
-            throw new \Exception("Admin Monero wallet has no address. Contact administrator.");
-        }
-
-        // Get escrow wallet's XMR wallet record to access addresses
+        // Look up escrow XMR wallet by wallet_name (unique per-order wallet file)
         $escrowXmrWallet = XmrWallet::where('name', $escrowWallet->wallet_name)->first();
         if (!$escrowXmrWallet) {
             throw new \Exception("Escrow XMR wallet record not found");
         }
 
-        // Find escrow addresses with funds (for multi-address escrow scenarios)
-        $escrowAddresses = MoneroRepository::findAddressesForPayment($escrowXmrWallet, $escrowWallet->balance);
-        
-        if (empty($escrowAddresses)) {
-            // Fallback: try standard transfer from primary address
-            Log::warning("Could not find escrow addresses with balance, attempting standard transfer", [
-                'escrow_wallet' => $escrowWallet->wallet_name,
-                'balance' => $escrowWallet->balance,
-            ]);
-        }
+        // Calculate admin fee from the order's crypto_value (authoritative source)
+        $serviceFeePercent = config('fees.order_completion_percentage', 3);
+        $adminFeeAmount = round(($order->crypto_value * $serviceFeePercent) / 100, 12);
 
-        $sellerTxid = null;
-        $adminTxid = null;
+        // Single wallet session: open -> refresh -> sweep_all to seller -> close
+        $repository = new MoneroRepository();
+        $result = $repository->withWalletModel($escrowXmrWallet, function (MoneroRepository $repo) use (
+            $escrowWallet, $escrowXmrWallet, $order, $seller, $sellerAddress
+        ) {
+            // Get actual live balance from the already-open, already-refreshed wallet
+            $balance = $repo->getOpenWalletBalance();
+            $actualUnlocked = $balance['unlocked_balance'];
 
-        // Send to seller (97%)
-        if (!empty($escrowAddresses) && count($escrowAddresses) > 1) {
-            // Multi-address escrow release
-            $addressIndices = array_column($escrowAddresses, 'address_index');
-            $accountIndex = $escrowAddresses[0]['account_index'];
-
-            Log::info("Using multi-address escrow release for seller", [
-                'num_addresses' => count($addressIndices),
-                'address_indices' => $addressIndices,
+            Log::info("Releasing Monero escrow for order #{$order->id}", [
+                'rpc_balance' => $balance['balance'],
+                'rpc_unlocked' => $actualUnlocked,
+                'db_balance' => $escrowWallet->balance,
+                'seller_id' => $seller->id,
             ]);
 
-            $result = MoneroRepository::sweepAddresses(
-                $addressIndices,
-                $accountIndex,
-                $sellerAddress->address,
-                $sellerAmount
-            );
+            if ($actualUnlocked <= 0) {
+                throw new \Exception(
+                    "Escrow wallet has no unlocked funds. " .
+                    "Total balance: {$balance['balance']} XMR, Unlocked: {$actualUnlocked} XMR. " .
+                    "Please wait for confirmations and try again."
+                );
+            }
 
-            $sellerTxid = $result['tx_hash'] ?? null;
-        } else {
-            // Single address escrow release (standard case)
-            $sellerTxid = MoneroRepository::transfer(
-                $escrowWallet->wallet_name,
-                $sellerAddress->address,
-                $sellerAmount
-            );
-        }
-
-        if (!$sellerTxid) {
-            throw new \Exception("Failed to send Monero to seller from escrow");
-        }
-
-        // Send to admin (3%)
-        // After seller payment, find remaining addresses with funds for admin fee
-        $remainingAddresses = MoneroRepository::findAddressesForPayment($escrowXmrWallet, $serviceFeeAmount);
-
-        if (!empty($remainingAddresses) && count($remainingAddresses) > 1) {
-            // Multi-address admin fee
-            $addressIndices = array_column($remainingAddresses, 'address_index');
-            $accountIndex = $remainingAddresses[0]['account_index'];
-
-            Log::info("Using multi-address for admin fee", [
-                'num_addresses' => count($addressIndices),
-                'address_indices' => $addressIndices,
+            // sweep_all: sends entire wallet balance minus network fee to seller
+            // This always works — no multi-destination math, no fee headroom issues
+            $sweepResult = $repo->rpcCall('sweep_all', [
+                'address' => $sellerAddress->address,
+                'account_index' => 0,
+                'priority' => 1,
+                'get_tx_key' => true,
             ]);
 
-            $result = MoneroRepository::sweepAddresses(
-                $addressIndices,
-                $accountIndex,
-                $adminAddress->address,
-                $serviceFeeAmount
-            );
+            if (!$sweepResult || !isset($sweepResult['tx_hash_list'][0])) {
+                throw new \Exception("sweep_all failed from escrow wallet '{$escrowXmrWallet->name}'");
+            }
 
-            $adminTxid = $result['tx_hash'] ?? null;
-        } else {
-            // Single address admin fee (standard case)
-            $adminTxid = MoneroRepository::transfer(
-                $escrowWallet->wallet_name,
-                $adminAddress->address,
-                $serviceFeeAmount
-            );
-        }
+            $txHash = $sweepResult['tx_hash_list'][0];
+            $amountSent = ($sweepResult['amount_list'][0] ?? 0) / 1e12;
+            $fee = ($sweepResult['fee_list'][0] ?? 0) / 1e12;
 
-        if (!$adminTxid) {
-            throw new \Exception("Failed to send service fee to admin from escrow");
-        }
-
-        // Create transaction records for tracking
-        XmrTransaction::create([
-            'xmr_wallet_id' => $sellerWallet->id,
-            'xmr_address_id' => $sellerAddress->id,
-            'txid' => $sellerTxid,
-            'type' => 'deposit',
-            'amount' => $sellerAmount,
-            'fee' => 0,
-            'confirmations' => 0,
-            'status' => 'pending',
-            'raw_transaction' => [
-                'purpose' => 'escrow_release',
+            Log::info("XMR escrow sweep_all sent to seller", [
+                'wallet' => $escrowXmrWallet->name,
                 'order_id' => $order->id,
-                'from_escrow' => $escrowWallet->id,
-            ],
-        ]);
+                'seller_id' => $seller->id,
+                'amount_sent' => $amountSent,
+                'network_fee' => $fee,
+                'tx_hash' => $txHash,
+                'seller_address' => $sellerAddress->address,
+            ]);
 
-        XmrTransaction::create([
-            'xmr_wallet_id' => $adminWallet->id,
-            'xmr_address_id' => $adminAddress->id,
-            'txid' => $adminTxid,
-            'type' => 'deposit',
-            'amount' => $serviceFeeAmount,
-            'fee' => 0,
-            'confirmations' => 0,
-            'status' => 'pending',
-            'raw_transaction' => [
-                'purpose' => 'escrow_admin_fee',
-                'order_id' => $order->id,
-                'from_escrow' => $escrowWallet->id,
-            ],
-        ]);
+            return [
+                'tx_hash' => $txHash,
+                'fee' => $fee,
+                'amount_sent' => $amountSent,
+            ];
+        });
+
+        $txHash = $result['tx_hash'];
 
         // Mark escrow as released
         $escrowWallet->markAsReleased();
 
+        // Track admin fee on the order — collected on vendor withdrawal
+        $order->update([
+            'admin_fee_crypto' => $adminFeeAmount,
+            'admin_fee_currency' => 'xmr',
+        ]);
+
         Log::info("Monero escrow released for order #{$order->id}", [
-            'seller_txid' => $sellerTxid,
-            'admin_txid' => $adminTxid,
-            'seller_amount' => $sellerAmount,
-            'service_fee' => $serviceFeeAmount,
+            'tx_hash' => $txHash,
+            'amount_sent_to_seller' => $result['amount_sent'],
+            'network_fee' => $result['fee'],
+            'admin_fee_tracked' => $adminFeeAmount,
             'seller_address' => $sellerAddress->address,
-            'admin_address' => $adminAddress->address,
         ]);
 
         return [
-            'seller_txid' => $sellerTxid,
-            'admin_txid' => $adminTxid,
+            'seller_txid' => $txHash,
+            'admin_txid' => null, // Admin fee collected on vendor withdrawal, not on-chain now
         ];
     }
 
@@ -672,6 +590,40 @@ class EscrowService
      */
     public function refundEscrow(EscrowWallet $escrowWallet, Order $order): string
     {
+        // For XMR escrow, always refresh from actual on-chain data before refund.
+        if ($escrowWallet->currency === 'xmr') {
+            $escrowXmrWallet = XmrWallet::where('name', $escrowWallet->wallet_name)->first();
+            if ($escrowXmrWallet) {
+                $rpcBalance = $escrowXmrWallet->getRpcBalance();
+
+                // Always update DB with authoritative RPC values
+                $escrowWallet->update(['balance' => $rpcBalance['unlocked_balance']]);
+                $escrowXmrWallet->update([
+                    'balance' => $rpcBalance['balance'],
+                    'unlocked_balance' => $rpcBalance['unlocked_balance'],
+                ]);
+                $escrowWallet->refresh();
+
+                Log::info("Refreshed XMR escrow balance from RPC before refund", [
+                    'escrow_wallet_id' => $escrowWallet->id,
+                    'order_id' => $order->id,
+                    'rpc_balance' => $rpcBalance['balance'],
+                    'rpc_unlocked' => $rpcBalance['unlocked_balance'],
+                    'db_balance' => $escrowWallet->balance,
+                ]);
+
+                // Funds exist but aren't spendable yet (waiting for confirmations)
+                if ($rpcBalance['balance'] > 0 && $rpcBalance['unlocked_balance'] <= 0) {
+                    throw new \Exception(
+                        "Escrow funds are not yet unlocked. " .
+                        "Monero requires confirmations before funds can be spent. " .
+                        "Balance: {$rpcBalance['balance']} XMR, Unlocked: {$rpcBalance['unlocked_balance']} XMR. " .
+                        "Please try again in a few minutes."
+                    );
+                }
+            }
+        }
+
         if (!$escrowWallet->canRefund()) {
             throw new \Exception("Escrow wallet cannot be refunded");
         }
@@ -730,93 +682,83 @@ class EscrowService
     }
 
     /**
-     * Refund Monero escrow to buyer.
+     * Refund Monero escrow to buyer using sweep_all.
+     * The entire escrow wallet balance (minus network fee) goes to the buyer.
      */
     private function refundMoneroEscrow(EscrowWallet $escrowWallet, $buyer): string
     {
         $buyerWallet = $buyer->xmrWallet;
         if (!$buyerWallet) {
-            throw new \Exception("Buyer does not have a Monero wallet");
+            Log::info("Creating XMR wallet for buyer #{$buyer->id} during escrow refund");
+            $buyerWallet = MoneroRepository::getOrCreateWalletForUser($buyer);
         }
 
-        // Get buyer's address (unused or generate new)
         $buyerAddress = $buyerWallet->getCurrentAddress();
         if (!$buyerAddress) {
-            Log::info("Buyer has no unused address, generating new one for refund", [
-                'buyer_id' => $buyer->id,
-                'wallet_id' => $buyerWallet->id,
-            ]);
             $buyerAddress = $buyerWallet->generateNewAddress();
         }
 
-        // Get escrow wallet's XMR wallet record to access addresses
+        // Look up escrow XMR wallet by wallet_name (unique per-order wallet file)
         $escrowXmrWallet = XmrWallet::where('name', $escrowWallet->wallet_name)->first();
         if (!$escrowXmrWallet) {
             throw new \Exception("Escrow XMR wallet record not found");
         }
 
-        $txid = null;
+        // Single wallet session: open -> refresh -> check balance -> sweep_all -> close
+        $repository = new MoneroRepository();
+        $result = $repository->withWalletModel($escrowXmrWallet, function (MoneroRepository $repo) use (
+            $escrowXmrWallet, $buyerAddress, $buyer
+        ) {
+            // Check actual unlocked balance before sweep
+            $balance = $repo->getOpenWalletBalance();
 
-        // Find escrow addresses with funds (for multi-address scenarios)
-        $escrowAddresses = MoneroRepository::findAddressesForPayment($escrowXmrWallet, $escrowWallet->balance);
+            if ($balance['unlocked_balance'] <= 0) {
+                throw new \Exception(
+                    "Escrow wallet has no unlocked funds for refund. " .
+                    "Total balance: {$balance['balance']} XMR, Unlocked: {$balance['unlocked_balance']} XMR. " .
+                    "Please wait for confirmations and try again."
+                );
+            }
 
-        if (!empty($escrowAddresses) && count($escrowAddresses) > 1) {
-            // Multi-address refund
-            $addressIndices = array_column($escrowAddresses, 'address_index');
-            $accountIndex = $escrowAddresses[0]['account_index'];
-
-            Log::info("Using multi-address escrow refund", [
-                'order_id' => $escrowWallet->order_id,
-                'buyer_id' => $buyer->id,
-                'num_addresses' => count($addressIndices),
-                'address_indices' => $addressIndices,
-                'amount' => $escrowWallet->balance,
+            // sweep_all: send entire wallet balance minus fee to buyer
+            $sweepResult = $repo->rpcCall('sweep_all', [
+                'address' => $buyerAddress->address,
+                'account_index' => 0,
+                'priority' => 1,
+                'get_tx_key' => true,
             ]);
 
-            $result = MoneroRepository::sweepAddresses(
-                $addressIndices,
-                $accountIndex,
-                $buyerAddress->address,
-                $escrowWallet->balance
-            );
+            if (!$sweepResult || !isset($sweepResult['tx_hash_list'][0])) {
+                throw new \Exception("sweep_all failed from escrow wallet '{$escrowXmrWallet->name}'");
+            }
 
-            $txid = $result['tx_hash'] ?? null;
-        } else {
-            // Single address refund (standard case)
-            $txid = MoneroRepository::transfer(
-                $escrowWallet->wallet_name,
-                $buyerAddress->address,
-                $escrowWallet->balance
-            );
-        }
+            $txHash = $sweepResult['tx_hash_list'][0];
 
-        if (!$txid) {
-            throw new \Exception("Failed to refund Monero from escrow");
-        }
+            Log::info("XMR escrow sweep_all sent for refund", [
+                'wallet' => $escrowXmrWallet->name,
+                'to' => $buyerAddress->address,
+                'buyer_id' => $buyer->id,
+                'amount' => ($sweepResult['amount_list'][0] ?? 0) / 1e12,
+                'fee' => ($sweepResult['fee_list'][0] ?? 0) / 1e12,
+                'tx_hash' => $txHash,
+            ]);
 
-        // Create transaction record for buyer
-        XmrTransaction::create([
-            'xmr_wallet_id' => $buyerWallet->id,
-            'xmr_address_id' => $buyerAddress->id,
-            'txid' => $txid,
-            'type' => 'deposit',
-            'amount' => $escrowWallet->balance,
-            'fee' => 0,
-            'confirmations' => 0,
-            'status' => 'pending',
-            'raw_transaction' => [
-                'purpose' => 'escrow_refund',
-                'order_id' => $escrowWallet->order_id,
-                'from_escrow' => $escrowWallet->id,
-            ],
-        ]);
+            return [
+                'tx_hash' => $txHash,
+                'amount' => ($sweepResult['amount_list'][0] ?? 0) / 1e12,
+                'fee' => ($sweepResult['fee_list'][0] ?? 0) / 1e12,
+            ];
+        });
+
+        $txid = $result['tx_hash'];
 
         // Mark escrow as refunded
         $escrowWallet->markAsRefunded();
 
         Log::info("Monero escrow refunded", [
             'txid' => $txid,
-            'amount' => $escrowWallet->balance,
+            'amount' => $result['amount'],
+            'fee' => $result['fee'],
             'buyer_id' => $buyer->id,
             'buyer_address' => $buyerAddress->address,
             'order_id' => $escrowWallet->order_id,
@@ -830,8 +772,8 @@ class EscrowService
      */
     private function generateWalletName(Order $order): string
     {
-        $suffix = $order->currency === 'xmr' ? '.wallet' : '';
-        return "escrow_order_{$order->id}_{$order->currency}{$suffix}";
+        $suffix = $order->currency === 'xmr' ? '' : '';
+        return "escrow_order_{$order->id}_{$order->currency}";
     }
 
     /**
@@ -949,32 +891,29 @@ class EscrowService
 
     /**
      * Process direct Monero payment.
+     * Sends the full order amount to the vendor. Admin fee is tracked in DB
+     * and collected on vendor withdrawal — same pattern as escrow release.
      */
     private function processDirectMoneroPayment(Order $order, User $vendor): array
     {
         $buyer = $order->user;
-        $repository = new MoneroRepository();
 
-        // Calculate amounts
+        // Calculate admin fee (tracked in DB, not sent on-chain now)
         $adminFeePercentage = config('fees.order_completion_percentage', 3);
-        $adminFee = $order->crypto_value * ($adminFeePercentage / 100);
-        $vendorAmount = $order->crypto_value - $adminFee;
+        $adminFee = round($order->crypto_value * ($adminFeePercentage / 100), 12);
 
-        // Get buyer wallet
-        $buyerWallet = $buyer->wallets()->where('currency', 'xmr')->lockForUpdate()->first();
-        if (!$buyerWallet) {
-            throw new \Exception("Buyer does not have a Monero wallet");
+        // Get or create buyer XMR wallet
+        $buyerXmrWallet = $buyer->xmrWallet;
+        if (!$buyerXmrWallet) {
+            Log::info("Creating XMR wallet for buyer #{$buyer->id} during direct payment");
+            $buyerXmrWallet = MoneroRepository::getOrCreateWalletForUser($buyer);
         }
 
-        // Verify balance
-        if ($buyerWallet->balance < $order->crypto_value) {
-            throw new \Exception("Insufficient buyer balance");
-        }
-
-        // Get vendor XMR wallet
+        // Get or create vendor XMR wallet
         $vendorXmrWallet = $vendor->xmrWallet;
         if (!$vendorXmrWallet) {
-            throw new \Exception("Vendor does not have a Monero wallet");
+            Log::info("Creating XMR wallet for vendor #{$vendor->id} during direct payment");
+            $vendorXmrWallet = MoneroRepository::getOrCreateWalletForUser($vendor);
         }
 
         $vendorAddress = $vendorXmrWallet->getCurrentAddress();
@@ -982,82 +921,29 @@ class EscrowService
             $vendorAddress = $vendorXmrWallet->generateNewAddress();
         }
 
-        // Get admin wallet (for future implementation)
-        // For now, use placeholder - admin XMR wallet needs to be set up
-        $adminAddress = config('monero.admin_address');
-        if (!$adminAddress) {
-            throw new \Exception("Admin Monero address not configured");
-        }
+        // Single transfer: full order amount to vendor (buyer has excess balance for fee)
+        $repository = new MoneroRepository();
+        $result = $repository->transfer($buyerXmrWallet, $vendorAddress->address, $order->crypto_value);
 
-        // Find addresses that can cover the total payment
-        $buyerXmrWallet = $buyer->xmrWallet;
-        $sourceAddresses = MoneroRepository::findAddressesForPayment($buyerXmrWallet, $order->crypto_value);
+        $txHash = $result['tx_hash'];
 
-        if (empty($sourceAddresses)) {
-            throw new \Exception("Insufficient Monero balance for direct payment");
-        }
-
-        $addressIndices = array_column($sourceAddresses, 'address_index');
-        $accountIndex = $sourceAddresses[0]['account_index'];
-
-        // Send to vendor (97%)
-        $vendorTxid = null;
-        if (count($sourceAddresses) === 1 && $sourceAddresses[0]['balance'] >= $vendorAmount) {
-            // Single address payment
-            $vendorTxid = $repository->transfer(
-                $buyerXmrWallet->name,
-                $vendorAddress->address,
-                $vendorAmount
-            );
-        } else {
-            // Multi-address payment for vendor
-            $result = MoneroRepository::sweepAddresses(
-                $addressIndices,
-                $accountIndex,
-                $vendorAddress->address,
-                $vendorAmount
-            );
-            $vendorTxid = $result['tx_hash'] ?? null;
-        }
-
-        if (!$vendorTxid) {
-            throw new \Exception("Failed to send Monero to vendor");
-        }
-
-        // Send admin fee (3%) - this will use remaining funds from addresses
-        // Note: After vendor payment, we need to find which addresses still have funds
-        $adminTxid = $repository->transfer(
-            $buyerXmrWallet->name,
-            $adminAddress,
-            $adminFee
-        );
-
-        if (!$adminTxid) {
-            throw new \Exception("Failed to send admin fee");
-        }
-
-        // Deduct from buyer wallet
-        $buyerWallet->decrement('balance', $order->crypto_value);
-
-        // Create transaction records
-        $buyerWallet->transactions()->create([
-            'amount' => -$order->crypto_value,
-            'type' => 'direct_order',
-            'txid' => $vendorTxid,
-            'comment' => "Direct payment for order #{$order->id}",
+        // Track admin fee on the order — collected on vendor withdrawal
+        $order->update([
+            'admin_fee_crypto' => $adminFee,
+            'admin_fee_currency' => 'xmr',
         ]);
 
         Log::info("Direct Monero payment processed", [
             'order_id' => $order->id,
-            'vendor_txid' => $vendorTxid,
-            'admin_txid' => $adminTxid,
-            'vendor_amount' => $vendorAmount,
-            'admin_fee' => $adminFee,
+            'tx_hash' => $txHash,
+            'amount_sent' => $order->crypto_value,
+            'admin_fee_tracked' => $adminFee,
+            'tx_fee' => $result['fee'],
         ]);
 
         return [
-            'vendor_txid' => $vendorTxid,
-            'admin_txid' => $adminTxid,
+            'vendor_txid' => $txHash,
+            'admin_txid' => null, // Admin fee collected on vendor withdrawal
         ];
     }
 }

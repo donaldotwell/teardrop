@@ -52,17 +52,57 @@ class SyncMoneroWallets extends Command
             $this->info('Running sync directly (not queued)...');
             \Log::debug("Running direct sync from console command");
 
-            $progressBar = $this->output->createProgressBar();
+            $startTime = microtime(true);
+
+            // Sync user wallets
+            $skipDays = config('monero.sync_idle_skip_days', 30);
+            $userWallets = \App\Models\XmrWallet::where('is_active', true)
+                ->where(function ($query) use ($skipDays) {
+                    $query->whereNull('last_synced_at')
+                          ->orWhere('last_synced_at', '>=', now()->subDays($skipDays));
+                })
+                ->get();
+
+            $this->info("Found {$userWallets->count()} active user wallets to sync");
+            $progressBar = $this->output->createProgressBar($userWallets->count());
             $progressBar->start();
 
-            $startTime = microtime(true);
-            MoneroRepository::syncAllWallets();
-            $duration = round(microtime(true) - $startTime, 2);
+            $syncedCount = 0;
+            $errorCount = 0;
+
+            foreach ($userWallets as $wallet) {
+                try {
+                    $repository->syncWallet($wallet);
+                    $syncedCount++;
+                } catch (\Exception $e) {
+                    $errorCount++;
+                    $this->newLine();
+                    $this->warn("Failed to sync wallet {$wallet->name}: {$e->getMessage()}");
+                }
+                $progressBar->advance();
+            }
 
             $progressBar->finish();
             $this->newLine();
-            $this->info("Monero wallet synchronization completed successfully in {$duration} seconds");
-            \Log::debug("Console command completed successfully in {$duration}s");
+
+            // Sync escrow wallets
+            $escrowWallets = \App\Models\EscrowWallet::where('currency', 'xmr')
+                ->where('status', 'active')
+                ->get();
+
+            $this->info("Syncing {$escrowWallets->count()} active escrow wallets...");
+
+            foreach ($escrowWallets as $escrowWallet) {
+                try {
+                    $repository->syncEscrowWallet($escrowWallet);
+                } catch (\Exception $e) {
+                    $this->warn("Failed to sync escrow wallet {$escrowWallet->wallet_name}: {$e->getMessage()}");
+                }
+            }
+
+            $duration = round(microtime(true) - $startTime, 2);
+            $this->info("Monero wallet synchronization completed in {$duration}s ({$syncedCount} user wallets synced, {$errorCount} errors, {$escrowWallets->count()} escrow wallets)");
+            \Log::debug("Console command completed in {$duration}s");
 
             return self::SUCCESS;
 

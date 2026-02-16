@@ -183,9 +183,23 @@ class User extends Authenticatable
      * Get the balance for the specified currency.
      * Balances are calculated from transaction records (authoritative source).
      * Wallet balance fields are DEPRECATED and may be stale.
+     *
+     * Results are cached on the model instance for the request lifecycle.
+     * Call clearBalanceCache() to force a fresh read after mutations.
      */
+    protected ?array $cachedBalance = null;
+
+    public function clearBalanceCache(): void
+    {
+        $this->cachedBalance = null;
+    }
+
     public function getBalance(): array
     {
+        if ($this->cachedBalance !== null) {
+            return $this->cachedBalance;
+        }
+
         \Log::debug('[User::getBalance] START for user', [
             'user_id' => $this->id,
             'username' => $this->username_pub
@@ -212,7 +226,7 @@ class User extends Authenticatable
             'xmrUnlocked' => $xmrBalanceData['unlocked_balance'] ?? null,
         ]);
 
-        return [
+        $this->cachedBalance = [
             'btc' => [
                 'balance' => $btcBalance,
                 'usd_value' => convert_crypto_to_usd($btcBalance, 'btc'),
@@ -223,6 +237,8 @@ class User extends Authenticatable
                 'usd_value' => convert_crypto_to_usd($xmrBalanceData['balance'], 'xmr'),
             ],
         ];
+
+        return $this->cachedBalance;
     }
 
     /**

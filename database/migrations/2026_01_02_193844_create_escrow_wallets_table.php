@@ -16,10 +16,8 @@ return new class extends Migration
             $table->foreignId('order_id')->unique()->constrained()->onDelete('cascade');
             $table->enum('currency', ['btc', 'xmr']);
             $table->string('wallet_name')->unique();
-            $table->string('wallet_password_hash')->nullable(); // For XMR
+            $table->text('wallet_password_encrypted')->nullable(); // For XMR: encrypted with APP_KEY, decryptable for open_wallet
             $table->string('address'); // Primary receiving address
-            $table->unsignedInteger('account_index')->nullable(); // For XMR subaddress
-            $table->unsignedInteger('address_index')->nullable(); // For XMR subaddress
             $table->decimal('balance', 20, 12)->default(0);
             $table->enum('status', ['active', 'released', 'refunded', 'archived'])->default('active');
             $table->timestamp('released_at')->nullable();

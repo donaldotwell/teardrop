@@ -16,13 +16,14 @@ class XmrWallet extends Model
         'view_key',
         'spend_key_encrypted',
         'seed_encrypted',
-        'password_hash',
+        'password_encrypted',
         'height',
         'balance',
         'unlocked_balance',
         'total_received',
         'total_sent',
         'is_active',
+        'last_synced_at',
     ];
 
     protected $casts = [
@@ -32,6 +33,16 @@ class XmrWallet extends Model
         'total_received' => 'decimal:12',
         'total_sent' => 'decimal:12',
         'is_active' => 'boolean',
+        'last_synced_at' => 'datetime',
+    ];
+
+    /**
+     * Hidden attributes (password should never be serialized).
+     */
+    protected $hidden = [
+        'password_encrypted',
+        'spend_key_encrypted',
+        'seed_encrypted',
     ];
 
     /**
@@ -70,27 +81,38 @@ class XmrWallet extends Model
     }
 
     /**
+     * Decrypt and return the wallet password for RPC operations.
+     *
+     * @return string Plaintext wallet password
+     * @throws \RuntimeException If no encrypted password is stored
+     */
+    public function getDecryptedPassword(): string
+    {
+        if (empty($this->password_encrypted)) {
+            throw new \RuntimeException("No encrypted password stored for wallet {$this->id}");
+        }
+
+        return \Illuminate\Support\Facades\Crypt::decryptString($this->password_encrypted);
+    }
+
+    /**
      * Generate a new subaddress for this wallet.
+     * Opens the wallet file on RPC, creates a subaddress, and closes it.
      */
     public function generateNewAddress(): XmrAddress
     {
         $repository = new \App\Repositories\MoneroRepository();
 
-        // Create new subaddress in master wallet
-        $subaddressData = $repository->rpcCall('create_address', [
-            'account_index' => 0,
-            'label' => "User {$this->user_id} - Address " . (time()),
-        ]);
+        $label = "User {$this->user_id} - Address " . time();
 
-        if (!$subaddressData || !isset($subaddressData['address'])) {
-            throw new \Exception("Failed to generate Monero subaddress from RPC");
-        }
+        // Opens this wallet file on RPC, creates subaddress, closes it
+        $subaddressData = $repository->createAddress($this, $label);
 
         $address = $this->addresses()->create([
             'address' => $subaddressData['address'],
             'account_index' => 0,
             'address_index' => $subaddressData['address_index'],
-            'label' => "User {$this->user_id} - Address " . (time()),
+            'label' => $label,
             'balance' => 0,
             'total_received' => 0,
             'tx_count' => 0,
@@ -107,21 +129,21 @@ class XmrWallet extends Model
 
     /**
      * Update wallet balance from blockchain.
+     * Opens the per-user wallet file, queries RPC, and writes authoritative values to DB.
      */
     public function updateBalance()
     {
         try {
-            // Get actual balance from monero-wallet-rpc for this subaddress
-            $balanceData = \App\Repositories\MoneroRepository::getBalance($this->name);
+            $repository = new \App\Repositories\MoneroRepository();
+            $balanceData = $repository->getWalletBalance($this);
 
-            if ($balanceData) {
-                $this->update([
-                    'balance' => $balanceData['balance'],
-                    'unlocked_balance' => $balanceData['unlocked_balance'],
-                ]);
-                
-                \Log::debug("Updated wallet {$this->id} from RPC: balance={$balanceData['balance']}, unlocked={$balanceData['unlocked_balance']}");
-            }
+            $this->update([
+                'balance' => $balanceData['balance'],
+                'unlocked_balance' => $balanceData['unlocked_balance'],
+                'last_synced_at' => now(),
+            ]);
+
+            \Log::debug("Updated wallet {$this->id} from RPC: balance={$balanceData['balance']}, unlocked={$balanceData['unlocked_balance']}");
 
             // Update statistics from transaction records
             $deposits = $this->transactions()
@@ -131,7 +153,7 @@ class XmrWallet extends Model
 
             $withdrawals = $this->transactions()
                 ->where('type', 'withdrawal')
-                ->whereIn('status', ['confirmed', 'unlocked'])
+                ->whereIn('status', ['confirmed', 'unlocked', 'pending'])
                 ->sum('amount');
 
             $this->update([
@@ -145,47 +167,27 @@ class XmrWallet extends Model
     }
 
     /**
-     * Get accurate balance from transaction records (not stale RPC balance).
-     * 
+     * Get wallet balance from cached DB columns (set by syncWallet() during sync).
+     *
+     * Returns the authoritative balance from the last sync cycle.
+     * This avoids RPC calls — safe for middleware / page loads.
+     *
+     * For critical financial operations (order placement, withdrawals),
+     * use getRpcBalance() to get a live on-chain balance.
+     *
      * @return array ['balance' => float, 'unlocked_balance' => float]
      */
     public function getBalance(): array
     {
-        $minConfirmations = config('monero.min_confirmations', 10);
-        
-        // Sum all confirmed deposit transactions
-        $totalIncoming = $this->transactions()
-            ->where('type', 'deposit')
-            ->whereIn('status', ['confirmed', 'unlocked'])
-            ->sum('amount');
-        
-        // Sum all outgoing transactions
-        $totalOutgoing = $this->transactions()
-            ->where('type', 'withdrawal')
-            ->where('status', '!=', 'failed')
-            ->sum('amount');
-        
-        // Total balance
-        $balance = $totalIncoming - abs($totalOutgoing);
-        
-        // Unlocked balance (only fully confirmed transactions)
-        $unlockedIncoming = $this->transactions()
-            ->where('type', 'deposit')
-            ->where('status', 'unlocked')
-            ->where('confirmations', '>=', $minConfirmations)
-            ->sum('amount');
-        
-        $unlocked_balance = $unlockedIncoming - abs($totalOutgoing);
-        
         return [
-            'balance' => max(0, $balance),
-            'unlocked_balance' => max(0, $unlocked_balance),
+            'balance' => (float) $this->balance,
+            'unlocked_balance' => (float) $this->unlocked_balance,
         ];
     }
 
     /**
      * Get total received from all incoming transactions.
-     * 
+     *
      * @return float Total received in XMR
      */
     public function getTotalReceived(): float
@@ -198,7 +200,7 @@ class XmrWallet extends Model
 
     /**
      * Get total sent from all withdrawal transactions.
-     * 
+     *
      * @return float Total sent in XMR
      */
     public function getTotalSent(): float
@@ -207,6 +209,24 @@ class XmrWallet extends Model
             ->where('type', 'withdrawal')
             ->where('status', '!=', 'failed')
             ->sum('amount'));
+    }
+
+    /**
+     * Get live balance from Monero RPC by opening the per-user wallet file.
+     * Use this for critical financial operations (order placement, withdrawals)
+     * where the DB balance may be stale.
+     *
+     * @return array ['balance' => float, 'unlocked_balance' => float]
+     */
+    public function getRpcBalance(): array
+    {
+        try {
+            $repository = new \App\Repositories\MoneroRepository();
+            return $repository->getWalletBalance($this);
+        } catch (\Exception $e) {
+            \Log::error("Failed to get RPC balance for wallet {$this->id}: " . $e->getMessage());
+            return ['balance' => 0, 'unlocked_balance' => 0];
+        }
     }
 
     /**

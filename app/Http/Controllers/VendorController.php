@@ -285,12 +285,19 @@ class VendorController extends Controller
             ]);
         }
 
-        // Get admin wallet
-        $adminWalletName = config('fees.admin_xmr_wallet_name', 'admin');
-        $adminXmrWallet = \App\Models\XmrWallet::where('name', $adminWalletName)->first();
+        // Get admin XMR wallet via BTC admin wallet owner.
+        $adminBtcWallet = \App\Models\BtcWallet::where('name', config('fees.admin_btc_wallet_name', 'admin'))->first();
+        if (!$adminBtcWallet || !$adminBtcWallet->user_id) {
+            \Log::error('Admin BTC wallet not found or has no user_id');
+            return back()->withErrors([
+                'error' => 'System configuration error. Please contact support.'
+            ]);
+        }
 
+        $adminUser = \App\Models\User::find($adminBtcWallet->user_id);
+        $adminXmrWallet = $adminUser?->xmrWallet;
         if (!$adminXmrWallet) {
-            \Log::error("Admin XMR wallet not found: {$adminWalletName}");
+            \Log::error('Admin user has no XMR wallet', ['admin_id' => $adminBtcWallet->user_id]);
             return back()->withErrors([
                 'error' => 'System configuration error. Please contact support.'
             ]);
@@ -316,12 +323,14 @@ class VendorController extends Controller
                 ]);
             }
 
-            // Send Monero to admin wallet
-            $txid = \App\Repositories\MoneroRepository::transfer(
-                $userXmrWallet->name,
+            // Send Monero from user's per-wallet file to admin wallet
+            $repository = new \App\Repositories\MoneroRepository();
+            $transferResult = $repository->transfer(
+                $userXmrWallet,
                 $adminAddress->address,
                 $requiredAmountXmr
             );
+            $txid = $transferResult['tx_hash'];
 
             if (!$txid) {
                 DB::rollBack();

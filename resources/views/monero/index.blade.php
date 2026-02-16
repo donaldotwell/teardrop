@@ -147,7 +147,10 @@
                                     Type
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Amount
+                                    Amount (XMR)
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Amount (USD)
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Status
@@ -174,6 +177,11 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-mono text-gray-900">
                                             {{ number_format($tx->amount, 12) }} XMR
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-600">
+                                            ${{ number_format($tx->usd_value, 2) }}
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
