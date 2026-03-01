@@ -9,6 +9,8 @@ use App\Http\Controllers\Admin\AdminFinalizationWindowController;
 use App\Http\Controllers\Admin\AdminProductCategoryController;
 use App\Http\Controllers\Admin\AdminForumController;
 use App\Http\Controllers\Admin\AdminCanaryController;
+use App\Http\Controllers\Admin\AdminBtcWalletController;
+use App\Http\Controllers\Admin\AdminXmrWalletController;
 use Illuminate\Support\Facades\Route;
 
 // Admin routes - protected by admin middleware
@@ -169,6 +171,26 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
         Route::get('/{canary}/edit', [AdminCanaryController::class, 'edit'])->name('edit');
         Route::put('/{canary}', [AdminCanaryController::class, 'update'])->name('update');
         Route::delete('/{canary}', [AdminCanaryController::class, 'destroy'])->name('destroy');
+    });
+
+    // BTC Wallet Management
+    Route::prefix('wallets/btc')->name('wallets.btc.')->group(function () {
+        Route::get('/', [AdminBtcWalletController::class, 'index'])->name('index');
+        Route::get('/{btcWallet}', [AdminBtcWalletController::class, 'show'])->name('show');
+        Route::get('/{btcWallet}/transfer', [AdminBtcWalletController::class, 'transferForm'])->name('transfer');
+        Route::post('/{btcWallet}/transfer', [AdminBtcWalletController::class, 'transferInitiate'])->name('transfer-initiate');
+        Route::get('/{btcWallet}/transfer/verify', [AdminBtcWalletController::class, 'transferVerifyForm'])->name('transfer-verify');
+        Route::post('/{btcWallet}/transfer/verify', [AdminBtcWalletController::class, 'transferExecute'])->name('transfer-execute');
+    });
+
+    // XMR Wallet Management
+    Route::prefix('wallets/xmr')->name('wallets.xmr.')->group(function () {
+        Route::get('/', [AdminXmrWalletController::class, 'index'])->name('index');
+        Route::get('/{xmrWallet}', [AdminXmrWalletController::class, 'show'])->name('show');
+        Route::get('/{xmrWallet}/transfer', [AdminXmrWalletController::class, 'transferForm'])->name('transfer');
+        Route::post('/{xmrWallet}/transfer', [AdminXmrWalletController::class, 'transferInitiate'])->name('transfer-initiate');
+        Route::get('/{xmrWallet}/transfer/verify', [AdminXmrWalletController::class, 'transferVerifyForm'])->name('transfer-verify');
+        Route::post('/{xmrWallet}/transfer/verify', [AdminXmrWalletController::class, 'transferExecute'])->name('transfer-execute');
     });
 
     // Rules Management

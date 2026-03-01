@@ -163,6 +163,17 @@
                           {{ request()->routeIs('admin.forum.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
                     Forum
                 </a>
+                <span class="text-gray-300 mx-1">|</span>
+                <a href="{{ route('admin.wallets.btc.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.wallets.btc.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    BTC Wallets
+                </a>
+                <a href="{{ route('admin.wallets.xmr.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.wallets.xmr.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    XMR Wallets
+                </a>
             </div>
 
             {{-- Divider --}}
