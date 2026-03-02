@@ -156,6 +156,12 @@ class ForumModerationController extends Controller
             }
 
             if ($reportedUser) {
+                // Moderators cannot ban admin or moderator users
+                if ($reportedUser->hasAnyRole(['admin', 'moderator'])) {
+                    return redirect()->back()
+                        ->with('error', 'You cannot ban admin or moderator users. Only an admin can do this.');
+                }
+
                 $reportedUser->update(['status' => 'banned']);
 
                 // Log the ban action
@@ -181,6 +187,12 @@ class ForumModerationController extends Controller
 
     public function banUser(Request $request, User $user)
     {
+        // Moderators cannot ban admin or moderator users
+        if ($user->hasAnyRole(['admin', 'moderator'])) {
+            return redirect()->back()
+                ->with('error', 'You cannot ban admin or moderator users. Only an admin can do this.');
+        }
+
         $request->validate([
             'reason' => 'nullable|string|max:500'
         ]);
@@ -199,6 +211,12 @@ class ForumModerationController extends Controller
 
     public function unbanUser(User $user)
     {
+        // Moderators cannot unban admin or moderator users
+        if ($user->hasAnyRole(['admin', 'moderator'])) {
+            return redirect()->back()
+                ->with('error', 'You cannot unban admin or moderator users. Only an admin can do this.');
+        }
+
         // Update user status
         $user->update(['status' => 'active']);
 

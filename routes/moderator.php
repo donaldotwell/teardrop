@@ -17,6 +17,7 @@ Route::middleware(['auth', 'moderator'])->name('moderator.')->group(function () 
 
     // User Management
     Route::get('/users', [ModeratorUserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}', [ModeratorUserController::class, 'show'])->name('users.show');
 
     // Content Management
     Route::get('/content', [ModeratorContentController::class, 'index'])->name('content.index');

@@ -112,11 +112,6 @@ class AdminUsersController extends Controller
      */
     public function ban(User $user)
     {
-        if ($user->hasRole('admin')) {
-            return redirect()->back()
-                ->with('error', 'Cannot ban admin users.');
-        }
-
         $user->update(['status' => 'banned']);
 
         return redirect()->back()

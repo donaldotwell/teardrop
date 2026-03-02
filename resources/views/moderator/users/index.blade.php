@@ -133,7 +133,7 @@
                                     </div>
                                     <div>
                                         <div class="text-sm font-medium text-gray-900">
-                                            <a href="{{ route('profile.show', $user->username_pub) }}"
+                                            <a href="{{ route('moderator.users.show', $user) }}"
                                                class="hover:text-blue-600">
                                                 {{ $user->username_pub }}
                                             </a>
@@ -183,7 +183,7 @@
 
                             <td class="px-6 py-4">
                                 <div class="flex items-center space-x-2">
-                                    <a href="{{ route('profile.show', $user->username_pub) }}"
+                                    <a href="{{ route('moderator.users.show', $user) }}"
                                        class="text-blue-600 hover:text-blue-800 text-sm">
                                         View
                                     </a>

@@ -9,6 +9,26 @@ use Illuminate\Support\Facades\DB;
 
 class ModeratorUserController extends Controller
 {
+    public function show(User $user)
+    {
+        $user->load('roles');
+        $user->loadCount([
+            'orders',
+            'orders as completed_orders_count' => function ($q) {
+                $q->where('status', 'completed');
+            },
+            'forumPosts as forum_posts_count',
+            'forumComments as forum_comments_count',
+            'forumReports as reports_against_count' => function ($q) {
+                $q->whereHas('reportable', function ($sub) {
+                    $sub->where('user_id', '=', DB::raw('users.id'));
+                });
+            },
+        ]);
+
+        return view('moderator.users.show', compact('user'));
+    }
+
     public function index(Request $request)
     {
         $query = User::query()
