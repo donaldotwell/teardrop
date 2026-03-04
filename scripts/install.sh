@@ -64,48 +64,34 @@ step "2/11  Adding PHP ${PHP_VERSION} PPA & installing PHP + extensions"
 add-apt-repository ppa:ondrej/php -y
 apt-get update -qq
 
+# NOTE: Many extensions (calendar, exif, ffi, fileinfo, ftp, gettext, iconv,
+# pcntl, pdo, shmop, sockets, sodium, sysvmsg, sysvsem, sysvshm, tokenizer)
+# are built into php-common and do NOT have separate packages.
+# dom, simplexml, xmlreader, xmlwriter are provided by php-xml.
+# mysqli and pdo-mysql are provided by php-mysql.
+# pdo-pgsql is provided by php-pgsql.
 apt-get install -y \
     php${PHP_VERSION} \
+    php${PHP_VERSION}-cli \
+    php${PHP_VERSION}-common \
     php${PHP_VERSION}-fpm \
     php${PHP_VERSION}-bcmath \
     php${PHP_VERSION}-bz2 \
-    php${PHP_VERSION}-calendar \
     php${PHP_VERSION}-curl \
-    php${PHP_VERSION}-dom \
-    php${PHP_VERSION}-exif \
-    php${PHP_VERSION}-ffi \
-    php${PHP_VERSION}-fileinfo \
-    php${PHP_VERSION}-ftp \
     php${PHP_VERSION}-gd \
-    php${PHP_VERSION}-gettext \
     php${PHP_VERSION}-gnupg \
-    php${PHP_VERSION}-iconv \
     php${PHP_VERSION}-igbinary \
     php${PHP_VERSION}-imagick \
     php${PHP_VERSION}-intl \
     php${PHP_VERSION}-mbstring \
     php${PHP_VERSION}-memcached \
     php${PHP_VERSION}-msgpack \
-    php${PHP_VERSION}-mysqli \
+    php${PHP_VERSION}-mysql \
     php${PHP_VERSION}-opcache \
-    php${PHP_VERSION}-pcntl \
-    php${PHP_VERSION}-pdo \
-    php${PHP_VERSION}-pdo-mysql \
-    php${PHP_VERSION}-pdo-pgsql \
     php${PHP_VERSION}-pgsql \
     php${PHP_VERSION}-readline \
     php${PHP_VERSION}-redis \
-    php${PHP_VERSION}-shmop \
-    php${PHP_VERSION}-simplexml \
-    php${PHP_VERSION}-sockets \
-    php${PHP_VERSION}-sodium \
-    php${PHP_VERSION}-sysvmsg \
-    php${PHP_VERSION}-sysvsem \
-    php${PHP_VERSION}-sysvshm \
-    php${PHP_VERSION}-tokenizer \
     php${PHP_VERSION}-xml \
-    php${PHP_VERSION}-xmlreader \
-    php${PHP_VERSION}-xmlwriter \
     php${PHP_VERSION}-xsl \
     php${PHP_VERSION}-zip \
     || die "Failed to install PHP ${PHP_VERSION} packages"
