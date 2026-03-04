@@ -17,6 +17,7 @@ PHP_VERSION="${PHP_VERSION:-8.2}"
 NODE_VERSION="${NODE_VERSION:-20.20.0}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"   # project root where install.sh lives
 NGINX_TEMPLATE="${SCRIPT_DIR}/config/nginx.config"
 NGINX_SITE_NAME="${PROJECT_NAME}"
 
@@ -54,6 +55,7 @@ apt-get install -y --no-install-recommends \
     apt-transport-https \
     ca-certificates \
     curl \
+    rsync \
     lsb-release \
     || die "Failed to install system library dependencies"
 log "System library dependencies installed"
@@ -127,17 +129,35 @@ usermod -aG www-data "${APP_USER}" 2>/dev/null || true
 log "User '${APP_USER}' added to www-data group"
 
 # ==============================================================================
-step "5/11  Verifying project directory"
+step "5/11  Deploying project files to ${PROJECT_ROOT}"
 # ==============================================================================
-if [[ ! -d "${PROJECT_ROOT}" ]]; then
-    warn "Project directory ${PROJECT_ROOT} does not exist — creating it"
-    mkdir -p "${PROJECT_ROOT}/public"
-    mkdir -p "${PROJECT_ROOT}/storage"
-    mkdir -p "${PROJECT_ROOT}/bootstrap/cache"
-    chown -R "${APP_USER}:www-data" "${PROJECT_ROOT}"
-    log "Created ${PROJECT_ROOT} with skeleton directories"
+if [[ "${SOURCE_ROOT}" == "${PROJECT_ROOT}" ]]; then
+    log "Source and target are the same directory — skipping copy"
 else
-    log "Project directory ${PROJECT_ROOT} exists"
+    if [[ ! -d "${SOURCE_ROOT}/artisan" && ! -f "${SOURCE_ROOT}/artisan" ]]; then
+        die "Source does not look like a Laravel project (no artisan found in ${SOURCE_ROOT})"
+    fi
+
+    mkdir -p "${PROJECT_ROOT}"
+
+    # rsync the project, excluding runtime/dev artifacts that shouldn't be copied
+    rsync -a --delete \
+        --exclude='node_modules' \
+        --exclude='vendor' \
+        --exclude='.env' \
+        --exclude='storage/logs/*.log' \
+        --exclude='storage/framework/cache/data/*' \
+        --exclude='storage/framework/sessions/*' \
+        --exclude='storage/framework/views/*' \
+        "${SOURCE_ROOT}/" "${PROJECT_ROOT}/" \
+        || die "Failed to copy project files from ${SOURCE_ROOT} to ${PROJECT_ROOT}"
+
+    # Ensure writable storage subdirectories exist even if they were empty
+    mkdir -p "${PROJECT_ROOT}/storage/"{logs,framework/{cache/data,sessions,views}}
+    mkdir -p "${PROJECT_ROOT}/bootstrap/cache"
+
+    chown -R "${APP_USER}:www-data" "${PROJECT_ROOT}"
+    log "Project files deployed from ${SOURCE_ROOT} → ${PROJECT_ROOT}"
 fi
 
 # ==============================================================================
