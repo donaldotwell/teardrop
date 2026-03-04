@@ -208,7 +208,53 @@ su - "${APP_USER}" -c "
 log "Node.js ${NODE_VERSION} installed and set as default for ${APP_USER}"
 
 # ==============================================================================
-step "7/11  Configuring Nginx site: ${NGINX_SITE_NAME}"
+step "7/11  SSL certificate"
+# ==============================================================================
+SSL_CERT_DIR="/etc/ssl/${PROJECT_NAME}"
+SSL_CERT="${SSL_CERT_DIR}/selfsigned.crt"
+SSL_KEY="${SSL_CERT_DIR}/selfsigned.key"
+
+if [[ "${DOMAIN}" == "localhost" || "${DOMAIN}" == "127.0.0.1" ]]; then
+    warn "Domain is '${DOMAIN}' — Let's Encrypt cannot validate localhost"
+    warn "Generating a self-signed SSL certificate instead"
+
+    mkdir -p "${SSL_CERT_DIR}"
+    if [[ ! -f "${SSL_CERT}" ]]; then
+        openssl req -x509 -nodes -days 3650 \
+            -newkey rsa:2048 \
+            -keyout "${SSL_KEY}" \
+            -out    "${SSL_CERT}" \
+            -subj   "/C=US/ST=Local/L=Local/O=${PROJECT_NAME}/CN=${DOMAIN}" \
+            || die "Failed to generate self-signed certificate"
+        log "Self-signed certificate created at ${SSL_CERT_DIR}/"
+    else
+        log "Self-signed certificate already exists — skipping"
+    fi
+else
+    # Real domain — attempt Let's Encrypt via Certbot
+    if certbot certonly --nginx -d "${DOMAIN}" --non-interactive --agree-tos \
+        --register-unsafely-without-email 2>/dev/null; then
+        SSL_CERT="/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
+        SSL_KEY="/etc/letsencrypt/live/${DOMAIN}/privkey.pem"
+        log "Let's Encrypt certificate obtained for ${DOMAIN}"
+    else
+        warn "Certbot failed — falling back to self-signed certificate"
+        mkdir -p "${SSL_CERT_DIR}"
+        openssl req -x509 -nodes -days 3650 \
+            -newkey rsa:2048 \
+            -keyout "${SSL_KEY}" \
+            -out    "${SSL_CERT}" \
+            -subj   "/C=US/ST=Local/L=Local/O=${PROJECT_NAME}/CN=${DOMAIN}" \
+            || die "Failed to generate fallback self-signed certificate"
+        log "Fallback self-signed certificate created at ${SSL_CERT_DIR}/"
+    fi
+fi
+
+log "SSL cert: ${SSL_CERT}"
+log "SSL key:  ${SSL_KEY}"
+
+# ==============================================================================
+step "8/11  Configuring Nginx site: ${NGINX_SITE_NAME}"
 # ==============================================================================
 NGINX_AVAILABLE="/etc/nginx/sites-available/${NGINX_SITE_NAME}"
 NGINX_ENABLED="/etc/nginx/sites-enabled/${NGINX_SITE_NAME}"
@@ -217,15 +263,23 @@ if [[ ! -f "${NGINX_TEMPLATE}" ]]; then
     die "Nginx config template not found at ${NGINX_TEMPLATE}"
 fi
 
-# Copy template and substitute placeholders
+# Deploy the site config (both HTTP + HTTPS server blocks in one file)
 cp "${NGINX_TEMPLATE}" "${NGINX_AVAILABLE}"
 sed -i \
     -e "s|__PROJECT_ROOT__|${PROJECT_ROOT}|g" \
     -e "s|__PROJECT_NAME__|${PROJECT_NAME}|g" \
     -e "s|__DOMAIN__|${DOMAIN}|g" \
+    -e "s|__SSL_CERT__|${SSL_CERT}|g" \
+    -e "s|__SSL_KEY__|${SSL_KEY}|g" \
     "${NGINX_AVAILABLE}"
 
 log "Nginx config written to ${NGINX_AVAILABLE}"
+
+# Remove stale SSL-only site from previous install runs (if any)
+for stale in "/etc/nginx/sites-enabled/${NGINX_SITE_NAME}-ssl" \
+             "/etc/nginx/sites-available/${NGINX_SITE_NAME}-ssl"; do
+    [[ -e "${stale}" || -L "${stale}" ]] && rm -f "${stale}"
+done
 
 # Enable the site (symlink into sites-enabled)
 if [[ -L "${NGINX_ENABLED}" ]]; then
@@ -245,75 +299,6 @@ nginx -t || die "Nginx configuration test failed — check ${NGINX_AVAILABLE}"
 systemctl enable nginx
 systemctl reload nginx
 log "Nginx reloaded successfully"
-
-# ==============================================================================
-step "8/11  SSL certificate (Certbot)"
-# ==============================================================================
-# Certbot cannot obtain a real Let's Encrypt certificate for "localhost"
-# because ACME challenge validation requires a publicly reachable domain.
-# When DOMAIN=localhost we generate a self-signed certificate as a fallback.
-
-SSL_CERT_DIR="/etc/ssl/${PROJECT_NAME}"
-
-if [[ "${DOMAIN}" == "localhost" || "${DOMAIN}" == "127.0.0.1" ]]; then
-    warn "Domain is '${DOMAIN}' — Let's Encrypt cannot validate localhost"
-    warn "Generating a self-signed SSL certificate instead"
-
-    mkdir -p "${SSL_CERT_DIR}"
-    if [[ ! -f "${SSL_CERT_DIR}/selfsigned.crt" ]]; then
-        openssl req -x509 -nodes -days 3650 \
-            -newkey rsa:2048 \
-            -keyout "${SSL_CERT_DIR}/selfsigned.key" \
-            -out    "${SSL_CERT_DIR}/selfsigned.crt" \
-            -subj   "/C=US/ST=Local/L=Local/O=${PROJECT_NAME}/CN=${DOMAIN}" \
-            || die "Failed to generate self-signed certificate"
-        log "Self-signed certificate created at ${SSL_CERT_DIR}/"
-    else
-        log "Self-signed certificate already exists — skipping"
-    fi
-
-    # Append SSL directives to the Nginx site config if not already present
-    if ! grep -q "ssl_certificate" "${NGINX_AVAILABLE}"; then
-        # Insert an SSL server block that redirects / terminates TLS
-        cat >> "${NGINX_AVAILABLE}" <<SSLBLOCK
-
-# --- Auto-generated SSL block (self-signed for localhost) ---
-server {
-    listen 127.0.0.1:443 ssl;
-    listen [::1]:443 ssl;
-    server_name ${DOMAIN};
-
-    ssl_certificate     ${SSL_CERT_DIR}/selfsigned.crt;
-    ssl_certificate_key ${SSL_CERT_DIR}/selfsigned.key;
-    ssl_protocols       TLSv1.2 TLSv1.3;
-    ssl_ciphers         HIGH:!aNULL:!MD5;
-
-    root ${PROJECT_ROOT}/public;
-    index index.php;
-
-    include /etc/nginx/sites-available/${NGINX_SITE_NAME};
-}
-SSLBLOCK
-        nginx -t && systemctl reload nginx
-        log "SSL block appended to Nginx config and reloaded"
-    fi
-else
-    # Real domain — attempt Let's Encrypt via Certbot
-    certbot --nginx -d "${DOMAIN}" --non-interactive --agree-tos \
-        --register-unsafely-without-email --redirect \
-        || {
-            warn "Certbot failed — falling back to self-signed certificate"
-            mkdir -p "${SSL_CERT_DIR}"
-            openssl req -x509 -nodes -days 3650 \
-                -newkey rsa:2048 \
-                -keyout "${SSL_CERT_DIR}/selfsigned.key" \
-                -out    "${SSL_CERT_DIR}/selfsigned.crt" \
-                -subj   "/C=US/ST=Local/L=Local/O=${PROJECT_NAME}/CN=${DOMAIN}" \
-                || die "Failed to generate fallback self-signed certificate"
-            log "Fallback self-signed certificate created at ${SSL_CERT_DIR}/"
-        }
-    log "SSL configured for ${DOMAIN}"
-fi
 
 # ==============================================================================
 step "9/11  Setting file permissions"
