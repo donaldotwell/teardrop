@@ -4,6 +4,9 @@
 # Reads vanity .onion address keys from a source directory and configures
 # Tor hidden services with proper permissions and torrc entries.
 #
+# Hidden service directories are named after their .onion address, e.g.:
+#   /var/lib/tor/abc...xyz.onion/
+#
 # Must be executed as root or via sudo.
 # Safe to run multiple times — fully idempotent (temp-file + atomic move).
 #
@@ -49,16 +52,6 @@ step() {
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
 
-# Return a label for the Nth service (0-indexed)
-service_label() {
-    local idx=$1
-    if [[ ${idx} -eq 0 ]]; then
-        echo "primary"
-    else
-        echo "mirror_${idx}"
-    fi
-}
-
 # ========================= Preflight ==========================================
 if [[ $EUID -ne 0 ]]; then
     die "This script must be run as root (use: sudo -E ./configure-tor.sh)"
@@ -74,6 +67,7 @@ fi
 
 # ========================= Discover addresses =================================
 ONION_DIRS=()
+ONION_NAMES=()
 SKIP_COUNT=0
 
 dirs=("${ADDRESSES_DIR}"/*/)
@@ -112,6 +106,7 @@ for dir in "${dirs[@]}"; do
     fi
 
     ONION_DIRS+=("${dir}")
+    ONION_NAMES+=("${name}")
 done
 
 if [[ ${#ONION_DIRS[@]} -eq 0 ]]; then
@@ -120,12 +115,12 @@ fi
 
 info "Found ${#ONION_DIRS[@]} valid onion address(es) (${SKIP_COUNT} skipped)"
 echo ""
-for dir in "${ONION_DIRS[@]}"; do
-    info "  $(basename "${dir}")"
+for name in "${ONION_NAMES[@]}"; do
+    info "  ${name}"
 done
 
 # ==============================================================================
-step "1/5  Backing up current torrc"
+step "1/6  Backing up current torrc"
 # ==============================================================================
 if [[ -f "${TORRC}" ]]; then
     cp "${TORRC}" "${TORRC_BACKUP}"
@@ -136,18 +131,83 @@ else
 fi
 
 # ==============================================================================
-step "2/5  Writing Tor configuration (atomic rebuild)"
+step "2/6  Cleaning up old hidden service directories"
 # ==============================================================================
-# Strategy: build the new torrc in a temp file, verify it with tor, then move
-# it into place atomically. This avoids in-place sed edits that corrupt the
-# file on partial runs or repeated executions.
+# Remove legacy hidden_service_primary / hidden_service_mirror_* directories
+# from previous runs that used label-based naming.
+OLD_DIRS=("${TOR_DATA_DIR}"/hidden_service_primary/ "${TOR_DATA_DIR}"/hidden_service_mirror_*/)
+for old_dir in "${OLD_DIRS[@]}"; do
+    if [[ -d "${old_dir}" ]]; then
+        rm -rf "${old_dir}"
+        log "Removed legacy directory: ${old_dir}"
+    fi
+done
+
+# Remove hidden service directories for onion addresses that are no longer
+# in our source list (handles address rotation / key removal).
+for existing_dir in "${TOR_DATA_DIR}"/*.onion/; do
+    [[ -d "${existing_dir}" ]] || continue
+    existing_name="$(basename "${existing_dir}")"
+
+    found=false
+    for name in "${ONION_NAMES[@]}"; do
+        if [[ "${name}" == "${existing_name}" ]]; then
+            found=true
+            break
+        fi
+    done
+
+    if [[ "${found}" == false ]]; then
+        rm -rf "${existing_dir}"
+        warn "Removed stale directory: ${existing_dir}"
+    fi
+done
+
+log "Cleanup complete"
+
+# ==============================================================================
+step "3/6  Creating hidden service directories & copying keys"
+# ==============================================================================
+# Directories are named after the full .onion address, e.g.:
+#   /var/lib/tor/abc...xyz.onion/
+
+for i in "${!ONION_DIRS[@]}"; do
+    dir="${ONION_DIRS[$i]}"
+    name="${ONION_NAMES[$i]}"
+    service_dir="${TOR_DATA_DIR}/${name}"
+
+    mkdir -p "${service_dir}"
+
+    cp "${dir}hostname"                "${service_dir}/hostname"
+    cp "${dir}hs_ed25519_public_key"   "${service_dir}/hs_ed25519_public_key"
+    cp "${dir}hs_ed25519_secret_key"   "${service_dir}/hs_ed25519_secret_key"
+
+    # Tor requires 700 on the dir, 600 on key files
+    chown -R "${TOR_USER}:${TOR_GROUP}" "${service_dir}"
+    chmod 700 "${service_dir}"
+    chmod 600 "${service_dir}/hs_ed25519_secret_key"
+    chmod 600 "${service_dir}/hs_ed25519_public_key"
+    chmod 644 "${service_dir}/hostname"
+
+    log "Keys deployed → ${service_dir}/"
+done
+
+# Ensure parent tor data directory ownership is correct
+chown "${TOR_USER}:${TOR_GROUP}" "${TOR_DATA_DIR}"
+chmod 700 "${TOR_DATA_DIR}"
+
+log "All hidden service directories created with correct permissions"
+
+# ==============================================================================
+step "4/6  Writing Tor configuration (atomic rebuild)"
+# ==============================================================================
+# Strategy: build the new torrc in a temp file, verify it as the tor user,
+# then move it into place atomically.
 
 TORRC_TMP="$(mktemp "${TORRC}.tmp.XXXXXX")"
-trap 'rm -f "${TORRC_TMP}"' EXIT   # cleanup temp file on any exit
+trap 'rm -f "${TORRC_TMP}"' EXIT
 
 # --- Extract user content (everything outside our managed block) ---
-# awk skips the managed block (START→END inclusive) and any orphaned
-# HiddenService / comment lines our block would have generated.
 awk -v start="${BLOCK_START}" -v end="${BLOCK_END}" '
     $0 == start { skip=1; next }
     $0 == end   { skip=0; next }
@@ -155,11 +215,10 @@ awk -v start="${BLOCK_START}" -v end="${BLOCK_END}" '
     /^HiddenServiceDir /    { next }
     /^HiddenServicePort /   { next }
     /^HiddenServiceVersion /{ next }
-    /^# (primary|mirror_[0-9]+): /{ next }
     { print }
 ' "${TORRC}" > "${TORRC_TMP}"
 
-# --- Ensure base Tor settings (idempotent: replace if present, append if not) ---
+# --- Ensure base Tor settings ---
 set_torrc_key() {
     local key="$1" value="$2" file="$3"
     if grep -q "^${key} " "${file}" 2>/dev/null; then
@@ -182,13 +241,11 @@ log "Base Tor settings ensured (SocksPort, ControlPort, CookieAuthentication)"
     echo "## Managed by configure-tor.sh — do not edit manually"
     echo ""
 
-    for i in "${!ONION_DIRS[@]}"; do
-        dir="${ONION_DIRS[$i]}"
-        name="$(basename "${dir}")"
-        label="$(service_label "$i")"
-        service_dir="${TOR_DATA_DIR}/hidden_service_${label}"
+    for i in "${!ONION_NAMES[@]}"; do
+        name="${ONION_NAMES[$i]}"
+        service_dir="${TOR_DATA_DIR}/${name}"
 
-        echo "# ${label}: ${name}"
+        echo "# Service: ${name}"
         echo "HiddenServiceDir ${service_dir}/"
         echo "HiddenServicePort ${LISTEN_PORT} ${LISTEN_ADDR}:${LISTEN_PORT}"
         echo "HiddenServiceVersion ${HIDDEN_SERVICE_VERSION}"
@@ -198,64 +255,41 @@ log "Base Tor settings ensured (SocksPort, ControlPort, CookieAuthentication)"
     echo "${BLOCK_END}"
 } >> "${TORRC_TMP}"
 
-log "Generated config with ${#ONION_DIRS[@]} hidden service(s)"
+log "Generated torrc with ${#ONION_NAMES[@]} hidden service(s)"
 
 # --- Debug: show what we built ---
-info "Hidden service blocks in new torrc:"
-grep -E '^(HiddenServiceDir|# (primary|mirror))' "${TORRC_TMP}" | while IFS= read -r line; do
-    info "  ${line}"
+info "Hidden service entries:"
+for name in "${ONION_NAMES[@]}"; do
+    info "  HiddenServiceDir ${TOR_DATA_DIR}/${name}/"
 done
 
 # ==============================================================================
-step "3/5  Creating hidden service directories & copying keys"
+step "5/6  Verifying configuration & restarting Tor"
 # ==============================================================================
 
-for i in "${!ONION_DIRS[@]}"; do
-    dir="${ONION_DIRS[$i]}"
-    name="$(basename "${dir}")"
-    label="$(service_label "$i")"
-    service_dir="${TOR_DATA_DIR}/hidden_service_${label}"
+# The temp file must be readable by the tor user for --verify-config
+chmod 644 "${TORRC_TMP}"
 
-    mkdir -p "${service_dir}"
-
-    cp "${dir}hostname"                "${service_dir}/hostname"
-    cp "${dir}hs_ed25519_public_key"   "${service_dir}/hs_ed25519_public_key"
-    cp "${dir}hs_ed25519_secret_key"   "${service_dir}/hs_ed25519_secret_key"
-
-    # Tor requires 700 on dir, 600 on key files
-    chown -R "${TOR_USER}:${TOR_GROUP}" "${service_dir}"
-    chmod 700 "${service_dir}"
-    chmod 600 "${service_dir}/hs_ed25519_secret_key"
-    chmod 600 "${service_dir}/hs_ed25519_public_key"
-    chmod 644 "${service_dir}/hostname"
-
-    log "[${label}] Keys deployed → ${service_dir}/"
-done
-
-chown "${TOR_USER}:${TOR_GROUP}" "${TOR_DATA_DIR}"
-chmod 700 "${TOR_DATA_DIR}"
-
-log "All hidden service directories created with correct permissions"
-
-# ==============================================================================
-step "4/5  Verifying configuration & restarting Tor"
-# ==============================================================================
-
-# Validate the NEW config BEFORE moving it into place
-tor --verify-config -f "${TORRC_TMP}" > /dev/null 2>&1 \
+# Run verify-config as the tor user so it can access its own directories.
+# This avoids the "not owned by this user (root)" error.
+sudo -u "${TOR_USER}" tor --verify-config -f "${TORRC_TMP}" > /dev/null 2>&1 \
     || {
-        err "Tor configuration verification FAILED on new config"
+        err "Tor configuration verification FAILED"
         err "Temp file preserved for inspection: ${TORRC_TMP}"
+        # Show the actual error for debugging
+        echo ""
+        sudo -u "${TOR_USER}" tor --verify-config -f "${TORRC_TMP}" 2>&1 | tail -20 || true
+        echo ""
         trap - EXIT   # keep the tmp file for debugging
         die "Invalid torrc — original ${TORRC} was NOT modified"
     }
 
-log "New torrc syntax verified successfully"
+log "New torrc syntax verified (as ${TOR_USER})"
 
 # Atomic replace: move verified temp file over the real torrc
 mv "${TORRC_TMP}" "${TORRC}"
 chmod 644 "${TORRC}"
-trap - EXIT   # disarm cleanup — file has been moved successfully
+trap - EXIT   # disarm cleanup — file has been moved
 
 log "torrc updated atomically"
 
@@ -271,27 +305,25 @@ else
 fi
 
 # ==============================================================================
-step "5/5  Verifying onion addresses"
+step "6/6  Verifying onion addresses"
 # ==============================================================================
 
 echo ""
 ALL_OK=true
-for i in "${!ONION_DIRS[@]}"; do
-    dir="${ONION_DIRS[$i]}"
-    name="$(basename "${dir}")"
-    label="$(service_label "$i")"
-    hostname_file="${TOR_DATA_DIR}/hidden_service_${label}/hostname"
+for i in "${!ONION_NAMES[@]}"; do
+    name="${ONION_NAMES[$i]}"
+    hostname_file="${TOR_DATA_DIR}/${name}/hostname"
 
     if [[ -f "${hostname_file}" ]]; then
         live_address="$(tr -d '[:space:]' < "${hostname_file}")"
         if [[ "${live_address}" == "${name}" ]]; then
-            log "[${label}] ${live_address}"
+            log "${live_address}"
         else
-            err "[${label}] Address mismatch! Expected: ${name}, Got: ${live_address}"
+            err "Address mismatch! Expected: ${name}, Got: ${live_address}"
             ALL_OK=false
         fi
     else
-        err "[${label}] hostname file missing at ${hostname_file}"
+        err "hostname file missing at ${hostname_file}"
         ALL_OK=false
     fi
 done
@@ -312,5 +344,7 @@ echo ""
 echo "  Useful commands:"
 echo "    sudo systemctl status tor"
 echo "    sudo journalctl -u tor --no-pager -n 50"
-echo "    sudo cat ${TOR_DATA_DIR}/hidden_service_primary/hostname"
+for name in "${ONION_NAMES[@]}"; do
+    echo "    sudo cat ${TOR_DATA_DIR}/${name}/hostname"
+done
 echo ""
