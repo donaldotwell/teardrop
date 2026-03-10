@@ -14,6 +14,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            // Step 0: Seed app settings (must be first for other seeders to reference)
+            AppSettingsSeeder::class,
+
             // Step 1: Seed lookup/reference tables
             CountriesSeeder::class,
             ProductsSeeder::class,

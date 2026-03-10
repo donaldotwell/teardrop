@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AppSetting;
 use App\Models\BtcWallet;
 use App\Models\BtcTransaction;
 use App\Models\User;
@@ -128,8 +129,8 @@ class VendorController extends Controller
             'terms' => 'required|accepted'
         ]);
 
-        // Get conversion fee from config
-        $feeUsd = config('fees.vendor_conversion_usd', 1000);
+        // Get conversion fee from app settings
+        $feeUsd = AppSetting::get('vendor_conversion_usd', 1000);
         $requiredAmount = convert_usd_to_crypto($feeUsd, $request->currency);
         $decimals = $request->currency === 'btc' ? 8 : 12;
 

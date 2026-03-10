@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Vendor;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
 use App\Models\BtcWallet;
 use App\Models\Country;
 use App\Models\ExchangeRate;
@@ -238,8 +239,8 @@ class VendorListingController extends Controller
             abort(403, 'Unauthorized access to this listing.');
         }
 
-        // Get feature fee from config (in USD)
-        $feeUsd = config('fees.featured_listing_usd', 10); // $10 USD to feature a listing
+        // Get feature fee from app settings (in USD)
+        $feeUsd = AppSetting::get('featured_listing_usd', 10); // $10 USD to feature a listing
 
         // Get vendor's wallet balances
         $btcWallet = $vendor->btcWallet;
@@ -278,7 +279,7 @@ class VendorListingController extends Controller
         ]);
 
         $currency = $validated['currency'];
-        $feeUsd = config('fees.featured_listing_usd', 10); // $10 USD feature fee
+        $feeUsd = AppSetting::get('featured_listing_usd', 10); // $10 USD feature fee
 
         try {
             DB::beginTransaction();

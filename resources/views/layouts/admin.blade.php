@@ -219,9 +219,9 @@
                           {{ request()->routeIs('admin.reports') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
                     Reports
                 </a>
-                <a href="{{ route('admin.settings') }}"
+                <a href="{{ route('admin.settings.index') }}"
                    class="px-3 py-1.5 text-sm font-medium rounded transition-colors
-                          {{ request()->routeIs('admin.settings') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                          {{ request()->routeIs('admin.settings.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
                     Settings
                 </a>
             </div>

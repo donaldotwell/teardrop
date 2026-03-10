@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\AdminForumController;
 use App\Http\Controllers\Admin\AdminCanaryController;
 use App\Http\Controllers\Admin\AdminBtcWalletController;
 use App\Http\Controllers\Admin\AdminXmrWalletController;
+use App\Http\Controllers\Admin\AdminSettingsController;
 use Illuminate\Support\Facades\Route;
 
 // Admin routes - protected by admin middleware
@@ -112,9 +113,13 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
     Route::get('/reports/export/{type}', [AdminController::class, 'exportReport'])->name('reports.export');
 
 
-    // Settings
-    Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
-    Route::post('/settings', [AdminController::class, 'updateSettings'])->name('settings.update');
+    // Settings Management
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/', [AdminSettingsController::class, 'index'])->name('index');
+        Route::get('/{category}', [AdminSettingsController::class, 'show'])->name('show');
+        Route::post('/{category}', [AdminSettingsController::class, 'update'])->name('update');
+        Route::post('/{category}/bulk', [AdminSettingsController::class, 'updateBulk'])->name('update-bulk');
+    });
 
     // Cache Management
     Route::post('/cache/clear', [AdminController::class, 'clearCache'])->name('cache.clear');
