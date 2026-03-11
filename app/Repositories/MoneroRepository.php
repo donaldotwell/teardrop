@@ -42,16 +42,13 @@ class MoneroRepository
 
     // --- RPC Primitives ---
 
-    /**
-     * Check if Monero RPC service is available.
-     */
     public function isRpcAvailable(): bool
     {
         try {
             $request = Http::timeout(5);
 
             if (!empty($this->rpcUser)) {
-                $request = $request->withBasicAuth($this->rpcUser, $this->rpcPassword);
+                $request = $request->withDigestAuth($this->rpcUser, $this->rpcPassword);
             }
 
             $response = $request->post($this->rpcUrl, [
@@ -69,16 +66,13 @@ class MoneroRepository
         }
     }
 
-    /**
-     * Make JSON-RPC call to monero-wallet-rpc.
-     */
     public function rpcCall(string $method, array $params = [])
     {
         try {
             $request = Http::timeout(30);
 
             if (!empty($this->rpcUser)) {
-                $request = $request->withBasicAuth($this->rpcUser, $this->rpcPassword);
+                $request = $request->withDigestAuth($this->rpcUser, $this->rpcPassword);
             }
 
             $response = $request->post($this->rpcUrl, [
