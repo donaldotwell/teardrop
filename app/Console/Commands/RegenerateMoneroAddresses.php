@@ -35,11 +35,12 @@ class RegenerateMoneroAddresses extends Command
         $this->info('Monero Address Regeneration Tool');
         $this->info('This command will:');
         $this->info('1. Create Monero wallets for users who don\'t have them');
-        $this->info('2. Mark all unused Monero addresses as used');
+        $this->info('2. Mark all unused Monero addresses as used (addresses may not exist on disk)');
         $this->info('3. Generate new receiving addresses for all users');
+        $this->info('4. Reset all wallet balances to zero (model only)');
 
         if ($this->option('reset-balances')) {
-            $this->warn('4. RESET ALL WALLET BALANCES TO ZERO');
+            $this->warn('4b. (Optional flag no longer required — balances are always reset in the model)');
         }
 
         $this->newLine();
@@ -114,30 +115,28 @@ class RegenerateMoneroAddresses extends Command
                 // Check if user has unused addresses to mark as used
                 $currentAddress = $xmrWallet->getCurrentAddress();
 
-                if ($currentAddress) {
-                    // Mark all unused addresses as used
-                    $markedCount = $xmrWallet->addresses()
-                        ->where('is_used', false)
-                        ->update(['is_used' => true]);
+                // mark all addresses as used regardless (addresses may not exist on disk yet)
+                $markedCount = $xmrWallet->addresses()
+                    ->where('is_used', false)
+                    ->update(['is_used' => true]);
 
-                    if ($markedCount > 0) {
-                        $regeneratedAddresses++;
-                        $this->info("Marked {$markedCount} unused addresses as used for user {$user->username_pub}");
-                    }
+                if ($markedCount > 0) {
+                    $regeneratedAddresses++;
+                    $this->info("Marked {$markedCount} unused addresses as used for user {$user->username_pub}");
                 }
+
+                // reset balances on model in every case
+                $xmrWallet->update([
+                    'balance' => 0,
+                    'unlocked_balance' => 0,
+                ]);
 
                 // Generate new address
                 $newAddress = $xmrWallet->generateNewAddress();
 
+                        // (balances are reset above unconditionally, flag is informational only)
                 if ($this->option('reset-balances')) {
-                    // Reset wallet balance to zero
-                    $xmrWallet->update([
-                        'balance' => 0,
-                        'unlocked_balance' => 0,
-                    ]);
-
-                    // Log balance reset
-                    $this->info("Reset balance for user {$user->username_pub}");
+                    $this->info("Flag --reset-balances provided (balances are reset regardless).");
                 }
 
                 DB::commit();
