@@ -25,7 +25,7 @@ class RegenerateMoneroAddresses extends Command
      *
      * @var string
      */
-    protected $description = 'Mark all current Monero addresses as used and generate new addresses for all users';
+    protected $description = 'Mark all current Monero addresses as used and generate new addresses for all users (creates wallets if they don\'t exist)';
 
     /**
      * Execute the console command.
@@ -34,11 +34,12 @@ class RegenerateMoneroAddresses extends Command
     {
         $this->info('Monero Address Regeneration Tool');
         $this->info('This command will:');
-        $this->info('1. Mark all unused Monero addresses as used');
-        $this->info('2. Generate new receiving addresses for all users');
+        $this->info('1. Create Monero wallets for users who don\'t have them');
+        $this->info('2. Mark all unused Monero addresses as used');
+        $this->info('3. Generate new receiving addresses for all users');
 
         if ($this->option('reset-balances')) {
-            $this->warn('3. RESET ALL WALLET BALANCES TO ZERO');
+            $this->warn('4. RESET ALL WALLET BALANCES TO ZERO');
         }
 
         $this->newLine();
@@ -55,31 +56,43 @@ class RegenerateMoneroAddresses extends Command
             $users = collect([$user]);
             $this->info("Targeting specific user: {$user->username_pub} (ID: {$user->id})");
         } else {
-            // Get all users with Monero wallets
-            $users = User::whereHas('xmrWallet')->with('xmrWallet')->get();
-            $this->info("Found {$users->count()} users with Monero wallets.");
+            // Get ALL users (not just those with wallets)
+            $users = User::all();
+            $this->info("Found {$users->count()} total users.");
         }
 
         if ($users->isEmpty()) {
-            $this->warn('No users found with Monero wallets.');
+            $this->warn('No users found.');
             return 0;
+        }
+
+        // Count users with existing wallets
+        $existingWalletCount = $users->filter(fn($user) => $user->xmrWallet)->count();
+        $newWalletCount = $users->count() - $existingWalletCount;
+
+        if ($newWalletCount > 0) {
+            $this->info("Will create {$newWalletCount} new Monero wallets.");
+        }
+        if ($existingWalletCount > 0) {
+            $this->info("Will regenerate addresses for {$existingWalletCount} existing wallets.");
         }
 
         // Confirmation prompt
         if (!$this->option('force')) {
-            if (!$this->confirm('Do you want to proceed with address regeneration?')) {
+            if (!$this->confirm('Do you want to proceed with wallet creation/regeneration?')) {
                 $this->info('Operation cancelled.');
                 return 0;
             }
         }
 
         $this->newLine();
-        $this->info('Starting address regeneration...');
+        $this->info('Starting wallet creation/regeneration...');
         $this->newLine();
 
         $successCount = 0;
         $failureCount = 0;
-        $skippedCount = 0;
+        $createdWallets = 0;
+        $regeneratedAddresses = 0;
 
         $progressBar = $this->output->createProgressBar($users->count());
         $progressBar->start();
@@ -88,10 +101,17 @@ class RegenerateMoneroAddresses extends Command
             try {
                 DB::beginTransaction();
 
-                // Get or create Monero wallet for user
+                // Get or create Monero wallet for user (this will create if it doesn't exist)
+                $hadWallet = $user->xmrWallet !== null;
                 $xmrWallet = MoneroRepository::getOrCreateWalletForUser($user);
+                $hasWalletNow = true;
 
-                // Check if user already has unused addresses
+                if (!$hadWallet && $hasWalletNow) {
+                    $createdWallets++;
+                    $this->info("Created new wallet for user {$user->username_pub}");
+                }
+
+                // Check if user has unused addresses to mark as used
                 $currentAddress = $xmrWallet->getCurrentAddress();
 
                 if ($currentAddress) {
@@ -100,7 +120,10 @@ class RegenerateMoneroAddresses extends Command
                         ->where('is_used', false)
                         ->update(['is_used' => true]);
 
-                    $this->info("Marked {$markedCount} unused addresses as used for user {$user->username_pub}");
+                    if ($markedCount > 0) {
+                        $regeneratedAddresses++;
+                        $this->info("Marked {$markedCount} unused addresses as used for user {$user->username_pub}");
+                    }
                 }
 
                 // Generate new address
@@ -123,7 +146,7 @@ class RegenerateMoneroAddresses extends Command
 
             } catch (\Exception $e) {
                 DB::rollBack();
-                $this->error("Failed to regenerate addresses for user {$user->username_pub}: {$e->getMessage()}");
+                $this->error("Failed to process user {$user->username_pub}: {$e->getMessage()}");
                 $failureCount++;
             }
 
@@ -133,17 +156,18 @@ class RegenerateMoneroAddresses extends Command
         $progressBar->finish();
         $this->newLine(2);
 
-        $this->info("Address regeneration completed:");
-        $this->info("✓ Success: {$successCount} users");
+        $this->info("Wallet creation/regeneration completed:");
+        $this->info("✓ Success: {$successCount} users processed");
+        $this->info("✓ New wallets created: {$createdWallets}");
+        $this->info("✓ Addresses regenerated: {$regeneratedAddresses}");
         $this->info("✗ Failed: {$failureCount} users");
-        $this->info("⊘ Skipped: {$skippedCount} users");
 
         if ($failureCount > 0) {
-            $this->warn('Some users failed to regenerate addresses. Check the logs above for details.');
+            $this->warn('Some users failed processing. Check the logs above for details.');
             return 1;
         }
 
-        $this->info('All Monero addresses have been successfully regenerated.');
+        $this->info('All Monero wallets and addresses have been successfully processed.');
         return 0;
     }
 }
