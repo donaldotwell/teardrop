@@ -32,6 +32,22 @@ Schedule::command('monero:sync')
 //         });
 // }
 
+// Bitcoin wallet balance sync (every 5 minutes)
+Schedule::command('bitcoin:sync-balances')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        Log::error('Bitcoin balance sync command failed');
+    });
+
+// Monero wallet balance sync (every 5 minutes)
+Schedule::command('monero:sync-balances')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        Log::error('Monero balance sync command failed');
+    });
+
 Schedule::command('exchange:update')
     ->hourly()
     ->withoutOverlapping()
