@@ -117,7 +117,6 @@ class DeleteEscrowWallets extends Command
 
         $successCount = 0;
         $failureCount = 0;
-        $skippedCount = 0;
 
         $progressBar = $this->output->createProgressBar($escrowWallets->count());
         $progressBar->start();
@@ -126,15 +125,15 @@ class DeleteEscrowWallets extends Command
             try {
                 DB::beginTransaction();
 
-                // Verify wallet exists on RPC before deletion (if RPC is available)
+                // Check wallet existence on RPC (for logging only, not blocking)
                 $walletExists = $this->verifyWalletExists($escrowWallet);
-
-                if ($walletExists === false) {
-                    $this->warn("Wallet {$escrowWallet->wallet_name} not found on RPC, skipping.");
-                    $skippedCount++;
-                    DB::rollBack();
-                    $progressBar->advance();
-                    continue;
+                
+                if ($walletExists === true) {
+                    $this->info("Wallet {$escrowWallet->wallet_name} found on RPC - safe to delete from database");
+                } elseif ($walletExists === false) {
+                    $this->warn("Wallet {$escrowWallet->wallet_name} NOT found on RPC - deleting from database anyway (you may need to manually clean up RPC)");
+                } elseif ($walletExists === null) {
+                    $this->warn("RPC unavailable for {$escrowWallet->currency} - deleting from database anyway");
                 }
 
                 // Delete associated wallet record
@@ -183,15 +182,14 @@ class DeleteEscrowWallets extends Command
         $this->info("Escrow wallet deletion completed:");
         $this->info("✓ Success: {$successCount} wallets deleted");
         $this->info("✗ Failed: {$failureCount} wallets");
-        $this->info("⊘ Skipped: {$skippedCount} wallets (not found on RPC)");
 
         if ($failureCount > 0) {
             $this->warn('Some wallets failed to delete. Check the logs for details.');
             return 1;
         }
 
-        $this->warn('⚠️  Remember to manually delete wallet files from RPC nodes!');
-        $this->info('Escrow wallet deletion complete.');
+        $this->warn('⚠️  Remember to manually delete wallet files from RPC nodes if they still exist!');
+        $this->info('Escrow wallet database cleanup complete.');
         return 0;
     }
 
