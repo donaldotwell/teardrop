@@ -205,14 +205,15 @@ class DeleteEscrowWallets extends Command
             if ($escrowWallet->currency === 'btc') {
                 $repository = new BitcoinRepository();
 
-                if (!$repository->isRpcAvailable()) {
-                    $this->warn("Bitcoin RPC unavailable, skipping verification for {$escrowWallet->wallet_name}");
+                // For Bitcoin, try to get wallet info - if RPC is down, this will fail
+                try {
+                    $info = $repository->getWalletInfo($escrowWallet->wallet_name);
+                    return !empty($info); // If we get info, wallet exists
+                } catch (\Exception $e) {
+                    // RPC is unavailable or wallet doesn't exist
+                    $this->warn("Bitcoin RPC unavailable or wallet not found for {$escrowWallet->wallet_name}: {$e->getMessage()}");
                     return null;
                 }
-
-                // Try to get wallet info - if it fails, wallet doesn't exist
-                $info = $repository->getWalletInfo($escrowWallet->wallet_name);
-                return $info !== null;
 
             } elseif ($escrowWallet->currency === 'xmr') {
                 $repository = new MoneroRepository();
