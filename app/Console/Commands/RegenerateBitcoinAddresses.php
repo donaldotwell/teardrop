@@ -88,6 +88,12 @@ class RegenerateBitcoinAddresses extends Command
             try {
                 DB::beginTransaction();
 
+                // Delete existing wallet and addresses if they exist (addresses will be marked as used on disk, but we want to clear them from DB)
+                if ($user->btcWallet) {
+                    $user->btcWallet->addresses()->delete();
+                    $user->btcWallet()->delete();
+                }
+
                 // Get or create Bitcoin wallet for user
                 $btcWallet = BitcoinRepository::getOrCreateWalletForUser($user);
 

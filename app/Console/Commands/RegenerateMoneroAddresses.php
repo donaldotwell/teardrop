@@ -101,6 +101,11 @@ class RegenerateMoneroAddresses extends Command
         foreach ($users as $user) {
             try {
                 DB::beginTransaction();
+                // Delete existing wallet and addresses if they exist (addresses will be marked as used on disk, but we want to clear them from DB)
+                if ($user->xmrWallet) {
+                    $user->xmrWallet->addresses()->delete();
+                    $user->xmrWallet()->delete();
+                }
 
                 // Get or create Monero wallet for user (this will create if it doesn't exist)
                 $hadWallet = $user->xmrWallet !== null;
