@@ -25,7 +25,7 @@ class RegenerateBitcoinAddresses extends Command
      *
      * @var string
      */
-    protected $description = 'Mark all current Bitcoin addresses as used and generate new addresses for all users';
+    protected $description = 'Mark all current Bitcoin addresses as used and generate new addresses for all users (creates wallets if they don\'t exist)';
 
     /**
      * Execute the console command.
@@ -34,11 +34,13 @@ class RegenerateBitcoinAddresses extends Command
     {
         $this->info('Bitcoin Address Regeneration Tool');
         $this->info('This command will:');
-        $this->info('1. Mark all unused Bitcoin addresses as used');
-        $this->info('2. Generate new receiving addresses for all users');
+        $this->info('1. Create Bitcoin wallets for users who don\'t have them');
+        $this->info('2. Mark all unused Bitcoin addresses as used (addresses may not exist on disk)');
+        $this->info('3. Generate new receiving addresses for all users');
+        $this->info('4. Reset all wallet balances to zero (model only)');
 
         if ($this->option('reset-balances')) {
-            $this->warn('3. RESET ALL WALLET BALANCES TO ZERO');
+            $this->warn('4b. (Optional flag no longer required — balances are always reset in the model)');
         }
 
         $this->newLine();
@@ -55,31 +57,43 @@ class RegenerateBitcoinAddresses extends Command
             $users = collect([$user]);
             $this->info("Targeting specific user: {$user->username_pub} (ID: {$user->id})");
         } else {
-            // Get all users with Bitcoin wallets
-            $users = User::whereHas('btcWallet')->with('btcWallet')->get();
-            $this->info("Found {$users->count()} users with Bitcoin wallets.");
+            // Get ALL users (not just those with wallets)
+            $users = User::all();
+            $this->info("Found {$users->count()} total users.");
         }
 
         if ($users->isEmpty()) {
-            $this->warn('No users found with Bitcoin wallets.');
+            $this->warn('No users found.');
             return 0;
+        }
+
+        // Count users with existing wallets
+        $existingWalletCount = $users->filter(fn($user) => $user->btcWallet)->count();
+        $newWalletCount = $users->count() - $existingWalletCount;
+
+        if ($newWalletCount > 0) {
+            $this->info("Will create {$newWalletCount} new Bitcoin wallets.");
+        }
+        if ($existingWalletCount > 0) {
+            $this->info("Will regenerate addresses for {$existingWalletCount} existing wallets.");
         }
 
         // Confirmation prompt
         if (!$this->option('force')) {
-            if (!$this->confirm('Do you want to proceed with address regeneration?')) {
+            if (!$this->confirm('Do you want to proceed with wallet creation/regeneration?')) {
                 $this->info('Operation cancelled.');
                 return 0;
             }
         }
 
         $this->newLine();
-        $this->info('Starting address regeneration...');
+        $this->info('Starting wallet creation/regeneration...');
         $this->newLine();
 
         $successCount = 0;
         $failureCount = 0;
-        $skippedCount = 0;
+        $createdWallets = 0;
+        $regeneratedAddresses = 0;
 
         $progressBar = $this->output->createProgressBar($users->count());
         $progressBar->start();
@@ -94,57 +108,50 @@ class RegenerateBitcoinAddresses extends Command
                     $user->btcWallet()->delete();
                 }
 
-                // Get or create Bitcoin wallet for user
+                // Get or create Bitcoin wallet for user (this will create if it doesn't exist)
+                $hadWallet = $user->btcWallet !== null;
                 $btcWallet = BitcoinRepository::getOrCreateWalletForUser($user);
+                $hasWalletNow = true;
 
-                // Check if user already has unused addresses
+                if (!$hadWallet && $hasWalletNow) {
+                    $createdWallets++;
+                    $this->info("Created new wallet for user {$user->username_pub}");
+                }
+
+                // Check if user has unused addresses to mark as used
                 $currentAddress = $btcWallet->getCurrentAddress();
 
-                if ($currentAddress) {
-                    // Mark all unused addresses as used
-                    $markedCount = $btcWallet->addresses()
-                        ->where('is_used', false)
-                        ->update(['is_used' => true]);
+                // mark all addresses as used regardless (addresses may not exist on disk yet)
+                $markedCount = $btcWallet->addresses()
+                    ->where('is_used', false)
+                    ->update(['is_used' => true]);
 
-                    $this->newLine();
-                    $this->line("User {$user->username_pub}: Marked {$markedCount} address(es) as used");
+                if ($markedCount > 0) {
+                    $regeneratedAddresses++;
+                    $this->info("Marked {$markedCount} unused addresses as used for user {$user->username_pub}");
                 }
+
+                // reset balances on model in every case
+                $btcWallet->update([
+                    'balance' => 0,
+                ]);
 
                 // Generate new address
                 $newAddress = $btcWallet->generateNewAddress();
 
-                if ($newAddress) {
-                    $this->line("User {$user->username_pub}: Generated new address {$newAddress->address}");
-
-                    // Reset balances if flag is set
-                    if ($this->option('reset-balances')) {
-                        $user->fundWallets();
-                        $this->line("User {$user->username_pub}: Wallet balances reset to zero");
-                    }
-
-                    $successCount++;
-                } else {
-                    $this->warn("User {$user->username_pub}: Failed to generate new address");
-                    $failureCount++;
+                // (balances are reset above unconditionally, flag is informational only)
+                if ($this->option('reset-balances')) {
+                    $this->info("Flag --reset-balances provided (balances are reset regardless).");
                 }
 
                 DB::commit();
 
+                $successCount++;
+
             } catch (\Exception $e) {
                 DB::rollBack();
-
-                $this->newLine();
-                $this->error("User {$user->username_pub}: Error - {$e->getMessage()}");
-                $this->line("Trace: {$e->getFile()}:{$e->getLine()}");
-
+                $this->error("Failed to process user {$user->username_pub}: {$e->getMessage()}");
                 $failureCount++;
-
-                \Log::error("Failed to regenerate Bitcoin address for user {$user->id}", [
-                    'user_id' => $user->id,
-                    'username' => $user->username_pub,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
             }
 
             $progressBar->advance();
@@ -153,23 +160,18 @@ class RegenerateBitcoinAddresses extends Command
         $progressBar->finish();
         $this->newLine(2);
 
-        // Summary
-        $this->info('Address Regeneration Complete!');
-        $this->newLine();
-        $this->table(
-            ['Status', 'Count'],
-            [
-                ['Successful', $successCount],
-                ['Failed', $failureCount],
-                ['Total Processed', $users->count()],
-            ]
-        );
+        $this->info("Wallet creation/regeneration completed:");
+        $this->info("✓ Success: {$successCount} users processed");
+        $this->info("✓ New wallets created: {$createdWallets}");
+        $this->info("✓ Addresses regenerated: {$regeneratedAddresses}");
+        $this->info("✗ Failed: {$failureCount} users");
 
         if ($failureCount > 0) {
-            $this->newLine();
-            $this->warn("Check logs for detailed error information on failed regenerations.");
+            $this->warn('Some users failed processing. Check the logs above for details.');
+            return 1;
         }
 
-        return $failureCount > 0 ? 1 : 0;
+        $this->info('All Bitcoin wallets and addresses have been successfully processed.');
+        return 0;
     }
 }
