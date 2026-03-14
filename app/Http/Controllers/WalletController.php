@@ -19,7 +19,7 @@ class WalletController extends Controller
             // Update Bitcoin balance from RPC when user visits wallet page
             if ($btcWallet) {
                 try {
-                    $btcWallet->updateBalance();
+                    //$btcWallet->updateBalance();
                 } catch (\Exception $e) {
                     \Log::warning("Failed to update Bitcoin balance for user {$user->id}", [
                         'error' => $e->getMessage()
@@ -46,7 +46,7 @@ class WalletController extends Controller
             // Update Monero balance from RPC when user visits wallet page
             if ($xmrWallet) {
                 try {
-                    $xmrWallet->updateBalance();
+                    // $xmrWallet->updateBalance();
                 } catch (\Exception $e) {
                     \Log::warning("Failed to update Monero balance for user {$user->id}", [
                         'error' => $e->getMessage()
