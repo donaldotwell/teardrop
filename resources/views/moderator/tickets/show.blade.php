@@ -354,45 +354,47 @@
                             </div>
                         </div>
 
-                        <div class="flex items-center space-x-3">
+                        <div>
                             <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                                 Send Response
                             </button>
-
-                            @if($supportTicket->status !== 'resolved')
-                                <details class="inline-block">
-                                    <summary class="cursor-pointer px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 inline-block">
-                                        Mark as Resolved
-                                    </summary>
-                                    <div class="absolute mt-2 p-5 border w-96 shadow-lg rounded-md bg-white z-50">
-                                        <h3 class="text-lg font-medium text-gray-900 mb-4">Resolve Ticket</h3>
-                                        <form method="POST" action="{{ route('moderator.tickets.resolve', $supportTicket) }}">
-                                            @csrf
-                                            <div class="space-y-4">
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700 mb-1">Resolution Notes</label>
-                                                    <textarea name="resolution_notes" rows="4" required
-                                                              class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                                              placeholder="Describe how this ticket was resolved..."></textarea>
-                                                </div>
-                                                <div class="flex items-center">
-                                                    <input type="checkbox" name="follow_up_required" value="1"
-                                                           class="rounded border-gray-300 mr-2">
-                                                    <label class="text-sm text-gray-600">Schedule follow-up in 3 days</label>
-                                                </div>
-                                                <div class="flex justify-end">
-                                                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                                                        Mark as Resolved
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </details>
-                            @endif
                         </div>
                     </div>
                 </form>
+
+                @if($supportTicket->status !== 'resolved')
+                    <div class="mt-6 pt-6 border-t border-gray-100">
+                        <details>
+                            <summary class="cursor-pointer px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 inline-block text-sm">
+                                Mark as Resolved
+                            </summary>
+                            <div class="mt-3 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                <h4 class="text-sm font-medium text-gray-900 mb-3">Resolve Ticket</h4>
+                                <form method="POST" action="{{ route('moderator.tickets.resolve', $supportTicket) }}">
+                                    @csrf
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Resolution Notes</label>
+                                            <textarea name="resolution_notes" rows="4" required
+                                                      class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                      placeholder="Describe how this ticket was resolved..."></textarea>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" name="follow_up_required" value="1"
+                                                   class="rounded border-gray-300 mr-2">
+                                            <label class="text-sm text-gray-600">Schedule follow-up in 3 days</label>
+                                        </div>
+                                        <div>
+                                            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                                                Mark as Resolved
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </details>
+                    </div>
+                @endif
             </div>
         @endif
 
