@@ -34,6 +34,7 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
         Route::post('/{user}/adjust-balance', [AdminUsersController::class, 'adjustBalance'])->name('adjust-balance');
         Route::post('/{user}/promote-to-vendor', [AdminUsersController::class, 'promoteToVendor'])->name('promote-to-vendor');
         Route::post('/{user}/toggle-early-finalization', [AdminUsersController::class, 'toggleEarlyFinalizationAccess'])->name('toggle-early-finalization');
+        Route::post('/{user}/strip-vendor', [AdminUsersController::class, 'stripVendor'])->name('strip-vendor');
     });
 
     // Orders Management

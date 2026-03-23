@@ -315,6 +315,29 @@ class AdminUsersController extends Controller
     }
 
     /**
+     * Strip vendor role from a user
+     */
+    public function stripVendor(User $user)
+    {
+        if (!$user->hasRole('vendor')) {
+            return redirect()->back()
+                ->with('error', 'User does not have a vendor role.');
+        }
+
+        $vendorRole = \App\Models\Role::where('name', 'vendor')->firstOrFail();
+        $user->revokeRole($vendorRole);
+
+        $user->update([
+            'vendor_level' => 0,
+            'vendor_since' => null,
+            'early_finalization_enabled' => false,
+        ]);
+
+        return redirect()->back()
+            ->with('success', "Vendor role stripped from {$user->username_pub}.");
+    }
+
+    /**
      * Toggle early finalization access for vendor
      */
     public function toggleEarlyFinalizationAccess(User $user)

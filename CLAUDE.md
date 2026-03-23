@@ -101,7 +101,7 @@ Disputes belong to an `Order` and involve two parties (buyer/vendor). Admins/mod
 - `App\Services\ForumModerationService` — forum content moderation
 
 ### Frontend
-Pure Blade templates with Tailwind CSS utility classes. No JavaScript framework, no icon libraries/SVGs. Color theme: amber/yellow for primary UI, admin, and moderator interfaces.
+Pure Blade templates with Tailwind CSS utility classes. **No JavaScript, no SVGs, no icon libraries** — not even inline `onclick` handlers or `<script>` tags. All interactivity must be achieved through standard HTML forms and server-side logic. Color theme: amber/yellow for primary UI, admin, and moderator interfaces.
 
 ### Key Config
 - `ORDER_COMPLETION_FEE_PERCENT` — platform fee on completed orders (default 3%)
