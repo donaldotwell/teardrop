@@ -82,6 +82,7 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
         Route::get('/{supportTicket}', [AdminSupportTicketController::class, 'show'])->name('show');
         Route::post('/{supportTicket}/assign', [AdminSupportTicketController::class, 'assign'])->name('assign');
         Route::post('/{supportTicket}/reassign-staff', [AdminSupportTicketController::class, 'reassignStaff'])->name('reassign-staff');
+        Route::post('/{supportTicket}/reassign', [AdminSupportTicketController::class, 'reassignStaff'])->name('reassign');
         Route::post('/{supportTicket}/update-status', [AdminSupportTicketController::class, 'updateStatus'])->name('update-status');
         Route::post('/{supportTicket}/update-priority', [AdminSupportTicketController::class, 'updatePriority'])->name('update-priority');
         Route::post('/{supportTicket}/add-message', [AdminSupportTicketController::class, 'addMessage'])->name('add-message');
