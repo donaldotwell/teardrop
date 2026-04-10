@@ -101,17 +101,21 @@ apt-get install -y \
 log "PHP ${PHP_VERSION} and extensions installed"
 
 # ==============================================================================
-step "3/11  Installing Nginx, Tor, PostgreSQL, Certbot & utilities"
+step "3/11  Installing Nginx, Tor, MySQL, Certbot & utilities"
 # ==============================================================================
 apt-get install -y \
     nginx \
     tor torsocks \
-    postgresql postgresql-contrib \
+    mysql-server \
+    redis-server \
+    memcached \
     certbot python3-certbot-nginx \
+    openssl \
+    unzip \
     wget gnupg2 tar bzip2 \
     || die "Failed to install server packages"
 
-log "Nginx, Tor, PostgreSQL, Certbot and utilities installed"
+log "Nginx, Tor, MySQL, Redis, Memcached, Certbot and utilities installed"
 
 # ==============================================================================
 step "4/11  Creating application user: ${APP_USER}"
@@ -271,6 +275,7 @@ sed -i \
     -e "s|__DOMAIN__|${DOMAIN}|g" \
     -e "s|__SSL_CERT__|${SSL_CERT}|g" \
     -e "s|__SSL_KEY__|${SSL_KEY}|g" \
+    -e "s|__PHP_VERSION__|${PHP_VERSION}|g" \
     "${NGINX_AVAILABLE}"
 
 log "Nginx config written to ${NGINX_AVAILABLE}"
@@ -315,8 +320,9 @@ find "${PROJECT_ROOT}" -type d -exec chmod 775 {} \;
 # Files: rw for owner+group, read for others
 find "${PROJECT_ROOT}" -type f -exec chmod 664 {} \;
 
-# Storage & cache need full group write + execute recursively
-chmod -R 775 "${PROJECT_ROOT}/storage" "${PROJECT_ROOT}/bootstrap/cache"
+# Storage & cache: directories 775, files 664 (group-writable, no execute on files)
+find "${PROJECT_ROOT}/storage" "${PROJECT_ROOT}/bootstrap/cache" -type d -exec chmod 775 {} \;
+find "${PROJECT_ROOT}/storage" "${PROJECT_ROOT}/bootstrap/cache" -type f -exec chmod 664 {} \;
 
 log "Permissions set on ${PROJECT_ROOT}"
 
@@ -324,9 +330,11 @@ log "Permissions set on ${PROJECT_ROOT}"
 step "10/11  Enabling services"
 # ==============================================================================
 systemctl enable --now nginx        || warn "Could not enable nginx"
-systemctl enable --now postgresql   || warn "Could not enable postgresql"
+systemctl enable --now mysql        || warn "Could not enable mysql"
 systemctl enable --now tor          || warn "Could not enable tor"
 systemctl enable --now "php${PHP_VERSION}-fpm" || warn "Could not enable php-fpm"
+systemctl enable --now redis-server || warn "Could not enable redis-server"
+systemctl enable --now memcached    || warn "Could not enable memcached"
 
 log "All services enabled and started"
 
