@@ -101,12 +101,12 @@ apt-get install -y \
 log "PHP ${PHP_VERSION} and extensions installed"
 
 # ==============================================================================
-step "3/11  Installing Nginx, Tor, MySQL, Certbot & utilities"
+step "3/11  Installing Nginx, Tor, PostgreSQL, Certbot & utilities"
 # ==============================================================================
 apt-get install -y \
     nginx \
     tor torsocks \
-    mysql-server \
+    postgresql postgresql-contrib \
     redis-server \
     memcached \
     certbot python3-certbot-nginx \
@@ -115,7 +115,7 @@ apt-get install -y \
     wget gnupg2 tar bzip2 \
     || die "Failed to install server packages"
 
-log "Nginx, Tor, MySQL, Redis, Memcached, Certbot and utilities installed"
+log "Nginx, Tor, PostgreSQL, Redis, Memcached, Certbot and utilities installed"
 
 # ==============================================================================
 step "4/11  Creating application user: ${APP_USER}"
@@ -330,7 +330,7 @@ log "Permissions set on ${PROJECT_ROOT}"
 step "10/11  Enabling services"
 # ==============================================================================
 systemctl enable --now nginx        || warn "Could not enable nginx"
-systemctl enable --now mysql        || warn "Could not enable mysql"
+systemctl enable --now postgresql   || warn "Could not enable postgresql"
 systemctl enable --now tor          || warn "Could not enable tor"
 systemctl enable --now "php${PHP_VERSION}-fpm" || warn "Could not enable php-fpm"
 systemctl enable --now redis-server || warn "Could not enable redis-server"
@@ -358,6 +358,10 @@ su - "${APP_USER}" -c "
     npm run build
 " || die "npm install / npm run build failed"
 log "Node dependencies installed and assets built"
+
+# Re-apply ownership on storage after composer/npm may have created files as APP_USER's default group
+chown -R "${APP_USER}:www-data" "${PROJECT_ROOT}/storage" "${PROJECT_ROOT}/bootstrap/cache"
+log "Storage ownership re-applied (${APP_USER}:www-data)"
 
 # ==============================================================================
 echo ""
