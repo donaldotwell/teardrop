@@ -8,70 +8,61 @@ use App\Jobs\CheckExpiredDisputeWindows;
 use App\Jobs\UpdateVendorEarlyFinalizationStats;
 
 
+// Transaction sync — every minute, 5-minute overlap lock expiry so a crashed run
+// doesn't block syncs for 24 hours (Laravel's default withoutOverlapping expiry).
 Schedule::command('bitcoin:sync')
     ->everyMinute()
-    ->withoutOverlapping()
+    ->withoutOverlapping(5)
     ->onFailure(function () {
         Log::error('Bitcoin sync command failed');
     });
 
 Schedule::command('monero:sync')
     ->everyMinute()
-    ->withoutOverlapping()
+    ->withoutOverlapping(5)
     ->onFailure(function () {
         Log::error('Monero sync command failed');
     });
 
-// Force confirm Monero transactions (testing/development only)
-// if (config('monero.force_confirmations')) {
-//     Schedule::command('monero:force-confirm')
-//         ->everyMinute()
-//         ->withoutOverlapping()
-//         ->onFailure(function () {
-//             Log::error('Monero force confirm command failed');
-//         });
-// }
-
-// Bitcoin wallet balance sync (every 5 minutes)
+// Balance sync — every 5 minutes as a lightweight reconciliation pass.
 Schedule::command('bitcoin:sync-balances')
     ->everyFiveMinutes()
-    ->withoutOverlapping()
+    ->withoutOverlapping(5)
     ->onFailure(function () {
         Log::error('Bitcoin balance sync command failed');
     });
 
-// Monero wallet balance sync (every 5 minutes)
 Schedule::command('monero:sync-balances')
     ->everyFiveMinutes()
-    ->withoutOverlapping()
+    ->withoutOverlapping(5)
     ->onFailure(function () {
         Log::error('Monero balance sync command failed');
     });
 
 Schedule::command('exchange:update')
     ->hourly()
-    ->withoutOverlapping()
+    ->withoutOverlapping(10)
     ->onFailure(function () {
         Log::error('Exchange update command failed');
     });
 
 Schedule::command('ratings:aggregate')
     ->everyThirtyMinutes()
-    ->withoutOverlapping()
+    ->withoutOverlapping(10)
     ->onFailure(function () {
         Log::error('Ratings aggregation command failed');
     });
 
 Schedule::job(new CheckExpiredDisputeWindows)
     ->hourly()
-    ->withoutOverlapping()
+    ->withoutOverlapping(10)
     ->onFailure(function () {
         Log::error('Check expired dispute windows job failed');
     });
 
 Schedule::job(new UpdateVendorEarlyFinalizationStats)
     ->daily()
-    ->withoutOverlapping()
+    ->withoutOverlapping(30)
     ->onFailure(function () {
         Log::error('Update vendor early finalization stats job failed');
     });

@@ -44,26 +44,18 @@ class MoneroRepository
 
     public function isRpcAvailable(): bool
     {
-        try {
-            $request = Http::timeout(30);
+        $host = config('monero.host', '127.0.0.1');
+        $port = (int) config('monero.port', 28088);
 
-            if (!empty($this->rpcUser)) {
-                $request = $request->withDigestAuth($this->rpcUser, $this->rpcPassword);
-            }
+        $socket = @fsockopen($host, $port, $errno, $errstr, 2);
 
-            $response = $request->post($this->rpcUrl, [
-                'jsonrpc' => '2.0',
-                'id' => '0',
-                'method' => 'get_version',
-                'params' => [],
-            ]);
-
-            return $response->successful();
-
-        } catch (\Exception $e) {
-            Log::error('Monero RPC availability check failed: ' . $e->getMessage());
-            return false;
+        if ($socket) {
+            fclose($socket);
+            return true;
         }
+
+        Log::error("Monero RPC port {$port} not reachable: {$errstr} ({$errno})");
+        return false;
     }
 
     public function rpcCall(string $method, array $params = [], int $timeout = 30)
