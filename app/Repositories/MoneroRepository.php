@@ -66,10 +66,10 @@ class MoneroRepository
         }
     }
 
-    public function rpcCall(string $method, array $params = [])
+    public function rpcCall(string $method, array $params = [], int $timeout = 30)
     {
         try {
-            $request = Http::timeout(30);
+            $request = Http::timeout($timeout);
 
             if (!empty($this->rpcUser)) {
                 $request = $request->withDigestAuth($this->rpcUser, $this->rpcPassword);
@@ -174,9 +174,9 @@ class MoneroRepository
 
             Log::debug("[withWallet] Opened wallet '{$walletName}'");
 
-            // Sync wallet to chain tip
+            // Sync wallet to chain tip — long timeout, can take minutes on wallets with history
             if ($refresh) {
-                $this->rpcCall('refresh');
+                $this->rpcCall('refresh', [], 300);
                 Log::debug("[withWallet] Refreshed wallet '{$walletName}'");
             }
 

@@ -59,8 +59,8 @@ return [
     |
     */
 
-    'rpc_lock_timeout' => env('MONERO_RPC_LOCK_TIMEOUT', 60),       // Max seconds to hold the lock
-    'rpc_lock_wait_timeout' => env('MONERO_RPC_LOCK_WAIT', 30),     // Max seconds to wait for lock acquisition
+    'rpc_lock_timeout' => env('MONERO_RPC_LOCK_TIMEOUT', 300),      // Max seconds to hold the lock (refresh can take minutes)
+    'rpc_lock_wait_timeout' => env('MONERO_RPC_LOCK_WAIT', 300),    // Max seconds to wait for lock acquisition
 
     /*
     |--------------------------------------------------------------------------
