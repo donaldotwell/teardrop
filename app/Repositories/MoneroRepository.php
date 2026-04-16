@@ -214,7 +214,21 @@ class MoneroRepository
     public function withWalletModel(XmrWallet $wallet, \Closure $callback, bool $refresh = true): mixed
     {
         $password = $wallet->getDecryptedPassword();
-        $startHeight = $wallet->height > 0 ? $wallet->height : null;
+
+        // Use the wallet's last known height so refresh only scans new blocks.
+        // Fall back to created_at-derived height estimate if height was never set,
+        // to avoid a full scan from genesis on legacy wallets.
+        if ($wallet->height > 0) {
+            $startHeight = $wallet->height;
+        } elseif ($wallet->created_at) {
+            // Rough estimate: Monero mines ~1 block/2min. Use creation time as floor.
+            $minutesSinceGenesis = (int) now()->diffInMinutes(\Carbon\Carbon::parse('2014-04-18 10:49:53'));
+            $genesisApproxHeight = (int) ($minutesSinceGenesis / 2);
+            $walletAgeMinutes    = (int) now()->diffInMinutes($wallet->created_at);
+            $startHeight         = max(0, $genesisApproxHeight - $walletAgeMinutes);
+        } else {
+            $startHeight = null;
+        }
 
         return $this->withWallet($wallet->name, $password, $callback, $refresh, $startHeight);
     }
