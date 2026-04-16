@@ -20,12 +20,16 @@ class MoneroController extends Controller
     /**
      * Show Monero wallet dashboard.
      */
-    public function index(Request $request): View
+    public function index(Request $request): View|\Illuminate\Http\RedirectResponse
     {
         $user = $request->user();
-        $xmrWallet = MoneroRepository::getOrCreateWalletForUser($user);
+        $xmrWallet = $user->xmrWallet;
 
-        // Get recent transactions
+        // No wallet yet — send them to topup where it will be created on demand.
+        if (!$xmrWallet) {
+            return redirect()->route('monero.topup');
+        }
+
         $recentTransactions = $xmrWallet->transactions()
             ->orderBy('created_at', 'desc')
             ->limit(20)
@@ -33,7 +37,6 @@ class MoneroController extends Controller
 
         $balance = $user->getBalance();
 
-        // Calculate fresh stats from transactions (not stale fields)
         $balanceData = $xmrWallet->getBalance();
         $walletStats = [
             'balance' => $balanceData['balance'],

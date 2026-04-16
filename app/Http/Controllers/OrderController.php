@@ -132,15 +132,6 @@ class OrderController extends Controller
 
         $user_balance = $user->getBalance();
 
-        // For XMR, use actual on-chain balance from RPC (DB records may be stale)
-        if ($data['currency'] === 'xmr' && $user->xmrWallet) {
-            $rpcBalance = $user->xmrWallet->getRpcBalance();
-            if ($rpcBalance['balance'] > 0 || $rpcBalance['unlocked_balance'] > 0) {
-                $user_balance['xmr']['balance'] = $rpcBalance['balance'];
-                $user_balance['xmr']['unlocked_balance'] = $rpcBalance['unlocked_balance'];
-            }
-        }
-
         // Calculate total price including shipping
         $usd_price = ($listing->price * $data['quantity']) + $listing->price_shipping;
 
@@ -426,15 +417,6 @@ class OrderController extends Controller
 
         // Recheck balance including transaction fees
         $user_balance = $user->getBalance();
-
-        // For XMR, use actual on-chain balance from RPC (DB records may be stale)
-        if ($data['currency'] === 'xmr' && $user->xmrWallet) {
-            $rpcBalance = $user->xmrWallet->getRpcBalance();
-            if ($rpcBalance['balance'] > 0 || $rpcBalance['unlocked_balance'] > 0) {
-                $user_balance['xmr']['balance'] = $rpcBalance['balance'];
-                $user_balance['xmr']['unlocked_balance'] = $rpcBalance['unlocked_balance'];
-            }
-        }
 
         // Calculate total price including shipping
         $usd_price = ($listing->price * $data['quantity']) + $listing->price_shipping;

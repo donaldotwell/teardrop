@@ -357,28 +357,8 @@ class User extends Authenticatable
         static::created(function ($user) {
             // Fund the user's wallets with starter funds
             $user->fundWallets();
-
-            // Create Bitcoin wallet
-            try {
-                \App\Repositories\BitcoinRepository::getOrCreateWalletForUser($user);
-            } catch (\Exception $e) {
-                \Log::error("Failed to create Bitcoin wallet for user {$user->id}", [
-                    'user_id' => $user->id,
-                    'exception' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-            }
-
-            // Create Monero wallet
-            try {
-                \App\Repositories\MoneroRepository::getOrCreateWalletForUser($user);
-            } catch (\Exception $e) {
-                \Log::error("Failed to create Monero wallet for user {$user->id}", [
-                    'user_id' => $user->id,
-                    'exception' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-            }
+            // Wallets are created lazily on first visit to the topup page,
+            // not during registration — avoids slow RPC calls on sign-up.
         });
     }
 

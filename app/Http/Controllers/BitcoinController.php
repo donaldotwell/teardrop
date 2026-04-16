@@ -21,18 +21,21 @@ class BitcoinController extends Controller
     /**
      * Show Bitcoin wallet dashboard.
      */
-    public function index(Request $request): View
+    public function index(Request $request): View|\Illuminate\Http\RedirectResponse
     {
         $user = $request->user();
-        $btcWallet = BitcoinRepository::getOrCreateWalletForUser($user);
+        $btcWallet = $user->btcWallet;
 
-        // Get recent transactions (without loading addresses for privacy)
+        // No wallet yet — send them to topup where it will be created on demand.
+        if (!$btcWallet) {
+            return redirect()->route('bitcoin.topup');
+        }
+
         $recentTransactions = $btcWallet->transactions()
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get();
 
-        // Calculate fresh stats from transactions (not stale fields)
         $walletStats = [
             'balance' => $btcWallet->getBalance(),
             'total_received' => $btcWallet->getTotalReceived(),
