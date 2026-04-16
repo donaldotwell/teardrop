@@ -39,17 +39,13 @@ class MoneroWarmWallets extends Command
         if ($this->option('height')) {
             $startHeight = (int) $this->option('height');
         } else {
-            $this->info('Fetching current chain height from monerod...');
-            $daemonUrl  = config('monero.scheme') . '://' . config('monero.host') . ':18081/json_rpc';
-            $heightResp = Http::timeout(10)->post($daemonUrl, [
-                'jsonrpc' => '2.0',
-                'id'      => '0',
-                'method'  => 'get_block_count',
-                'params'  => [],
-            ]);
-            $startHeight = $heightResp->json('result.count') ?? 0;
+            $this->info('Fetching current chain height from wallet-rpc...');
+            // Use wallet-rpc's get_height — it asks monerod internally, no separate port needed.
+            // Returns the actual chain tip height (not count, so no off-by-one).
+            $heightData  = $rpc('get_height');
+            $startHeight = $heightData['result']['height'] ?? 0;
             if (!$startHeight) {
-                $this->error('Could not get chain height from monerod. Pass --height= manually.');
+                $this->error('Could not get chain height. Pass --height= manually.');
                 return self::FAILURE;
             }
         }
