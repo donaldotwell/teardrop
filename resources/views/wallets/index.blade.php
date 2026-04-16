@@ -26,29 +26,44 @@
                     <span class="text-sm px-2 py-1 bg-amber-100 text-amber-700 rounded-full">BTC</span>
                 </div>
 
-                <div class="space-y-4">
-                    <div>
-                        <p class="text-2xl font-mono font-bold text-amber-700">
-                            {{ $balance['btc']['balance'] }}
-                            <span class="text-lg">BTC</span>
-                        </p>
-                        <p class="text-gray-600 text-sm">
-                            ≈ ${{ number_format($balance['btc']['usd_value'], 2) }} USD
-                        </p>
-                    </div>
+                @if($btcWallet)
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-2xl font-mono font-bold text-amber-700">
+                                {{ $balance['btc']['balance'] }}
+                                <span class="text-lg">BTC</span>
+                            </p>
+                            <p class="text-gray-600 text-sm">
+                                ≈ ${{ number_format($balance['btc']['usd_value'], 2) }} USD
+                            </p>
+                        </div>
 
-                    <!-- Action Buttons -->
-                    <div class="flex space-x-2">
-                        <a href="{{ route('bitcoin.topup') }}"
-                           class="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium text-center transition-colors">
-                            Top Up
-                        </a>
-                        <a href="{{ route('bitcoin.index') }}"
-                           class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium text-center transition-colors">
-                            Manage
-                        </a>
+                        <!-- Action Buttons -->
+                        <div class="flex space-x-2">
+                            <a href="{{ route('bitcoin.topup') }}"
+                               class="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium text-center transition-colors">
+                                Top Up
+                            </a>
+                            <a href="{{ route('bitcoin.index') }}"
+                               class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium text-center transition-colors">
+                                Manage
+                            </a>
+                        </div>
                     </div>
-                </div>
+                @else
+                    <div class="space-y-4">
+                        <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                            <p class="text-sm text-amber-800">
+                                No Bitcoin wallet yet. Visit Top Up to set one up.
+                            </p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <a href="{{ route('bitcoin.topup') }}" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium text-center transition-colors">
+                                Set Up Wallet
+                            </a>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <!-- Monero Card -->
@@ -87,15 +102,15 @@
                     </div>
                 @else
                     <div class="space-y-4">
-                        <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <p class="text-sm text-yellow-800">
-                                Monero wallet is currently unavailable. Please contact support.
+                        <div class="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                            <p class="text-sm text-orange-800">
+                                No Monero wallet yet. Visit Top Up to set one up.
                             </p>
                         </div>
                         <div class="flex space-x-2">
-                            <button disabled class="flex-1 bg-gray-300 text-gray-500 px-4 py-2 rounded-lg text-sm font-medium text-center cursor-not-allowed">
-                                Unavailable
-                            </button>
+                            <a href="{{ route('monero.topup') }}" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium text-center transition-colors">
+                                Set Up Wallet
+                            </a>
                         </div>
                     </div>
                 @endif
