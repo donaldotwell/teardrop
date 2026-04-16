@@ -45,7 +45,7 @@ class MoneroRepository
     public function isRpcAvailable(): bool
     {
         try {
-            $request = Http::timeout(5);
+            $request = Http::timeout(30);
 
             if (!empty($this->rpcUser)) {
                 $request = $request->withDigestAuth($this->rpcUser, $this->rpcPassword);

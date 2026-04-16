@@ -239,9 +239,11 @@ fi
 # ==============================================================================
 step "7/9  Configuring Monero"
 # ==============================================================================
-mkdir -p "${MONERO_DATA_DIR}" "${MONERO_WALLET_DIR}"
+MONERO_RINGDB_DIR="${MONERO_DATA_DIR}/ringdb"
+
+mkdir -p "${MONERO_DATA_DIR}" "${MONERO_WALLET_DIR}" "${MONERO_RINGDB_DIR}"
 chown -R "${MONERO_USER}:${MONERO_USER}" "${MONERO_DATA_DIR}" "${MONERO_WALLET_DIR}"
-chmod 750 "${MONERO_DATA_DIR}" "${MONERO_WALLET_DIR}"
+chmod 750 "${MONERO_DATA_DIR}" "${MONERO_WALLET_DIR}" "${MONERO_RINGDB_DIR}"
 
 MONEROD_CONF="${MONERO_DATA_DIR}/monerod.conf"
 
@@ -328,6 +330,7 @@ ExecStart=${INSTALL_DIR}/monero-wallet-rpc \
     --rpc-login=${MONERO_RPC_USER}:${MONERO_RPC_PASS} \
     --daemon-address=127.0.0.1:${MONERO_DAEMON_PORT} \
     --trusted-daemon \
+    --shared-ringdb-dir=${MONERO_DATA_DIR}/ringdb \
     --log-level=1 \
     --max-log-file-size=10485760
 
