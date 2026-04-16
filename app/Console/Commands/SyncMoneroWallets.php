@@ -41,13 +41,7 @@ class SyncMoneroWallets extends Command
         }
 
         try {
-            // Check RPC availability first
             $repository = new MoneroRepository();
-            if (!$repository->isRpcAvailable()) {
-                $this->error('Monero RPC service is not available');
-                \Log::error('monero:sync failed - RPC service unavailable');
-                return self::FAILURE;
-            }
 
             $this->info('Running sync directly (not queued)...');
             \Log::debug("Running direct sync from console command");
