@@ -139,10 +139,10 @@ class MoneroRepository
      * @param bool     $refresh    Whether to call refresh() after opening (default true)
      * @return mixed               Whatever $callback returns
      */
-    public function withWallet(string $walletName, string $password, \Closure $callback, bool $refresh = true): mixed
+    public function withWallet(string $walletName, string $password, \Closure $callback, bool $refresh = true, ?int $startHeight = null): mixed
     {
-        $lockTimeout = config('monero.rpc_lock_timeout', 60);
-        $waitTimeout = config('monero.rpc_lock_wait_timeout', 30);
+        $lockTimeout = config('monero.rpc_lock_timeout', 300);
+        $waitTimeout = config('monero.rpc_lock_wait_timeout', 300);
 
         $lock = Cache::lock('monero:rpc:wallet', $lockTimeout);
 
@@ -174,10 +174,11 @@ class MoneroRepository
 
             Log::debug("[withWallet] Opened wallet '{$walletName}'");
 
-            // Sync wallet to chain tip — long timeout, can take minutes on wallets with history
+            // Sync wallet to chain tip — only scan from known height to avoid full blockchain scan
             if ($refresh) {
-                $this->rpcCall('refresh', [], 300);
-                Log::debug("[withWallet] Refreshed wallet '{$walletName}'");
+                $refreshParams = $startHeight !== null ? ['start_height' => $startHeight] : [];
+                $this->rpcCall('refresh', $refreshParams, 300);
+                Log::debug("[withWallet] Refreshed wallet '{$walletName}'" . ($startHeight ? " from height {$startHeight}" : ''));
             }
 
             // Execute caller's work
@@ -221,8 +222,9 @@ class MoneroRepository
     public function withWalletModel(XmrWallet $wallet, \Closure $callback, bool $refresh = true): mixed
     {
         $password = $wallet->getDecryptedPassword();
+        $startHeight = $wallet->height > 0 ? $wallet->height : null;
 
-        return $this->withWallet($wallet->name, $password, $callback, $refresh);
+        return $this->withWallet($wallet->name, $password, $callback, $refresh, $startHeight);
     }
 
     // --- Wallet Creation ---
@@ -296,6 +298,9 @@ class MoneroRepository
             // Get current blockchain height
             $heightData = $this->rpcCall('get_height');
             $currentHeight = $heightData['height'] ?? 0;
+
+            // Refresh from current height only — new wallet has no history before now
+            $this->rpcCall('refresh', ['start_height' => $currentHeight], 30);
 
             // Primary address (account 0, index 0)
             $addressData = $this->rpcCall('get_address', [
