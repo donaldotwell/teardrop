@@ -60,7 +60,12 @@ class BotChallengeController extends Controller
         }
 
         $validated = $request->validate([
-            'answer' => 'required|string|size:6',
+            'char_0' => 'required|string|size:1',
+            'char_1' => 'required|string|size:1',
+            'char_2' => 'required|string|size:1',
+            'char_3' => 'required|string|size:1',
+            'char_4' => 'required|string|size:1',
+            'char_5' => 'required|string|size:1',
         ]);
 
         $correctAnswers     = session('bot_challenge_answers');
@@ -78,7 +83,10 @@ class BotChallengeController extends Controller
         }
 
         // Case-insensitive comparison of the 6-character answer
-        $userChars    = str_split(strtolower($validated['answer']));
+        $userChars = array_map('strtolower', [
+            $validated['char_0'], $validated['char_1'], $validated['char_2'],
+            $validated['char_3'], $validated['char_4'], $validated['char_5'],
+        ]);
         $correctChars = array_map('strtolower', $correctAnswers);
 
         if ($userChars !== $correctChars) {
