@@ -25,6 +25,25 @@ class BitcoinRepository
     }
 
     /**
+     * Check whether the Bitcoin RPC node is reachable.
+     */
+    public function isRpcAvailable(): bool
+    {
+        $host = config('bitcoinrpc.host', '127.0.0.1');
+        $port = (int) config('bitcoinrpc.port', 8332);
+
+        $socket = @fsockopen($host, $port, $errno, $errstr, 2);
+
+        if ($socket) {
+            fclose($socket);
+            return true;
+        }
+
+        Log::error("Bitcoin RPC port {$port} not reachable: {$errstr} ({$errno})");
+        return false;
+    }
+
+    /**
      * Create or get Bitcoin wallet for user.
      */
     public static function getOrCreateWalletForUser(User $user): BtcWallet
