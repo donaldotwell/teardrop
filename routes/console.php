@@ -11,14 +11,14 @@ use App\Jobs\UpdateVendorEarlyFinalizationStats;
 // Transaction sync — every minute, 5-minute overlap lock expiry so a crashed run
 // doesn't block syncs for 24 hours (Laravel's default withoutOverlapping expiry).
 Schedule::command('bitcoin:sync')
-    ->everyMinute()
+    ->everyFiveMinutes()
     ->withoutOverlapping(5)
     ->onFailure(function () {
         Log::error('Bitcoin sync command failed');
     });
 
 Schedule::command('monero:sync')
-    ->everyMinute()
+    ->everyFiveMinutes()
     ->withoutOverlapping(5)
     ->onFailure(function () {
         Log::error('Monero sync command failed');
