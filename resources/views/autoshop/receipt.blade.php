@@ -38,11 +38,6 @@
                 <div class="text-xs text-gray-400">${{ number_format($purchase->total_usd, 2) }} USD</div>
             </div>
         </div>
-        @if($purchase->txid)
-        <div class="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400">
-            TX: <span class="font-mono">{{ $purchase->txid }}</span>
-        </div>
-        @endif
         <div class="mt-2 text-xs text-gray-400">
             Purchased {{ $purchase->created_at->format('M d, Y H:i') }}
         </div>
