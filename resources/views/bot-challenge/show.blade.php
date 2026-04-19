@@ -6,138 +6,132 @@
     <title>Security Verification — {{ config('app.name') }}</title>
     @vite(['resources/css/app.css'])
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-amber-50 min-h-screen flex flex-col items-center justify-center p-4">
 
-    <div class="max-w-2xl w-full">
+    {{-- Site name --}}
+    <div class="mb-6 text-center">
+        <span class="text-2xl font-bold text-amber-800 tracking-tight">{{ config('app.name') }}</span>
+        <p class="text-xs text-amber-600 mt-0.5 uppercase tracking-widest">Secure Access</p>
+    </div>
 
-        {{-- Branding --}}
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-1">{{ config('app.name') }}</h1>
-            <p class="text-sm text-gray-500">Secure Marketplace</p>
-        </div>
+    <div class="w-full max-w-lg">
 
-        {{-- Challenge Card --}}
-        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-6">
+        {{-- Main challenge card --}}
+        <div class="bg-white border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
 
-            <div class="text-center mb-6">
-                <h2 class="text-lg font-bold text-gray-900 mb-1">Security Verification</h2>
-                <p class="text-sm text-gray-500">Type the missing characters from the address below</p>
+            {{-- Card header --}}
+            <div class="bg-amber-600 px-6 py-4">
+                <h1 class="text-base font-semibold text-white">Human Verification</h1>
+                <p class="text-xs text-amber-100 mt-0.5">Identify the missing characters in the address</p>
             </div>
 
-            {{-- Error --}}
-            @if($errors->any())
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-5">
-                    @foreach($errors->all() as $error)
-                        <p class="text-sm text-red-800">{{ $error }}</p>
-                    @endforeach
-                </div>
-            @endif
+            <div class="px-6 py-5">
 
-            {{-- Attempts warning --}}
-            @if($remainingAttempts < 3)
-                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5">
-                    <p class="text-sm text-amber-800 font-medium">
-                        {{ $remainingAttempts }} attempt(s) remaining before lockout.
-                    </p>
-                </div>
-            @endif
-
-            {{-- Masked URL display --}}
-            <div class="mb-6">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 text-center">Site Address</p>
-                <div class="bg-gray-900 rounded-lg px-5 py-4 overflow-x-auto">
-                    <p class="font-mono text-base text-center whitespace-nowrap leading-relaxed">
-                        @foreach(str_split($maskedUrl) as $char)
-                            @if($char === '_')
-                                <span class="text-amber-400 font-bold border-b-2 border-amber-400 px-px">_</span>
-                            @else
-                                <span class="text-gray-200">{{ $char }}</span>
-                            @endif
+                {{-- Errors --}}
+                @if($errors->any())
+                    <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+                        @foreach($errors->all() as $error)
+                            <p class="text-sm text-red-700">{{ $error }}</p>
                         @endforeach
+                    </div>
+                @endif
+
+                {{-- Attempts warning --}}
+                @if($remainingAttempts < 3)
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4">
+                        <p class="text-sm text-amber-800 font-medium">
+                            {{ $remainingAttempts }} attempt{{ $remainingAttempts !== 1 ? 's' : '' }} remaining before lockout.
+                        </p>
+                    </div>
+                @endif
+
+                {{-- Challenge image --}}
+                <div class="mb-5">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Site Address</p>
+                    <div class="bg-gray-900 rounded-xl p-3 flex items-center justify-center overflow-x-auto">
+                        <img src="{{ route('bot-challenge.image') }}"
+                             alt="Security challenge — enter the highlighted characters"
+                             class="max-w-full h-auto"
+                             style="image-rendering: pixelated;">
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2 text-center">
+                        Enter the <span class="text-amber-600 font-semibold">highlighted</span> characters in order, left to right.
                     </p>
                 </div>
-                <p class="text-xs text-gray-400 text-center mt-2">
-                    The <span class="text-amber-500 font-semibold">highlighted blanks</span> are the characters you need to enter, in order.
-                </p>
+
+                {{-- Answer form --}}
+                <form action="{{ route('bot-challenge.verify') }}" method="POST">
+                    @csrf
+
+                    <div class="mb-4">
+                        <label for="answer" class="block text-sm font-medium text-gray-700 mb-2 text-center">
+                            6 missing characters
+                        </label>
+                        <input
+                            type="text"
+                            id="answer"
+                            name="answer"
+                            maxlength="6"
+                            placeholder="· · · · · ·"
+                            autocomplete="off"
+                            autocorrect="off"
+                            autocapitalize="off"
+                            spellcheck="false"
+                            value="{{ old('answer') }}"
+                            class="block w-full max-w-[200px] mx-auto border-2 border-gray-200 rounded-xl px-4 py-3 text-xl text-center font-mono tracking-[0.5em] bg-white focus:outline-none focus:border-amber-500 @error('answer') border-red-400 @enderror"
+                            required
+                            autofocus>
+                    </div>
+
+                    <button type="submit"
+                            class="w-full py-3 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-semibold rounded-xl transition-colors text-sm">
+                        Verify &rarr;
+                    </button>
+                </form>
             </div>
 
-            {{-- Answer form --}}
-            <form action="{{ route('bot-challenge.verify') }}" method="post">
-                @csrf
-
-                <div class="mb-5">
-                    <label for="answer" class="block text-sm font-medium text-gray-700 mb-2 text-center">
-                        Enter the 6 missing characters (left to right)
-                    </label>
-                    <input
-                        type="text"
-                        id="answer"
-                        name="answer"
-                        maxlength="6"
-                        placeholder="______"
-                        autocomplete="off"
-                        autocorrect="off"
-                        autocapitalize="off"
-                        spellcheck="false"
-                        value="{{ old('answer') }}"
-                        class="block w-full max-w-xs mx-auto border-2 border-gray-300 rounded-lg px-4 py-3 text-2xl text-center font-mono tracking-[0.6em] bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 @error('answer') border-red-400 @enderror"
-                        required
-                        autofocus>
-                </div>
-
-                <button type="submit"
-                        class="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-colors">
-                    Verify
-                </button>
-
-                <p class="text-xs text-gray-400 text-center mt-3">
-                    Wrong challenge? <a href="{{ route('bot-challenge') }}" class="underline hover:text-gray-600">Reload for a new one</a>
-                </p>
-            </form>
-        </div>
-
-        {{-- About strip --}}
-        <div class="bg-white rounded-xl shadow border border-gray-200 p-6 mb-6">
-            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4 text-center">About This Platform</h3>
-            <p class="text-sm text-gray-600 text-center mb-4">
-                A private, secure marketplace for confidential transactions between buyers and vendors.
-            </p>
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 text-center text-xs text-gray-500">
-                <div class="border border-gray-100 rounded-lg p-3">
-                    <div class="font-semibold text-gray-800 mb-0.5">Bitcoin</div>
-                    BTC Payments
-                </div>
-                <div class="border border-gray-100 rounded-lg p-3">
-                    <div class="font-semibold text-gray-800 mb-0.5">Monero</div>
-                    XMR Privacy
-                </div>
-                <div class="border border-gray-100 rounded-lg p-3">
-                    <div class="font-semibold text-gray-800 mb-0.5">Escrow</div>
-                    Buyer Protection
-                </div>
-                <div class="border border-gray-100 rounded-lg p-3">
-                    <div class="font-semibold text-gray-800 mb-0.5">PGP</div>
-                    Encrypted Chat
-                </div>
+            {{-- Card footer --}}
+            <div class="border-t border-gray-100 px-6 py-3 bg-gray-50 flex items-center justify-between text-xs text-gray-400">
+                <a href="{{ route('bot-challenge') }}" class="hover:text-amber-600 transition-colors">
+                    New challenge
+                </a>
+                <span>{{ $remainingAttempts }}/3 attempts left</span>
             </div>
         </div>
 
-        {{-- Account links --}}
-        <div class="flex justify-center gap-3 mb-6">
-            <a href="{{ route('register') }}"
-               class="px-5 py-2 border border-amber-600 text-amber-700 font-medium rounded-lg hover:bg-amber-50 transition-colors text-sm">
-                Create Account
-            </a>
+        {{-- Quick links --}}
+        <div class="mt-4 flex justify-center gap-4 text-sm">
             <a href="{{ route('login') }}"
-               class="px-5 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-sm">
+               class="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:border-amber-300 hover:text-amber-700 transition-colors shadow-sm">
                 Sign In
             </a>
+            <a href="{{ route('register') }}"
+               class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors shadow-sm font-medium">
+                Create Account
+            </a>
         </div>
 
-        <div class="text-center">
-            <p class="text-xs text-gray-400">© {{ date('Y') }} {{ config('app.name') }}</p>
+        {{-- Feature strip --}}
+        <div class="mt-5 grid grid-cols-4 gap-2 text-center text-xs text-gray-500">
+            <div class="bg-white border border-gray-100 rounded-lg py-2 px-1 shadow-sm">
+                <div class="font-semibold text-gray-700 text-xs mb-0.5">Bitcoin</div>
+                BTC
+            </div>
+            <div class="bg-white border border-gray-100 rounded-lg py-2 px-1 shadow-sm">
+                <div class="font-semibold text-gray-700 text-xs mb-0.5">Monero</div>
+                XMR
+            </div>
+            <div class="bg-white border border-gray-100 rounded-lg py-2 px-1 shadow-sm">
+                <div class="font-semibold text-gray-700 text-xs mb-0.5">Escrow</div>
+                Protected
+            </div>
+            <div class="bg-white border border-gray-100 rounded-lg py-2 px-1 shadow-sm">
+                <div class="font-semibold text-gray-700 text-xs mb-0.5">PGP</div>
+                Encrypted
+            </div>
         </div>
 
+        <p class="text-center text-xs text-gray-400 mt-5">&copy; {{ date('Y') }} {{ config('app.name') }}</p>
     </div>
 
 </body>

@@ -3,80 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Locked Out - {{ config('app.name') }}</title>
+    <title>Temporarily Locked — {{ config('app.name') }}</title>
     @vite(['resources/css/app.css'])
-    <noscript>
-        <style>.js-warning { display: none; }</style>
-    </noscript>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-amber-50 min-h-screen flex flex-col items-center justify-center p-4">
 
-    <div class="max-w-md w-full">
-        <div class="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
+    {{-- Site name --}}
+    <div class="mb-6 text-center">
+        <span class="text-2xl font-bold text-amber-800 tracking-tight">{{ config('app.name') }}</span>
+        <p class="text-xs text-amber-600 mt-0.5 uppercase tracking-widest">Secure Access</p>
+    </div>
+
+    <div class="w-full max-w-sm">
+
+        <div class="bg-white border border-red-200 rounded-2xl shadow-sm overflow-hidden">
 
             {{-- Header --}}
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span class="text-red-700 font-bold text-2xl">X</span>
+            <div class="bg-red-600 px-6 py-4 text-center">
+                <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <span class="text-white font-bold text-lg leading-none">!</span>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-900 mb-2">Temporarily Locked</h1>
-                <p class="text-sm text-gray-600">Too many failed verification attempts</p>
+                <h1 class="text-base font-semibold text-white">Access Temporarily Locked</h1>
+                <p class="text-xs text-red-100 mt-0.5">Too many failed verification attempts</p>
             </div>
 
-            {{-- Lockout Message --}}
-            <div class="bg-red-50 border border-red-200 rounded p-6 mb-6">
-                <div class="text-center">
-                    <p class="text-lg font-semibold text-red-900 mb-3">
-                        You have been temporarily locked out
-                    </p>
-                    <p class="text-sm text-red-800 mb-4">
-                        After 3 failed verification attempts, access is restricted for security reasons.
-                    </p>
-                    <div class="bg-white rounded p-4 border border-red-200">
-                        <p class="text-xs text-gray-600 mb-1">Time remaining:</p>
-                        <p class="text-2xl font-bold text-red-700">
-                            {{ $remainingMinutes }} minute{{ $remainingMinutes !== 1 ? 's' : '' }}
-                        </p>
-                    </div>
+            <div class="px-6 py-5">
+
+                {{-- Countdown --}}
+                <div class="bg-red-50 border border-red-200 rounded-xl p-5 mb-4 text-center">
+                    <p class="text-xs text-red-600 uppercase tracking-wide font-medium mb-1">Time remaining</p>
+                    <p class="text-4xl font-bold text-red-700">{{ $remainingMinutes }}<span class="text-lg font-normal ml-1">min</span></p>
                 </div>
+
+                {{-- Info --}}
+                <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5 text-xs text-amber-800 space-y-1">
+                    <p class="font-medium">What now?</p>
+                    <p>Wait {{ $remainingMinutes }} minute{{ $remainingMinutes !== 1 ? 's' : '' }}, then return to try again.</p>
+                    <p>You will receive 3 fresh attempts after the lockout expires.</p>
+                </div>
+
+                <form action="{{ route('bot-challenge') }}" method="GET">
+                    <button type="submit"
+                            class="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl transition-colors text-sm">
+                        Check Status
+                    </button>
+                </form>
             </div>
 
-            {{-- What to do --}}
-            <div class="bg-blue-50 border border-blue-200 rounded p-4 mb-6">
-                <h3 class="font-semibold text-blue-900 mb-2 text-sm">What can you do?</h3>
-                <ul class="text-xs text-blue-800 space-y-2 list-disc list-inside">
-                    <li>Wait for the lockout period to expire</li>
-                    <li>Return to this page after {{ $remainingMinutes }} minutes</li>
-                    <li>You will get 3 new attempts after the lockout expires</li>
-                </ul>
-            </div>
-
-            {{-- Refresh Button --}}
-            <form action="{{ route('bot-challenge') }}" method="get">
-                <button type="submit"
-                        class="w-full px-6 py-3 bg-gray-600 text-white font-semibold rounded hover:bg-gray-700 transition">
-                    Check Status
-                </button>
-            </form>
-
-            {{-- Security Info --}}
-            <div class="mt-6 pt-6 border-t border-gray-200">
-                <div class="text-xs text-gray-600 space-y-2">
-                    <p><strong>Why am I seeing this?</strong></p>
-                    <p>
-                        This security measure protects {{ config('app.name') }} from automated bots
-                        and malicious activity. The lockout will automatically expire after 30 minutes.
-                    </p>
-                </div>
+            <div class="border-t border-gray-100 px-6 py-3 bg-gray-50 text-xs text-gray-400 text-center">
+                Lockout resets automatically after 30 minutes.
             </div>
         </div>
 
-        {{-- Footer --}}
-        <div class="text-center mt-6">
-            <p class="text-sm text-gray-600">
-                © {{ date('Y') }} {{ config('app.name') }}. All rights reserved.
-            </p>
-        </div>
+        <p class="text-center text-xs text-gray-400 mt-5">&copy; {{ date('Y') }} {{ config('app.name') }}</p>
     </div>
 
 </body>

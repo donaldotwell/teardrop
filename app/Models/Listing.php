@@ -256,6 +256,25 @@ class Listing extends Model
     }
 
     /**
+     * Scope: only listings that have stock available.
+     * Pushes the sold-quantity check into SQL to avoid N+1 queries.
+     */
+    public function scopeInStock(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where(function (\Illuminate\Database\Eloquent\Builder $q) {
+            $q->whereNull('listings.quantity') // unlimited
+              ->orWhereRaw(
+                  'listings.quantity > (
+                      SELECT COALESCE(SUM(o.quantity), 0)
+                      FROM orders o
+                      WHERE o.listing_id = listings.id
+                        AND o.status IN (\'pending\', \'shipped\', \'completed\')
+                  )'
+              );
+        });
+    }
+
+    /**
      * Check if listing is in stock.
      *
      * @return bool
