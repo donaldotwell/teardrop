@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\AdminCanaryController;
 use App\Http\Controllers\Admin\AdminBtcWalletController;
 use App\Http\Controllers\Admin\AdminXmrWalletController;
 use App\Http\Controllers\Admin\AdminSettingsController;
+use App\Http\Controllers\Admin\AdminAutoshopController;
 use Illuminate\Support\Facades\Route;
 
 // Admin routes - protected by admin middleware
@@ -205,5 +206,11 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
 
     // Harm Reduction Content Management
     Route::resource('harm-reduction', \App\Http\Controllers\Admin\AdminHarmReductionController::class)->except(['show']);
+
+    // Autoshop reporting
+    Route::prefix('autoshop')->name('autoshop.')->group(function () {
+        Route::get('/',                  [AdminAutoshopController::class, 'index'])      ->name('index');
+        Route::post('/base/{base}/toggle', [AdminAutoshopController::class, 'toggleBase'])->name('toggle-base');
+    });
 
 });

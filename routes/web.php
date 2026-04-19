@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BotChallengeController;
+use App\Http\Controllers\AutoshopController;
 use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\ForumCommentController;
 use App\Http\Controllers\ForumPostController;
@@ -17,7 +18,6 @@ use App\Http\Controllers\AuthController;
 // Bot Challenge Routes (no auth required)
 Route::get('/bot-challenge', [BotChallengeController::class, 'show'])->name('bot-challenge');
 Route::post('/bot-challenge/verify', [BotChallengeController::class, 'verify'])->name('bot-challenge.verify');
-Route::get('/bot-challenge/image', [BotChallengeController::class, 'image'])->name('bot-challenge.image');
 Route::get('/bot-challenge/locked', [BotChallengeController::class, 'locked'])->name('bot-challenge.locked');
 
 // Auth routes
@@ -201,6 +201,15 @@ Route::middleware('auth')->prefix('disputes')->name('disputes.')->group(function
     Route::post('/{dispute}/mark-read', [DisputeController::class, 'markMessagesRead'])->name('mark-read');
 
 
+});
+
+// Autoshop — buyer browsing and purchasing
+Route::middleware('auth')->prefix('autoshop')->name('autoshop.')->group(function () {
+    Route::get('/',                          [AutoshopController::class, 'index'])       ->name('index');
+    Route::get('/base/{base}',               [AutoshopController::class, 'show'])        ->name('show');
+    Route::post('/purchase',                 [AutoshopController::class, 'purchase'])    ->name('purchase');
+    Route::get('/my-purchases',              [AutoshopController::class, 'myPurchases']) ->name('my-purchases');
+    Route::get('/my-purchases/{purchase}',   [AutoshopController::class, 'receipt'])     ->name('receipt');
 });
 
 Route::middleware('auth')->prefix('forum')->name('forum.')->group(function () {

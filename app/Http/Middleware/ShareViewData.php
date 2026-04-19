@@ -49,6 +49,7 @@ class ShareViewData
         
         $navigation_links = [
             'Home' => route('home'),
+            'Autoshop' => route('autoshop.index'),
             'Orders' => route('orders.index'),
             'Messages' => route('messages.index'),
             'Wallets' => route('wallet.index'),

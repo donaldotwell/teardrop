@@ -183,6 +183,11 @@
                               {{ request()->routeIs('vendor.analytics') ? 'bg-yellow-100 text-yellow-700' : '' }}">
                         Analytics
                     </a>
+                    <a href="{{ route('vendor.autoshop.index') }}"
+                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                              {{ request()->routeIs('vendor.autoshop.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                        Autoshop
+                    </a>
                 </div>
 
                 {{-- Mobile Navigation Toggle --}}

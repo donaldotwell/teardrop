@@ -181,6 +181,12 @@
 
             {{-- Row 2: Content & Settings --}}
             <div class="flex flex-wrap items-center gap-1 pt-2">
+                <a href="{{ route('admin.autoshop.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.autoshop.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Autoshop
+                </a>
+                <span class="text-gray-300 mx-1">|</span>
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 mr-2 select-none">Content</span>
                 <span class="text-gray-300 mr-1">|</span>
                 <a href="{{ route('admin.product-categories.index') }}"
