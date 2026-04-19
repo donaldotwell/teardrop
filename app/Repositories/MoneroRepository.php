@@ -169,7 +169,7 @@ class MoneroRepository
             // Sync wallet to chain tip — only scan from known height to avoid full blockchain scan
             if ($refresh) {
                 $refreshParams = $startHeight !== null ? ['start_height' => $startHeight] : [];
-                $this->rpcCall('refresh', $refreshParams, 300);
+                // $this->rpcCall('refresh', $refreshParams, 300);
                 Log::debug("[withWallet] Refreshed wallet '{$walletName}'" . ($startHeight ? " from height {$startHeight}" : ''));
             }
 
@@ -295,7 +295,7 @@ class MoneroRepository
                         'filename' => $walletName,
                         'password' => $password,
                     ]);
-                    $this->rpcCall('refresh');
+                    // $this->rpcCall('refresh');
                 } else {
                     throw $e;
                 }
@@ -306,7 +306,7 @@ class MoneroRepository
             $currentHeight = $heightData['height'] ?? 0;
 
             // Refresh from current height only — new wallet has no history before now
-            $this->rpcCall('refresh', ['start_height' => $currentHeight], 30);
+            // $this->rpcCall('refresh', ['start_height' => $currentHeight], 30);
 
             // Primary address (account 0, index 0)
             $addressData = $this->rpcCall('get_address', [
