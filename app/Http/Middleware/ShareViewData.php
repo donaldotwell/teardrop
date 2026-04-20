@@ -47,20 +47,14 @@ class ShareViewData
             'xmr' => ['balance' => 0, 'unlocked_balance' => 0, 'usd_value' => 0]
         ];
         
+        // Core nav — actions users hit on every session.
+        // Secondary links (Autoshop, Forums, Disputes, Rules, etc.) live in the footer.
         $navigation_links = [
-            'Home' => route('home'),
-            'Autoshop' => route('autoshop.index'),
-            'Orders' => route('orders.index'),
+            'Home'     => route('home'),
+            'Orders'   => route('orders.index'),
             'Messages' => route('messages.index'),
-            'Wallets' => route('wallet.index'),
-            'Profile' => route('profile.show'),
-            'Disputes' => route('disputes.index'),
-            'Tickets' => route('support.index'),
-            'Forums' => route('forum.index'),
-            'Staff Keys' => route('market-keys'),
-            'Canary' => route('canary'),
-            'Site Rules' => route('rules'),
-            'Harm Reduction' => route('harm-reduction'),
+            'Wallets'  => route('wallet.index'),
+            'Profile'  => route('profile.show'),
         ];
 
         // Load user-specific data if authenticated
@@ -73,7 +67,7 @@ class ShareViewData
             // Get actual balance
             $balance = $user->getBalance();
 
-            // Add role-specific navigation links
+            // Role-specific links
             if ($user->hasRole('user')) {
                 $navigation_links['Start Selling'] = route('vendor.convert');
             }

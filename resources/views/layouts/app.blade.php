@@ -239,7 +239,27 @@
     <!-- Footer -->
     <footer class="bg-gray-900 border-t border-gray-800 mt-8">
         <div class="max-w-7xl mx-auto px-4 py-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                <!-- Marketplace -->
+                <div>
+                    <h3 class="text-amber-400 font-semibold mb-3 text-sm uppercase">Marketplace</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="{{ route('home') }}" class="text-gray-400 hover:text-amber-400">Browse Listings</a></li>
+                        <li><a href="{{ route('autoshop.index') }}" class="text-gray-400 hover:text-amber-400">Autoshop</a></li>
+                        <li><a href="{{ route('forum.index') }}" class="text-gray-400 hover:text-amber-400">Forums</a></li>
+                    </ul>
+                </div>
+
+                <!-- Account -->
+                <div>
+                    <h3 class="text-amber-400 font-semibold mb-3 text-sm uppercase">Account</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="{{ route('disputes.index') }}" class="text-gray-400 hover:text-amber-400">Disputes</a></li>
+                        <li><a href="{{ route('support.index') }}" class="text-gray-400 hover:text-amber-400">Support</a></li>
+                        <li><a href="{{ route('harm-reduction') }}" class="text-gray-400 hover:text-amber-400">Harm Reduction</a></li>
+                    </ul>
+                </div>
+
                 <!-- About -->
                 <div>
                     <h3 class="text-amber-400 font-semibold mb-3 text-sm uppercase">About</h3>
@@ -249,27 +269,7 @@
                         <li><a href="{{ route('canary') }}" class="text-gray-400 hover:text-amber-400">Warrant Canary</a></li>
                     </ul>
                 </div>
-                
-                <!-- Help & Safety -->
-                <div>
-                    <h3 class="text-amber-400 font-semibold mb-3 text-sm uppercase">Help & Safety</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="{{ route('harm-reduction') }}" class="text-gray-400 hover:text-amber-400">Harm Reduction</a></li>
-                        <li><a href="{{ route('support.index') }}" class="text-gray-400 hover:text-amber-400">Support Tickets</a></li>
-                        <li><a href="{{ route('disputes.index') }}" class="text-gray-400 hover:text-amber-400">Dispute Center</a></li>
-                    </ul>
-                </div>
-                
-                <!-- Community -->
-                <div>
-                    <h3 class="text-amber-400 font-semibold mb-3 text-sm uppercase">Community</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="{{ route('forum.index') }}" class="text-gray-400 hover:text-amber-400">Forums</a></li>
-                        <li><a href="{{ route('messages.index') }}" class="text-gray-400 hover:text-amber-400">Messages</a></li>
-                        <li><a href="{{ route('home') }}" class="text-gray-400 hover:text-amber-400">Marketplace</a></li>
-                    </ul>
-                </div>
-                
+
                 <!-- Exchange Rates -->
                 <div>
                     <h3 class="text-amber-400 font-semibold mb-3 text-sm uppercase">Exchange Rates</h3>
@@ -291,7 +291,7 @@
                     @endif
                 </div>
             </div>
-            
+
             <div class="pt-4 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p class="text-xs text-gray-500">
                     &copy; {{ date('Y') }} {{ config('app.name') }} - All rights reserved

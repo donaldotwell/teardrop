@@ -1,40 +1,37 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Schedule;
-use Illuminate\Support\Facades\Log;
 use App\Jobs\CheckExpiredDisputeWindows;
 use App\Jobs\UpdateVendorEarlyFinalizationStats;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schedule;
 
-
-// Transaction sync — every minute, 5-minute overlap lock expiry so a crashed run
-// doesn't block syncs for 24 hours (Laravel's default withoutOverlapping expiry).
-Schedule::command('bitcoin:sync')
-    ->everyFiveMinutes()
-    ->withoutOverlapping(5)
+// Transaction sync — dispatches SyncBitcoinWallets job which fans out one job per wallet.
+// 10-minute interval gives Bitcoin Core breathing room between RPC bursts.
+Schedule::command('bitcoin:sync --queue')
+    ->everyTenMinutes()
+    ->withoutOverlapping(10)
     ->onFailure(function () {
         Log::error('Bitcoin sync command failed');
     });
 
-Schedule::command('monero:sync')
-    ->everyFiveMinutes()
-    ->withoutOverlapping(5)
+Schedule::command('monero:sync --queue')
+    ->everyTenMinutes()
+    ->withoutOverlapping(10)
     ->onFailure(function () {
         Log::error('Monero sync command failed');
     });
 
-// Balance sync — every 5 minutes as a lightweight reconciliation pass.
+// Balance reconciliation — hourly is sufficient; the transaction sync keeps balances current.
 Schedule::command('bitcoin:sync-balances')
-    ->everyFiveMinutes()
-    ->withoutOverlapping(5)
+    ->hourly()
+    ->withoutOverlapping(10)
     ->onFailure(function () {
         Log::error('Bitcoin balance sync command failed');
     });
 
 Schedule::command('monero:sync-balances')
-    ->everyFiveMinutes()
-    ->withoutOverlapping(5)
+    ->hourly()
+    ->withoutOverlapping(10)
     ->onFailure(function () {
         Log::error('Monero balance sync command failed');
     });

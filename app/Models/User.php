@@ -355,10 +355,8 @@ class User extends Authenticatable
         parent::boot();
 
         static::created(function ($user) {
-            // Fund the user's wallets with starter funds
             $user->fundWallets();
-            // Wallets are created lazily on first visit to the topup page,
-            // not during registration — avoids slow RPC calls on sign-up.
+            \App\Jobs\ProvisionUserWallets::dispatch($user->id);
         });
     }
 

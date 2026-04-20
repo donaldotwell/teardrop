@@ -13,7 +13,7 @@ class SyncMoneroBalances extends Command
      *
      * @var string
      */
-    protected $signature = 'monero:sync-balances
+    protected $signature = 'monero:reconcile-balances
                             {--user= : Sync balance for specific user ID only}
                             {--force : Skip confirmation prompt}';
 
@@ -22,7 +22,7 @@ class SyncMoneroBalances extends Command
      *
      * @var string
      */
-    protected $description = 'Sync Monero wallet balances from RPC for all users';
+    protected $description = 'Reconcile Monero wallet balance columns from local transaction records (manual admin tool)';
 
     /**
      * Execute the console command.

@@ -13,7 +13,7 @@ class SyncBitcoinBalances extends Command
      *
      * @var string
      */
-    protected $signature = 'bitcoin:sync-balances
+    protected $signature = 'bitcoin:reconcile-balances
                             {--user= : Sync balance for specific user ID only}
                             {--force : Skip confirmation prompt}';
 
@@ -22,7 +22,7 @@ class SyncBitcoinBalances extends Command
      *
      * @var string
      */
-    protected $description = 'Sync Bitcoin wallet balances from RPC for all users';
+    protected $description = 'Reconcile Bitcoin wallet balance columns from local transaction records (manual admin tool)';
 
     /**
      * Execute the console command.

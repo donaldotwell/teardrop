@@ -54,20 +54,20 @@ class SyncBitcoinWalletBalances extends Command
         $walletId = $this->option('wallet');
 
         if ($walletId) {
-            $wallets = BtcWallet::where('id', $walletId)->where('is_active', true)->get();
-            
-            if ($wallets->isEmpty()) {
+            $total = BtcWallet::where('id', $walletId)->where('is_active', true)->count();
+
+            if ($total === 0) {
                 $this->warn("No active wallet found with ID {$walletId}");
                 return 1;
             }
 
             $this->info("Targeting specific wallet: ID {$walletId}");
         } else {
-            $wallets = BtcWallet::where('is_active', true)->get();
-            $this->info("Found {$wallets->count()} active Bitcoin wallets");
+            $total = BtcWallet::where('is_active', true)->count();
+            $this->info("Found {$total} active Bitcoin wallets");
         }
 
-        if ($wallets->isEmpty()) {
+        if ($total === 0) {
             $this->warn('No active Bitcoin wallets found.');
             return 0;
         }
@@ -78,47 +78,51 @@ class SyncBitcoinWalletBalances extends Command
         $failureCount = 0;
         $skippedCount = 0;
 
-        $progressBar = $this->output->createProgressBar($wallets->count());
+        $progressBar = $this->output->createProgressBar($total);
         $progressBar->start();
 
-        foreach ($wallets as $wallet) {
-            try {
-                // Validate wallet exists and has associated user
-                if (!$wallet->user) {
-                    $this->warn("Wallet {$wallet->id} has no associated user, skipping.");
-                    $skippedCount++;
-                    $progressBar->advance();
-                    continue;
+        $query = BtcWallet::where('is_active', true);
+        if ($walletId) {
+            $query->where('id', $walletId);
+        }
+
+        $query->chunkById(100, function ($wallets) use ($repository, $progressBar, &$successCount, &$failureCount, &$skippedCount) {
+            foreach ($wallets as $wallet) {
+                try {
+                    if (!$wallet->user) {
+                        $this->warn("Wallet {$wallet->id} has no associated user, skipping.");
+                        $skippedCount++;
+                        $progressBar->advance();
+                        continue;
+                    }
+
+                    $rpcBalance = $repository->getWalletBalance($wallet->name);
+
+                    $wallet->update([
+                        'balance' => $rpcBalance,
+                        'last_synced_at' => now(),
+                    ]);
+
+                    Log::debug("Bitcoin wallet balance synced", [
+                        'wallet_id' => $wallet->id,
+                        'user_id' => $wallet->user_id,
+                        'balance' => $rpcBalance,
+                    ]);
+
+                    $successCount++;
+
+                } catch (\Exception $e) {
+                    $this->warn("Failed to sync wallet {$wallet->id}: {$e->getMessage()}");
+                    Log::error("Bitcoin wallet balance sync failed", [
+                        'wallet_id' => $wallet->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $failureCount++;
                 }
 
-                // Get RPC balance for this wallet
-                $rpcBalance = $repository->getWalletBalance($wallet->name);
-
-                // Update wallet balance in database
-                $wallet->update([
-                    'balance' => $rpcBalance,
-                    'last_synced_at' => now(),
-                ]);
-
-                Log::debug("Bitcoin wallet balance synced", [
-                    'wallet_id' => $wallet->id,
-                    'user_id' => $wallet->user_id,
-                    'balance' => $rpcBalance,
-                ]);
-
-                $successCount++;
-
-            } catch (\Exception $e) {
-                $this->warn("Failed to sync wallet {$wallet->id}: {$e->getMessage()}");
-                Log::error("Bitcoin wallet balance sync failed", [
-                    'wallet_id' => $wallet->id,
-                    'error' => $e->getMessage(),
-                ]);
-                $failureCount++;
+                $progressBar->advance();
             }
-
-            $progressBar->advance();
-        }
+        });
 
         $progressBar->finish();
         $this->newLine(2);

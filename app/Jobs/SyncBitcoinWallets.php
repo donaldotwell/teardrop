@@ -2,118 +2,84 @@
 
 namespace App\Jobs;
 
+use App\Models\BtcWallet;
+use App\Models\EscrowWallet;
 use App\Repositories\BitcoinRepository;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
-class SyncBitcoinWallets implements ShouldQueue
+class SyncBitcoinWallets implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /**
-     * The number of times the job may be attempted.
-     */
     public int $tries = 3;
+    public int $timeout = 120;
+    public int $uniqueFor = 600;
 
-    /**
-     * The maximum number of seconds the job can run.
-     */
-    public int $timeout = 300;
-
-    /**
-     * The number of seconds after which the job's unique lock will be released.
-     */
-    public int $uniqueFor = 300;
-
-    /**
-     * Create a new job instance.
-     */
-    public function __construct()
-    {
-        //
-    }
-
-    /**
-     * Get the unique ID for the job to prevent concurrent execution.
-     */
     public function uniqueId(): string
     {
         return 'bitcoin-wallet-sync';
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle(): void
     {
-        Log::debug("SyncBitcoinWallets job started at " . now()->toDateTimeString());
+        Log::debug('SyncBitcoinWallets dispatcher started');
 
-        // Use cache lock to prevent concurrent execution
-        $lock = Cache::lock('bitcoin:sync:lock', 300);
+        $repository = new BitcoinRepository();
 
-        if (!$lock->get()) {
-            Log::warning('Bitcoin sync already running, skipping');
+        if (!$repository->isRpcAvailable()) {
+            Log::warning('Bitcoin RPC unavailable — skipping sync dispatch');
             return;
         }
 
-        try {
-            Log::info('Starting Bitcoin wallet synchronization');
+        // Dispatch one job per active user wallet — memory stays flat regardless of wallet count.
+        $dispatched = 0;
+        BtcWallet::where('is_active', true)->chunkById(100, function ($wallets) use (&$dispatched) {
+            foreach ($wallets as $wallet) {
+                SyncSingleBtcWallet::dispatch($wallet->id);
+                $dispatched++;
+            }
+        });
 
-            $startTime = microtime(true);
+        Log::info("SyncBitcoinWallets: dispatched {$dispatched} per-wallet sync jobs");
 
-            // Sync user wallets
-            BitcoinRepository::syncAllWallets();
+        // Escrow wallets are few; sync inline to keep funded-order detection timely.
+        $escrowCount = 0;
+        EscrowWallet::where('currency', 'btc')
+            ->where('status', 'active')
+            ->chunkById(50, function ($escrowWallets) use (&$escrowCount) {
+                foreach ($escrowWallets as $escrowWallet) {
+                    try {
+                        $btcWallet = BtcWallet::where('name', $escrowWallet->wallet_name)->first();
+                        if (!$btcWallet) {
+                            continue;
+                        }
 
-            // Sync escrow wallets
-            $activeEscrowWallets = \App\Models\EscrowWallet::where('currency', 'btc')
-                ->where('status', 'active')
-                ->get();
+                        BitcoinRepository::syncWalletTransactions($btcWallet);
+                        $escrowWallet->updateBalance();
 
-            Log::debug("Found {$activeEscrowWallets->count()} active Bitcoin escrow wallets to sync");
+                        if (!$escrowWallet->order->escrow_funded_at && $escrowWallet->balance > 0) {
+                            $escrowWallet->order->update(['escrow_funded_at' => now()]);
+                            Log::info("Escrow funded for order #{$escrowWallet->order_id}");
+                        }
 
-            foreach ($activeEscrowWallets as $escrowWallet) {
-                $btcWallet = \App\Models\BtcWallet::where('name', $escrowWallet->wallet_name)->first();
-                if ($btcWallet) {
-                    Log::debug("Syncing escrow wallet: {$escrowWallet->wallet_name}");
-                    BitcoinRepository::syncWalletTransactions($btcWallet);
-
-                    // Update escrow balance
-                    $escrowWallet->updateBalance();
-
-                    // Check if escrow is now funded
-                    if (!$escrowWallet->order->escrow_funded_at && $escrowWallet->balance > 0) {
-                        $escrowWallet->order->update([
-                            'escrow_funded_at' => now(),
-                        ]);
-                        Log::info("Escrow wallet funded for order #{$escrowWallet->order_id}");
+                        $escrowCount++;
+                    } catch (\Exception $e) {
+                        Log::error("Escrow wallet sync failed for order #{$escrowWallet->order_id}: {$e->getMessage()}");
                     }
                 }
-            }
+            });
 
-            $duration = round(microtime(true) - $startTime, 2);
-
-            Log::info("Bitcoin wallet synchronization completed successfully in {$duration} seconds");
-            Log::debug("SyncBitcoinWallets job finished at " . now()->toDateTimeString());
-        } catch (\Exception $e) {
-            Log::error('Bitcoin wallet synchronization failed: ' . $e->getMessage());
-            Log::debug("Stack trace: " . $e->getTraceAsString());
-            throw $e;
-        } finally {
-            $lock->release();
-            Log::debug("Cache lock released");
-        }
+        Log::debug("SyncBitcoinWallets: synced {$escrowCount} escrow wallets inline");
     }
 
-    /**
-     * Handle a job failure.
-     */
     public function failed(\Throwable $exception): void
     {
-        Log::error('Bitcoin wallet sync job failed: ' . $exception->getMessage());
+        Log::error('SyncBitcoinWallets dispatcher failed: ' . $exception->getMessage());
     }
 }
