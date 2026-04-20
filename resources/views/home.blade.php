@@ -9,53 +9,63 @@
         <div class="lg:col-span-1 space-y-6">
 
             {{-- User Profile Card --}}
-            <div class="bg-white rounded-lg border border-gray-200 p-6">
-                <div class="text-center mb-6">
-                    <div class="w-16 h-16 bg-yellow-600 rounded-full mx-auto mb-3 flex items-center justify-center">
-                        <span class="text-white text-xl font-bold">
-                            {{ substr(auth()->user()->username_pub, 0, 1) }}
-                        </span>
-                    </div>
-                    <h3 class="font-semibold text-gray-900">{{ auth()->user()->username_pub }}</h3>
-                    <span class="inline-block bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full mt-2">
-                        Trust Level {{ auth()->user()->trust_level }}
-                    </span>
-                </div>
+            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                {{-- Amber header strip --}}
+                <div class="h-1.5 bg-gradient-to-r from-amber-400 to-amber-600"></div>
 
-                {{-- Wallet Balances --}}
-                <div class="space-y-3 mb-6">
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                        <div>
-                            <div class="text-sm font-medium text-gray-900">Bitcoin</div>
-                            <div class="text-xs text-gray-500">BTC</div>
+                <div class="p-5">
+                    {{-- Avatar + identity --}}
+                    <div class="text-center mb-4">
+                        <div class="w-14 h-14 bg-gradient-to-br from-amber-400 to-amber-700 rounded-full mx-auto mb-2.5 flex items-center justify-center shadow-sm">
+                            <span class="text-white text-xl font-bold">
+                                {{ strtoupper(substr(auth()->user()->username_pub, 0, 1)) }}
+                            </span>
                         </div>
-                        <div class="text-right">
-                            <div class="font-mono text-sm">{{ $user_balance['btc']['balance'] }}</div>
-                            <div class="text-xs text-gray-500">${{ number_format($user_balance['btc']['usd_value'], 2) }}</div>
-                        </div>
-                    </div>
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                        <div>
-                            <div class="text-sm font-medium text-gray-900">Monero</div>
-                            <div class="text-xs text-gray-500">XMR</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-mono text-sm">{{ $user_balance['xmr']['balance'] }}</div>
-                            <div class="text-xs text-gray-500">${{ number_format($user_balance['xmr']['usd_value'], 2) }}</div>
+                        <h3 class="font-semibold text-gray-900 text-sm">{{ auth()->user()->username_pub }}</h3>
+                        <div class="flex items-center justify-center gap-2 mt-1.5">
+                            <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-medium">
+                                TL{{ auth()->user()->trust_level }}
+                            </span>
+                            <span class="text-xs text-gray-400">Member since {{ auth()->user()->created_at->format('M Y') }}</span>
                         </div>
                     </div>
-                </div>
 
-                {{-- Quick Actions --}}
-                <div class="space-y-2">
-                    <a href="{{ route('orders.index') }}"
-                       class="block w-full text-center py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors">
-                        My Orders
-                    </a>
-                    <a href="{{ route('profile.show') }}"
-                       class="block w-full text-center py-2 border border-yellow-600 text-yellow-600 rounded hover:bg-yellow-600 hover:text-white transition-colors">
-                        View Profile
-                    </a>
+                    <div class="border-t border-gray-100 my-4"></div>
+
+                    {{-- Wallet Balances --}}
+                    <div class="space-y-2 mb-4">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Balances</p>
+                        <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-md border-l-2 border-amber-400">
+                            <span class="text-xs font-semibold text-gray-600">BTC</span>
+                            <div class="text-right">
+                                <div class="font-mono text-xs font-semibold text-gray-900">{{ $user_balance['btc']['balance'] }}</div>
+                                <div class="text-[10px] text-gray-400">${{ number_format($user_balance['btc']['usd_value'], 2) }}</div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-md border-l-2 border-gray-300">
+                            <span class="text-xs font-semibold text-gray-600">XMR</span>
+                            <div class="text-right">
+                                <div class="font-mono text-xs font-semibold text-gray-900">{{ $user_balance['xmr']['balance'] }}</div>
+                                <div class="text-[10px] text-gray-400">${{ number_format($user_balance['xmr']['usd_value'], 2) }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Quick Actions --}}
+                    <div class="space-y-2">
+                        <a href="{{ route('orders.index') }}"
+                           class="block w-full text-center py-2 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors font-medium">
+                            My Orders
+                        </a>
+                        <a href="{{ route('autoshop.index') }}"
+                           class="block w-full text-center py-2 text-sm bg-amber-50 border border-amber-300 text-amber-700 rounded-md hover:bg-amber-100 transition-colors font-medium">
+                            Autoshop
+                        </a>
+                        <a href="{{ route('profile.show') }}"
+                           class="block w-full text-center py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                            View Profile
+                        </a>
+                    </div>
                 </div>
             </div>
 
