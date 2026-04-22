@@ -14,16 +14,16 @@
 
     {{-- Base info bar --}}
     <div class="bg-white border border-gray-200 rounded-xl p-5 mb-5">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div class="text-sm text-gray-600">
                 Vendor: <span class="font-medium text-gray-900">{{ $base->vendor->username_pub }}</span>
             </div>
-            <div class="text-right">
+            <div class="sm:text-right">
                 <div class="text-2xl font-bold text-amber-700">${{ number_format($base->price_usd, 2) }}</div>
                 <div class="text-xs text-gray-500">per record</div>
             </div>
         </div>
-        <div class="flex gap-6 mt-3 pt-3 border-t border-gray-100 text-sm text-gray-600">
+        <div class="flex flex-wrap gap-4 mt-3 pt-3 border-t border-gray-100 text-sm text-gray-600">
             <span><strong class="text-green-700">{{ number_format($base->available_count) }}</strong> available</span>
             <span><strong class="text-gray-600">{{ number_format($base->sold_count) }}</strong> sold</span>
         </div>
@@ -36,7 +36,7 @@
         <div class="bg-white border border-gray-200 rounded-xl overflow-hidden mb-5">
             <div class="px-5 py-3 border-b border-amber-100 bg-amber-50">
                 <p class="text-xs text-amber-800">
-                    Select the records you want to purchase. SSN, DOB, address, and phone are revealed after purchase.
+                    Select the records you want to purchase. SSN, DOB, and address are revealed after purchase.
                     Selections apply to <strong>this page only</strong> — paginate to buy more from separate pages.
                 </p>
             </div>
@@ -56,8 +56,7 @@
                                 <th class="px-4 py-2 text-left font-semibold text-gray-700">Name</th>
                                 <th class="px-4 py-2 text-left font-semibold text-gray-700">City</th>
                                 <th class="px-4 py-2 text-left font-semibold text-gray-700">State</th>
-                                <th class="px-4 py-2 text-left font-semibold text-gray-700">ZIP</th>
-                                <th class="px-4 py-2 text-left font-semibold text-gray-700">Gender</th>
+                                <th class="px-4 py-2 text-left font-semibold text-gray-700 hidden sm:table-cell">ZIP</th>
                                 <th class="px-4 py-2 text-right font-semibold text-gray-700">Price</th>
                             </tr>
                         </thead>
@@ -73,8 +72,7 @@
                                 <td class="px-4 py-2 font-medium text-gray-900">{{ $record->name }}</td>
                                 <td class="px-4 py-2 text-gray-600">{{ $record->city ?? '—' }}</td>
                                 <td class="px-4 py-2 text-gray-600">{{ $record->state ?? '—' }}</td>
-                                <td class="px-4 py-2 text-gray-600">{{ $record->zip ?? '—' }}</td>
-                                <td class="px-4 py-2 text-gray-600">{{ $record->gender ?? '—' }}</td>
+                                <td class="px-4 py-2 text-gray-600 hidden sm:table-cell">{{ $record->zip ?? '—' }}</td>
                                 <td class="px-4 py-2 text-right font-mono text-amber-700">${{ number_format($base->price_usd, 2) }}</td>
                             </tr>
                             @endforeach
@@ -85,7 +83,7 @@
                 {{-- Purchase bar --}}
                 <div class="px-5 py-4 border-t border-gray-200 bg-gray-50">
                     <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div class="flex items-center gap-4">
+                        <div class="flex flex-wrap items-center gap-3">
                             <label class="text-sm font-medium text-gray-700">Pay with:</label>
                             <label class="flex items-center gap-1.5 text-sm cursor-pointer">
                                 <input type="radio" name="currency" value="btc" checked class="accent-amber-600">

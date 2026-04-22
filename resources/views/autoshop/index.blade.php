@@ -7,18 +7,18 @@
 @section('content')
 
     {{-- Sub-header --}}
-    <div class="flex items-center justify-between mb-5">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5">
         <p class="text-sm text-gray-500">Browse and purchase records instantly. Payment deducted directly from your wallet.</p>
         <a href="{{ route('autoshop.my-purchases') }}"
-           class="text-sm text-amber-700 hover:underline whitespace-nowrap ml-4">My Purchases</a>
+           class="text-sm text-amber-700 hover:underline whitespace-nowrap sm:ml-4">My Purchases</a>
     </div>
 
-    <div class="flex gap-5">
+    <div class="flex flex-col lg:flex-row gap-5">
 
         {{-- ── Filter sidebar ─────────────────────────────────────────── --}}
-        <aside class="w-52 flex-shrink-0">
+        <aside class="w-full lg:w-52 lg:flex-shrink-0">
             <form method="GET" action="{{ route('autoshop.index') }}">
-                <div class="bg-white border border-gray-200 rounded-xl p-4 space-y-5 sticky top-4">
+                <div class="bg-white border border-gray-200 rounded-xl p-4 space-y-5 lg:sticky lg:top-4">
 
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold text-gray-700 uppercase tracking-wide">Filters</span>
@@ -67,22 +67,6 @@
                             @foreach($states as $st)
                                 <option value="{{ $st }}" {{ request('state') === $st ? 'selected' : '' }}>
                                     {{ $st }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    @endif
-
-                    {{-- Gender --}}
-                    @if($genders->isNotEmpty())
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Gender</label>
-                        <select name="gender"
-                                class="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:border-amber-500 bg-white">
-                            <option value="">Any</option>
-                            @foreach($genders as $g)
-                                <option value="{{ $g }}" {{ request('gender') === $g ? 'selected' : '' }}>
-                                    {{ ucfirst($g) }}
                                 </option>
                             @endforeach
                         </select>
@@ -157,7 +141,7 @@
 
                     {{-- Info bar --}}
                     <div class="px-4 py-2.5 bg-amber-50 border-b border-amber-100 text-xs text-amber-800">
-                        Select records you want to buy. SSN, DOB, address and phone are revealed after purchase.
+                        Select records you want to buy. SSN, DOB, and address are revealed after purchase.
                         All selected records must be from the <strong>same vendor</strong>.
                         Selections apply to this page — paginate to buy across pages.
                     </div>
@@ -170,10 +154,9 @@
                                     <th class="px-3 py-2 text-left font-semibold text-gray-700">Name</th>
                                     <th class="px-3 py-2 text-left font-semibold text-gray-700">City</th>
                                     <th class="px-3 py-2 text-left font-semibold text-gray-700">State</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-gray-700">ZIP</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-gray-700">Gender</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-gray-700">Base</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-gray-700">Vendor</th>
+                                    <th class="px-3 py-2 text-left font-semibold text-gray-700 hidden sm:table-cell">ZIP</th>
+                                    <th class="px-3 py-2 text-left font-semibold text-gray-700 hidden md:table-cell">Base</th>
+                                    <th class="px-3 py-2 text-left font-semibold text-gray-700 hidden md:table-cell">Vendor</th>
                                     <th class="px-3 py-2 text-right font-semibold text-gray-700">Price</th>
                                 </tr>
                             </thead>
@@ -189,13 +172,12 @@
                                     <td class="px-3 py-2 font-medium text-gray-900">{{ $record->name }}</td>
                                     <td class="px-3 py-2 text-gray-600">{{ $record->city ?? '—' }}</td>
                                     <td class="px-3 py-2 text-gray-600">{{ $record->state ?? '—' }}</td>
-                                    <td class="px-3 py-2 text-gray-500">{{ $record->zip ?? '—' }}</td>
-                                    <td class="px-3 py-2 text-gray-600">{{ $record->gender ?? '—' }}</td>
-                                    <td class="px-3 py-2 text-gray-500 text-xs">
+                                    <td class="px-3 py-2 text-gray-500 hidden sm:table-cell">{{ $record->zip ?? '—' }}</td>
+                                    <td class="px-3 py-2 text-gray-500 text-xs hidden md:table-cell">
                                         <a href="{{ route('autoshop.index', ['base_id' => $record->base_id]) }}"
                                            class="hover:text-amber-700">{{ $record->base_name }}</a>
                                     </td>
-                                    <td class="px-3 py-2 text-gray-500 text-xs">
+                                    <td class="px-3 py-2 text-gray-500 text-xs hidden md:table-cell">
                                         <a href="{{ route('autoshop.index', ['vendor_id' => $record->base_vendor_id]) }}"
                                            class="hover:text-amber-700">
                                             {{ $activeBases->firstWhere('vendor_id', $record->base_vendor_id)?->vendor?->username_pub ?? '—' }}
@@ -214,7 +196,7 @@
                 {{-- Purchase bar --}}
                 <div class="bg-white border border-gray-200 rounded-xl px-5 py-4">
                     <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div class="flex items-center gap-5">
+                        <div class="flex flex-wrap items-center gap-3">
                             <label class="text-sm font-medium text-gray-700">Pay with:</label>
                             <label class="flex items-center gap-1.5 text-sm cursor-pointer">
                                 <input type="radio" name="currency" value="btc" checked class="accent-amber-600">
