@@ -80,7 +80,7 @@
             <div class="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="flex flex-col items-center md:items-start gap-4">
                     <a href="{{ route('home') }}">
-                        <img src="{{ asset('logo-h.png') }}" alt="{{ config('app.name') }}" class="h-10 w-auto">
+                        @include('partials.logo', ['class' => 'h-10 w-auto'])
                     </a>
                     <div class="text-center md:text-left">
                         @yield('page-heading')

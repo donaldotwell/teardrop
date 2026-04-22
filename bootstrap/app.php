@@ -38,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Apply security middleware globally to web routes
         $middleware->web(append: [
+            'throttle:global',
             \App\Http\Middleware\BotProtectionMiddleware::class,
             \App\Http\Middleware\UpdateLastSeenAt::class,
             \App\Http\Middleware\CheckUserStatus::class, // Check user status (banned/inactive)

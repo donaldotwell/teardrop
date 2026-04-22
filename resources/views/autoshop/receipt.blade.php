@@ -1,21 +1,20 @@
 @extends('layouts.app')
 
 @section('page-title', 'Purchase Receipt — Autoshop')
+@section('page-heading', 'Purchase Receipt')
+
+@section('breadcrumbs')
+<a href="{{ route('autoshop.index') }}" class="hover:text-gray-900">Autoshop</a>
+<span class="text-gray-400 mx-1">/</span>
+<a href="{{ route('autoshop.my-purchases') }}" class="hover:text-gray-900">My Purchases</a>
+<span class="text-gray-400 mx-1">/</span>
+<span>Receipt</span>
+@endsection
 
 @section('content')
-<div class="max-w-5xl mx-auto px-4 py-8">
-
-    <div class="mb-5">
-        <a href="{{ route('autoshop.my-purchases') }}" class="text-sm text-gray-500 hover:text-gray-700">&larr; My Purchases</a>
-    </div>
-
-    @if(session('success'))
-        <div class="mb-5 p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">{{ session('success') }}</div>
-    @endif
 
     {{-- Purchase summary --}}
     <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-        <h1 class="text-xl font-bold text-gray-900 mb-4">Purchase Receipt</h1>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
             <div>
                 <div class="text-xs text-gray-500 mb-0.5">Base</div>
@@ -38,7 +37,7 @@
                 <div class="text-xs text-gray-400">${{ number_format($purchase->total_usd, 2) }} USD</div>
             </div>
         </div>
-        <div class="mt-2 text-xs text-gray-400">
+        <div class="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
             Purchased {{ $purchase->created_at->format('M d, Y H:i') }}
         </div>
     </div>
@@ -83,5 +82,5 @@
             </table>
         </div>
     </div>
-</div>
+
 @endsection

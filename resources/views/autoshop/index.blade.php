@@ -1,28 +1,17 @@
 @extends('layouts.app')
 
 @section('page-title', 'Autoshop')
+@section('page-heading', 'Autoshop')
+@section('breadcrumbs', 'Autoshop')
 
 @section('content')
-<div class="max-w-7xl mx-auto">
 
-    {{-- Header --}}
+    {{-- Sub-header --}}
     <div class="flex items-center justify-between mb-5">
-        <div>
-            <h1 class="text-xl font-bold text-gray-900">Autoshop</h1>
-            <p class="text-sm text-gray-500">Browse and purchase records instantly. Payment deducted directly from your wallet.</p>
-        </div>
+        <p class="text-sm text-gray-500">Browse and purchase records instantly. Payment deducted directly from your wallet.</p>
         <a href="{{ route('autoshop.my-purchases') }}"
-           class="text-sm text-amber-700 hover:underline whitespace-nowrap">My Purchases</a>
+           class="text-sm text-amber-700 hover:underline whitespace-nowrap ml-4">My Purchases</a>
     </div>
-
-    @if($errors->any())
-        <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
-            @foreach($errors->all() as $e) <p>{{ $e }}</p> @endforeach
-        </div>
-    @endif
-    @if(session('success'))
-        <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">{{ session('success') }}</div>
-    @endif
 
     <div class="flex gap-5">
 
@@ -139,7 +128,7 @@
         <div class="flex-1 min-w-0">
 
             {{-- Result count --}}
-            <div class="flex items-center justify-between mb-3">
+            <div class="mb-3">
                 <p class="text-sm text-gray-500">
                     {{ number_format($records->total()) }} record{{ $records->total() !== 1 ? 's' : '' }} available
                     @if($records->total() > 0) &mdash; ${{ number_format($records->min('price_usd'), 2) }}
@@ -153,8 +142,10 @@
 
             @if($records->isEmpty())
                 <div class="bg-white border border-gray-200 rounded-xl p-12 text-center">
-                    <p class="text-gray-500">No records match your filters.</p>
-                    <a href="{{ route('autoshop.index') }}" class="text-sm text-amber-700 hover:underline mt-2 inline-block">Clear filters</a>
+                    <p class="text-gray-500 mb-3">No records match your filters.</p>
+                    @if(request()->anyFilled(['base_id','vendor_id','state','gender','price_min','price_max','sort']))
+                        <a href="{{ route('autoshop.index') }}" class="text-sm text-amber-700 hover:underline">Clear filters</a>
+                    @endif
                 </div>
             @else
 
@@ -207,7 +198,6 @@
                                     <td class="px-3 py-2 text-gray-500 text-xs">
                                         <a href="{{ route('autoshop.index', ['vendor_id' => $record->base_vendor_id]) }}"
                                            class="hover:text-amber-700">
-                                            {{-- vendor name via base relationship --}}
                                             {{ $activeBases->firstWhere('vendor_id', $record->base_vendor_id)?->vendor?->username_pub ?? '—' }}
                                         </a>
                                     </td>
@@ -252,5 +242,5 @@
             @endif
         </div>
     </div>
-</div>
+
 @endsection

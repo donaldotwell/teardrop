@@ -15,8 +15,10 @@ class BotProtectionMiddleware
      */
     protected $except = [
         'bot-challenge',
+        'bot-challenge/locked',
         'bot-challenge/verify',
         'bot-challenge/image',
+        'goodbye',
         'market-keys',
         'canary',
         'rules',

@@ -8,10 +8,8 @@
     <style>
         .mobile-menu { display: none; }
         #menu-toggle:checked ~ .mobile-menu { display: block; }
-        /* Hide JS warning by default */
-        .js-warning { display: none; }
         @if(app()->environment('production'))
-        /* Full page overlay for production */
+        /* Overlay is visible by default; <noscript> below hides it for no-JS users */
         .js-warning-overlay {
             position: fixed;
             top: 0;
@@ -21,7 +19,7 @@
             background: #dc2626;
             color: white;
             z-index: 9999;
-            display: none;
+            display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -55,6 +53,7 @@
 </div>
 @else
 <noscript>
+    <style>.js-warning { display: none !important; }</style>
     <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 text-center">
         Access granted.
     </div>
@@ -64,19 +63,6 @@
 </div>
 @endif
 
-<script>
-    // Show warning if JavaScript is enabled
-    document.addEventListener('DOMContentLoaded', function() {
-        @if(app()->environment('production'))
-        var overlay = document.querySelector('.js-warning-overlay');
-        if (overlay) overlay.style.display = 'flex';
-        @else
-        var warning = document.querySelector('.js-warning');
-        if (warning) warning.style.display = 'block';
-        @endif
-    });
-</script>
-
 <div class="min-h-screen flex flex-col">
     <!-- Header -->
     <header class="bg-white border-b border-gray-200 shadow-sm">
@@ -85,7 +71,7 @@
                 <!-- Logo/Brand -->
                 <div class="flex items-center">
                     <a href="{{ route('home') }}">
-                        <img src="{{ asset('logo-h.png') }}" alt="{{ config('app.name') }}" class="h-12 w-auto">
+                        @include('partials.logo', ['class' => 'h-12 w-auto'])
                     </a>
                 </div>
 

@@ -18,11 +18,11 @@ use App\Http\Controllers\AuthController;
 // Bot Challenge Routes (no auth required)
 Route::get('/bot-challenge', [BotChallengeController::class, 'show'])->name('bot-challenge');
 Route::get('/bot-challenge/image', [BotChallengeController::class, 'image'])->name('bot-challenge.image');
-Route::post('/bot-challenge/verify', [BotChallengeController::class, 'verify'])->name('bot-challenge.verify');
+Route::post('/bot-challenge/verify', [BotChallengeController::class, 'verify'])->name('bot-challenge.verify')->middleware('throttle:auth-attempts');
 Route::get('/bot-challenge/locked', [BotChallengeController::class, 'locked'])->name('bot-challenge.locked');
 
 // Auth routes
-Route::prefix('auth')->group(function () {
+Route::prefix('auth')->middleware('throttle:auth-attempts')->group(function () {
     // Login routes
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -35,12 +35,17 @@ Route::prefix('auth')->group(function () {
 });
 
 // Account Recovery routes (public - no auth required)
-Route::prefix('recovery')->name('recovery.')->group(function () {
+Route::prefix('recovery')->name('recovery.')->middleware('throttle:auth-attempts')->group(function () {
     Route::get('/', [\App\Http\Controllers\AccountRecoveryController::class, 'showRecoveryForm'])->name('show');
     Route::post('/verify', [\App\Http\Controllers\AccountRecoveryController::class, 'verifyPassphrases'])->name('verify');
     Route::get('/reset-password', [\App\Http\Controllers\AccountRecoveryController::class, 'showResetForm'])->name('reset-password');
     Route::post('/reset-password', [\App\Http\Controllers\AccountRecoveryController::class, 'resetPassword'])->name('reset-password.submit');
 });
+
+// Goodbye page — shown after logout, excluded from bot protection (session is gone)
+Route::get('/goodbye', function () {
+    return view('auth.goodbye');
+})->name('goodbye')->middleware('throttle:auth-attempts');
 
 // Market Keys - Public staff PGP directory (no auth required)
 Route::get('/market-keys', [MarketKeysController::class, 'index'])->name('market-keys');
@@ -121,14 +126,14 @@ Route::middleware('auth')->group(function () {
     // create an order for a listing using get
     Route::get('/listings/{listing}/create', [\App\Http\Controllers\OrderController::class, 'create'])->name('orders.create');
     Route::post('/listings/{listing}/orders', [\App\Http\Controllers\OrderController::class, 'store'])
-        ->name('orders.store');
+        ->name('orders.store')->middleware('throttle:writes');
 
     Route::get('/messages', [\App\Http\Controllers\MessageController::class, 'index'])
         ->name('messages.index');
     Route::get('/messages/{thread}', [\App\Http\Controllers\MessageController::class, 'show'])
         ->name('messages.show');
     Route::post('/messages/{thread}', [\App\Http\Controllers\MessageController::class, 'store'])
-        ->name('messages.store');
+        ->name('messages.store')->middleware('throttle:writes');
     /**
      * Order routes
      */
@@ -141,96 +146,80 @@ Route::middleware('auth')->group(function () {
 
     // vendor routes
     Route::get('/seller/convert', [VendorController::class, 'showConvertForm'])->name('vendor.convert');
-    Route::post('/seller/convert', [VendorController::class, 'convert'])->name('vendor.convert.store');
+    Route::post('/seller/convert', [VendorController::class, 'convert'])->name('vendor.convert.store')->middleware('throttle:writes');
     Route::get('/seller/{user}', [VendorController::class, 'show'])->name('vendor.show');
 
     Route::prefix('support')->name('support.')->group(function () {
-
-        // User ticket management
         Route::get('/', [SupportTicketController::class, 'index'])->name('index');
         Route::get('/create', [SupportTicketController::class, 'create'])->name('create');
-        Route::post('/', [SupportTicketController::class, 'store'])->name('store');
         Route::get('/{supportTicket}', [SupportTicketController::class, 'show'])->name('show');
-        Route::post('/{supportTicket}/message', [SupportTicketController::class, 'addMessage'])->name('add-message');
-        Route::post('/{supportTicket}/close', [SupportTicketController::class, 'closeTicket'])->name('close');
-        Route::post('/{supportTicket}/attachment', [SupportTicketController::class, 'uploadAttachment'])->name('upload-attachment');
         Route::get('/{supportTicket}/attachment/{attachment}/download', [SupportTicketController::class, 'downloadAttachment'])->name('download-attachment');
-        Route::post('/{supportTicket}/mark-read', [SupportTicketController::class, 'markMessagesRead'])->name('mark-read');
 
+        Route::middleware('throttle:writes')->group(function () {
+            Route::post('/', [SupportTicketController::class, 'store'])->name('store');
+            Route::post('/{supportTicket}/message', [SupportTicketController::class, 'addMessage'])->name('add-message');
+            Route::post('/{supportTicket}/close', [SupportTicketController::class, 'closeTicket'])->name('close');
+            Route::post('/{supportTicket}/attachment', [SupportTicketController::class, 'uploadAttachment'])->name('upload-attachment');
+            Route::post('/{supportTicket}/mark-read', [SupportTicketController::class, 'markMessagesRead'])->name('mark-read');
+        });
     });
 
     // Bitcoin wallet routes
     Route::prefix('bitcoin')->name('bitcoin.')->group(function () {
         Route::get('/', [\App\Http\Controllers\BitcoinController::class, 'index'])->name('index');
         Route::get('/topup', [\App\Http\Controllers\BitcoinController::class, 'topup'])->name('topup');
-        Route::post('/withdraw', [\App\Http\Controllers\BitcoinController::class, 'withdraw'])->name('withdraw');
+        Route::post('/withdraw', [\App\Http\Controllers\BitcoinController::class, 'withdraw'])->name('withdraw')->middleware('throttle:withdrawals');
     });
 
     // Monero wallet routes
     Route::prefix('monero')->name('monero.')->group(function () {
         Route::get('/', [\App\Http\Controllers\MoneroController::class, 'index'])->name('index');
         Route::get('/topup', [\App\Http\Controllers\MoneroController::class, 'topup'])->name('topup');
-        Route::post('/withdraw', [\App\Http\Controllers\MoneroController::class, 'withdraw'])->name('withdraw');
+        Route::post('/withdraw', [\App\Http\Controllers\MoneroController::class, 'withdraw'])->name('withdraw')->middleware('throttle:withdrawals');
         Route::get('/transaction/{transaction}', [\App\Http\Controllers\MoneroController::class, 'transaction'])->name('transaction');
     });
 });
 
 // User Disputes Routes
 Route::middleware('auth')->prefix('disputes')->name('disputes.')->group(function () {
-
-    // List user's disputes
     Route::get('/', [DisputeController::class, 'index'])->name('index');
-
-    // Create dispute form
     Route::get('/create/{order}', [DisputeController::class, 'create'])->name('create');
-    Route::post('/create/{order}', [DisputeController::class, 'store'])->name('store');
-
-    // View specific dispute
     Route::get('/{dispute}', [DisputeController::class, 'show'])->name('show');
+    Route::get('/{dispute}/evidence/{evidence}/download', [DisputeController::class, 'downloadEvidence'])->name('evidence.download');
 
-    // Add message to dispute
-    Route::post('/{dispute}/messages', [DisputeController::class, 'addMessage'])->name('messages.store');
-
-    // Upload evidence
-    Route::post('/{dispute}/evidence', [DisputeController::class, 'uploadEvidence'])->name('evidence.store');
-
-    // Download evidence (with access control)
-    Route::get('/{dispute}/evidence/{evidence}/download', [DisputeController::class, 'downloadEvidence'])
-        ->name('evidence.download');
-
-    // Mark messages as read
-    Route::post('/{dispute}/mark-read', [DisputeController::class, 'markMessagesRead'])->name('mark-read');
-
-
+    Route::middleware('throttle:writes')->group(function () {
+        Route::post('/create/{order}', [DisputeController::class, 'store'])->name('store');
+        Route::post('/{dispute}/messages', [DisputeController::class, 'addMessage'])->name('messages.store');
+        Route::post('/{dispute}/evidence', [DisputeController::class, 'uploadEvidence'])->name('evidence.store');
+        Route::post('/{dispute}/mark-read', [DisputeController::class, 'markMessagesRead'])->name('mark-read');
+    });
 });
 
 // Autoshop — buyer browsing and purchasing
 Route::middleware('auth')->prefix('autoshop')->name('autoshop.')->group(function () {
     Route::get('/',                          [AutoshopController::class, 'index'])       ->name('index');
     Route::get('/base/{base}',               [AutoshopController::class, 'show'])        ->name('show');
-    Route::post('/purchase',                 [AutoshopController::class, 'purchase'])    ->name('purchase');
+    Route::post('/purchase',                 [AutoshopController::class, 'purchase'])    ->name('purchase')->middleware('throttle:writes');
     Route::get('/my-purchases',              [AutoshopController::class, 'myPurchases']) ->name('my-purchases');
     Route::get('/my-purchases/{purchase}',   [AutoshopController::class, 'receipt'])     ->name('receipt');
 });
 
 Route::middleware('auth')->prefix('forum')->name('forum.')->group(function () {
-    // Posts
     Route::get('/', [ForumPostController::class, 'index'])->name('index');
     Route::get('/create', [ForumPostController::class, 'create'])->name('posts.create');
-    Route::post('/posts', [ForumPostController::class, 'store'])->name('posts.store');
     Route::get('/posts/{post}', [ForumPostController::class, 'show'])->name('posts.show');
     Route::get('/posts/{post}/edit', [ForumPostController::class, 'edit'])->name('posts.edit');
-    Route::put('/posts/{post}', [ForumPostController::class, 'update'])->name('posts.update');
-    Route::delete('/posts/{post}', [ForumPostController::class, 'destroy'])->name('posts.destroy');
 
-    // Comments
-    Route::post('/posts/{post}/comments', [ForumCommentController::class, 'store'])->name('comments.store');
-    Route::post('/comments/{comment}/reply', [ForumCommentController::class, 'reply'])->name('comments.reply');
-    Route::delete('/comments/{comment}', [ForumCommentController::class, 'destroy'])->name('comments.destroy');
-
-    // Reports
-    Route::post('/posts/{post}/report', [ForumReportController::class, 'reportPost'])->name('posts.report');
-    Route::post('/comments/{comment}/report', [ForumReportController::class, 'reportComment'])->name('comments.report');
+    Route::middleware('throttle:writes')->group(function () {
+        Route::post('/posts', [ForumPostController::class, 'store'])->name('posts.store');
+        Route::put('/posts/{post}', [ForumPostController::class, 'update'])->name('posts.update');
+        Route::delete('/posts/{post}', [ForumPostController::class, 'destroy'])->name('posts.destroy');
+        Route::post('/posts/{post}/comments', [ForumCommentController::class, 'store'])->name('comments.store');
+        Route::post('/comments/{comment}/reply', [ForumCommentController::class, 'reply'])->name('comments.reply');
+        Route::delete('/comments/{comment}', [ForumCommentController::class, 'destroy'])->name('comments.destroy');
+        Route::post('/posts/{post}/report', [ForumReportController::class, 'reportPost'])->name('posts.report');
+        Route::post('/comments/{comment}/report', [ForumReportController::class, 'reportComment'])->name('comments.report');
+    });
 });
 
 Route::get('/landing', function () {

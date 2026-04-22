@@ -1,16 +1,19 @@
 @extends('layouts.app')
 
 @section('page-title', 'My Purchases — Autoshop')
+@section('page-heading', 'My Autoshop Purchases')
+
+@section('breadcrumbs')
+<a href="{{ route('autoshop.index') }}" class="hover:text-gray-900">Autoshop</a>
+<span class="text-gray-400 mx-1">/</span>
+<span>My Purchases</span>
+@endsection
 
 @section('content')
-<div class="max-w-4xl mx-auto px-4 py-8">
 
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">My Autoshop Purchases</h1>
-            <p class="text-sm text-gray-500 mt-1">Click a purchase to view full record details.</p>
-        </div>
-        <a href="{{ route('autoshop.index') }}" class="text-sm text-amber-700 hover:underline">Browse Autoshop</a>
+    <div class="flex items-center justify-between mb-5">
+        <p class="text-sm text-gray-500">Click a purchase to view full record details.</p>
+        <a href="{{ route('autoshop.index') }}" class="text-sm text-amber-700 hover:underline ml-4">Browse Autoshop</a>
     </div>
 
     @if($purchases->isEmpty())
@@ -67,5 +70,5 @@
 
         <div class="mt-4">{{ $purchases->links() }}</div>
     @endif
-</div>
+
 @endsection
