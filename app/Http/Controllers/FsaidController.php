@@ -37,13 +37,18 @@ class FsaidController extends Controller
                 'fsaid.*',
                 'fsaid_bases.price_usd',
                 'fsaid_bases.name as base_name',
-                'fsaid_bases.vendor_id as base_vendor_id'
+                'fsaid_bases.vendor_id as base_vendor_id',
+                'users.username_pub as vendor_name'
             )
             ->join('fsaid_bases', 'fsaid.base_id', '=', 'fsaid_bases.id')
+            ->join('users', 'fsaid_bases.vendor_id', '=', 'users.id')
             ->where('fsaid.status', 'available')
             ->where('fsaid_bases.is_active', true)
             ->where('fsaid_bases.available_count', '>', 0);
 
+        if ($request->filled('vendor_id')) {
+            $query->where('fsaid_bases.vendor_id', $request->integer('vendor_id'));
+        }
         if ($request->filled('base_id')) {
             $query->where('fsaid.base_id', $request->integer('base_id'));
         }
@@ -92,7 +97,13 @@ class FsaidController extends Controller
 
         $records = $query->paginate(50)->withQueryString();
 
-        return view('autoshop.fsaid.index', compact('records', 'activeBases', 'states', 'sort'));
+        $vendors = $activeBases
+            ->map(fn($b) => (object) ['id' => $b->vendor_id, 'name' => $b->vendor->username_pub])
+            ->unique('id')
+            ->sortBy('name')
+            ->values();
+
+        return view('autoshop.fsaid.index', compact('records', 'activeBases', 'vendors', 'states', 'sort'));
     }
 
     public function show(FsaidBase $base): View

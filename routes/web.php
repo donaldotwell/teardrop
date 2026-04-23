@@ -16,7 +16,6 @@ use App\Http\Controllers\AuthController;
 
 // Bot Challenge Routes (no auth required)
 Route::get('/bot-challenge', [BotChallengeController::class, 'show'])->name('bot-challenge');
-Route::get('/bot-challenge/image', [BotChallengeController::class, 'image'])->name('bot-challenge.image');
 Route::post('/bot-challenge/verify', [BotChallengeController::class, 'verify'])->name('bot-challenge.verify')->middleware('throttle:auth-attempts');
 Route::get('/bot-challenge/locked', [BotChallengeController::class, 'locked'])->name('bot-challenge.locked');
 

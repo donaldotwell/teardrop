@@ -59,7 +59,7 @@
                         <div class="text-gray-400 font-semibold uppercase tracking-wide text-xs mb-2">Identity</div>
                         <div class="space-y-1.5">
                             <div><span class="text-gray-500">Name:</span> <span class="font-medium text-gray-900">{{ $r->first_name }} {{ $r->last_name }}</span></div>
-                            <div><span class="text-gray-500">DOB:</span> <span class="font-mono text-gray-800">{{ $r->dob ?? '—' }}</span></div>
+                            <div><span class="text-gray-500">DOB:</span> <span class="font-mono text-gray-800">{{ $r->dob ? explode(' ', trim($r->dob))[0] : '—' }}</span></div>
                             <div><span class="text-gray-500">SSN:</span> <span class="font-mono font-semibold text-red-700">{{ $r->ssn ?? '—' }}</span></div>
                         </div>
                     </div>

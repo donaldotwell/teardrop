@@ -7,7 +7,7 @@
 @section('content')
 
 @php
-    $hasFilters = request()->anyFilled(['base_id','state','city','zip','name','two_fa','level','enrollment','price_min','price_max']);
+    $hasFilters = request()->anyFilled(['vendor_id','base_id','state','city','zip','name','two_fa','level','enrollment','price_min','price_max']);
     $advancedActive = request()->anyFilled(['city','zip','two_fa','level','enrollment','price_min','price_max']);
 @endphp
 
@@ -19,8 +19,20 @@
                 <span class="text-xs font-semibold text-gray-700 uppercase tracking-wide">Filters</span>
             </div>
 
-            {{-- Row 1: Base · State · Name --}}
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {{-- Row 1: Vendor · Base · State · Name --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Vendor</label>
+                    <select name="vendor_id"
+                            class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-teal-500 bg-white">
+                        <option value="">All vendors</option>
+                        @foreach($vendors as $v)
+                            <option value="{{ $v->id }}" {{ request('vendor_id') == $v->id ? 'selected' : '' }}>
+                                {{ $v->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Base</label>
                     <select name="base_id"
@@ -175,16 +187,17 @@
                     <thead class="bg-gray-50 border-b border-gray-200">
                         <tr>
                             <th class="px-3 py-2 w-8"></th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-700">Vendor</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-700">Base</th>
                             <th class="px-3 py-2 text-left font-semibold text-gray-700">Name</th>
-                            <th class="px-3 py-2 text-left font-semibold text-gray-700 hidden sm:table-cell">DOB</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-700">DOB</th>
                             <th class="px-3 py-2 text-left font-semibold text-gray-700">State</th>
-                            <th class="px-3 py-2 text-left font-semibold text-gray-700 hidden sm:table-cell">ZIP</th>
-                            <th class="px-3 py-2 text-center font-semibold text-gray-700 hidden md:table-cell">Email</th>
-                            <th class="px-3 py-2 text-center font-semibold text-gray-700 hidden md:table-cell">E.Pass</th>
-                            <th class="px-3 py-2 text-center font-semibold text-gray-700 hidden lg:table-cell">Backup</th>
-                            <th class="px-3 py-2 text-center font-semibold text-gray-700 hidden lg:table-cell">2FA</th>
-                            <th class="px-3 py-2 text-left font-semibold text-gray-700 hidden lg:table-cell">Enrollment</th>
-                            <th class="px-3 py-2 text-left font-semibold text-gray-700 hidden xl:table-cell">Base</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-700">ZIP</th>
+                            <th class="px-3 py-2 text-center font-semibold text-gray-700">Email</th>
+                            <th class="px-3 py-2 text-center font-semibold text-gray-700">E.Pass</th>
+                            <th class="px-3 py-2 text-center font-semibold text-gray-700">Backup</th>
+                            <th class="px-3 py-2 text-center font-semibold text-gray-700">2FA</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-700">Enrollment</th>
                             <th class="px-3 py-2 text-right font-semibold text-gray-700">Price</th>
                         </tr>
                     </thead>
@@ -195,48 +208,52 @@
                                 <input type="checkbox" name="fsaid_ids[]" value="{{ $record->id }}"
                                        class="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
                             </td>
+                            <td class="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">
+                                <a href="{{ route('autoshop.fsaid.index', ['vendor_id' => $record->base_vendor_id]) }}"
+                                   class="hover:text-teal-700">{{ $record->vendor_name }}</a>
+                            </td>
+                            <td class="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">
+                                <a href="{{ route('autoshop.fsaid.index', ['vendor_id' => $record->base_vendor_id, 'base_id' => $record->base_id]) }}"
+                                   class="hover:text-teal-700">{{ $record->base_name }}</a>
+                            </td>
                             <td class="px-3 py-2 font-medium text-gray-900 whitespace-nowrap">{{ $record->first_name }} {{ $record->last_name }}</td>
-                            <td class="px-3 py-2 text-gray-600 font-mono text-xs hidden sm:table-cell">{{ $record->dob ?? '—' }}</td>
+                            <td class="px-3 py-2 text-gray-600 font-mono text-xs whitespace-nowrap">{{ $record->dob ? explode(' ', trim($record->dob))[0] : '—' }}</td>
                             <td class="px-3 py-2 text-gray-600 text-xs">{{ $record->state ?? '—' }}</td>
-                            <td class="px-3 py-2 text-gray-500 font-mono text-xs hidden sm:table-cell">{{ $record->zip ?? '—' }}</td>
-                            <td class="px-3 py-2 text-center hidden md:table-cell">
+                            <td class="px-3 py-2 text-gray-500 font-mono text-xs">{{ $record->zip ?? '—' }}</td>
+                            <td class="px-3 py-2 text-center">
                                 @if($record->email)
                                     <span class="text-green-600 font-bold">&#10003;</span>
                                 @else
                                     <span class="text-red-400">&#10007;</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-2 text-center hidden md:table-cell">
+                            <td class="px-3 py-2 text-center">
                                 @if($record->email_pass)
                                     <span class="text-green-600 font-bold">&#10003;</span>
                                 @else
                                     <span class="text-red-400">&#10007;</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-2 text-center hidden lg:table-cell">
+                            <td class="px-3 py-2 text-center">
                                 @if($record->backup_code)
                                     <span class="text-green-600 font-bold">&#10003;</span>
                                 @else
                                     <span class="text-red-400">&#10007;</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-2 text-center hidden lg:table-cell">
+                            <td class="px-3 py-2 text-center">
                                 @if($record->two_fa)
                                     <span class="text-green-600 font-bold">&#10003;</span>
                                 @else
                                     <span class="text-red-400">&#10007;</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-2 text-xs hidden lg:table-cell">
+                            <td class="px-3 py-2 text-xs">
                                 @if($record->enrollment)
                                     <span class="text-gray-700">{{ ucfirst($record->enrollment) }}</span>
                                 @else
                                     <span class="text-gray-400">N/A</span>
                                 @endif
-                            </td>
-                            <td class="px-3 py-2 text-xs hidden xl:table-cell">
-                                <a href="{{ route('autoshop.fsaid.index', ['base_id' => $record->base_id]) }}"
-                                   class="text-gray-500 hover:text-teal-700">{{ $record->base_name }}</a>
                             </td>
                             <td class="px-3 py-2 text-right font-mono text-amber-700 font-medium whitespace-nowrap text-xs">
                                 ${{ number_format($record->price_usd, 2) }}

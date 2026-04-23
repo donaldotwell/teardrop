@@ -26,10 +26,12 @@ class BotChallengeController extends Controller
         $positions = session('bot_challenge_positions');
         $maskedUrl = $this->createMaskedUrl($url, $positions);
 
+        $challengeImage = 'data:image/png;base64,' . base64_encode($this->renderImage($url, $positions));
+
         $failedAttempts    = session('bot_challenge_failed_attempts', 0);
         $remainingAttempts = 3 - $failedAttempts;
 
-        return view('bot-challenge.show', compact('maskedUrl', 'remainingAttempts'));
+        return view('bot-challenge.show', compact('maskedUrl', 'remainingAttempts', 'challengeImage'));
     }
 
     /**
@@ -118,76 +120,6 @@ class BotChallengeController extends Controller
     }
 
     /**
-     * Render the masked URL as a GD image (bot-resistant).
-     */
-    public function image(Request $request): \Symfony\Component\HttpFoundation\Response
-    {
-        $url       = session('bot_challenge_url');
-        $positions = session('bot_challenge_positions');
-
-        if (!$url || !$positions) {
-            abort(404);
-        }
-
-        $len   = strlen($url);
-        $font  = 4;          // built-in GD font: 8×16 px per char
-        $charW = 10;         // 8px glyph + 2px gap
-        $charH = 16;
-        $padX  = 14;
-        $padY  = 12;
-
-        $width  = $len * $charW + $padX * 2;
-        $height = $charH + $padY * 2;
-
-        $img = imagecreatetruecolor($width, $height);
-
-        // Palette
-        $cBg      = imagecolorallocate($img, 17,  24,  39);   // gray-900
-        $cText    = imagecolorallocate($img, 209, 213, 219);  // gray-300
-        $cBlankBg = imagecolorallocate($img, 120, 53,  15);   // amber-900
-        $cBlank   = imagecolorallocate($img, 251, 191, 36);   // amber-400
-        $cNoise   = imagecolorallocate($img, 31,  41,  55);   // gray-800
-
-        imagefill($img, 0, 0, $cBg);
-
-        // Light noise — enough to frustrate basic OCR, not enough to annoy humans
-        for ($i = 0; $i < 200; $i++) {
-            imagesetpixel($img, rand(0, $width - 1), rand(0, $height - 1), $cNoise);
-        }
-
-        // A few thin horizontal scratch lines
-        for ($i = 0; $i < 3; $i++) {
-            $y = rand($padY, $padY + $charH);
-            imageline($img, rand(0, $padX), $y, rand($width - $padX, $width), $y, $cNoise);
-        }
-
-        // Draw each character
-        for ($i = 0; $i < $len; $i++) {
-            $x = $padX + $i * $charW;
-            $y = $padY;
-
-            if (in_array($i, $positions)) {
-                // Highlight the blank slot
-                imagefilledrectangle($img, $x - 1, $y - 2, $x + $charW - 2, $y + $charH + 1, $cBlankBg);
-                imagestring($img, $font, $x, $y, '_', $cBlank);
-            } else {
-                imagestring($img, $font, $x, $y, $url[$i], $cText);
-            }
-        }
-
-        ob_start();
-        imagepng($img);
-        $data = ob_get_clean();
-        imagedestroy($img);
-
-        return response($data, 200, [
-            'Content-Type'  => 'image/png',
-            'Cache-Control' => 'no-store, no-cache, must-revalidate',
-            'Pragma'        => 'no-cache',
-        ]);
-    }
-
-    /**
      * Generate a URL challenge and store answers in session
      */
     protected function generateUrlChallenge(Request $request): void
@@ -248,6 +180,60 @@ class BotChallengeController extends Controller
             $masked .= in_array($i, $positions) ? '_' : $url[$i];
         }
         return $masked;
+    }
+
+    /**
+     * Render the masked URL as a GD PNG and return the raw bytes.
+     */
+    private function renderImage(string $url, array $positions): string
+    {
+        $len   = strlen($url);
+        $font  = 4;
+        $charW = 10;
+        $charH = 16;
+        $padX  = 14;
+        $padY  = 12;
+
+        $width  = $len * $charW + $padX * 2;
+        $height = $charH + $padY * 2;
+
+        $img = imagecreatetruecolor($width, $height);
+
+        $cBg      = imagecolorallocate($img, 17,  24,  39);
+        $cText    = imagecolorallocate($img, 209, 213, 219);
+        $cBlankBg = imagecolorallocate($img, 120, 53,  15);
+        $cBlank   = imagecolorallocate($img, 251, 191, 36);
+        $cNoise   = imagecolorallocate($img, 31,  41,  55);
+
+        imagefill($img, 0, 0, $cBg);
+
+        for ($i = 0; $i < 200; $i++) {
+            imagesetpixel($img, rand(0, $width - 1), rand(0, $height - 1), $cNoise);
+        }
+
+        for ($i = 0; $i < 3; $i++) {
+            $y = rand($padY, $padY + $charH);
+            imageline($img, rand(0, $padX), $y, rand($width - $padX, $width), $y, $cNoise);
+        }
+
+        for ($i = 0; $i < $len; $i++) {
+            $x = $padX + $i * $charW;
+            $y = $padY;
+
+            if (in_array($i, $positions)) {
+                imagefilledrectangle($img, $x - 1, $y - 2, $x + $charW - 2, $y + $charH + 1, $cBlankBg);
+                imagestring($img, $font, $x, $y, '_', $cBlank);
+            } else {
+                imagestring($img, $font, $x, $y, $url[$i], $cText);
+            }
+        }
+
+        ob_start();
+        imagepng($img);
+        $data = ob_get_clean();
+        imagedestroy($img);
+
+        return $data;
     }
 
     /**

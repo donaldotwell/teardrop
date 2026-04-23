@@ -138,6 +138,7 @@ class FsaidController extends Controller
             }
 
             $records[] = [
+                'uuid'               => (string) \Illuminate\Support\Str::uuid(),
                 'base_id'            => $base->id,
                 'vendor_id'          => $vendor->id,
                 'first_name'         => $firstName,

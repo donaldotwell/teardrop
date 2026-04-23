@@ -75,7 +75,7 @@
                                            class="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
                                 </td>
                                 <td class="px-4 py-2 font-medium text-gray-900 whitespace-nowrap">{{ $record->first_name }} {{ $record->last_name }}</td>
-                                <td class="px-4 py-2 text-gray-600 font-mono text-xs hidden sm:table-cell">{{ $record->dob ?? '—' }}</td>
+                                <td class="px-4 py-2 text-gray-600 font-mono text-xs hidden sm:table-cell">{{ $record->dob ? explode(' ', trim($record->dob))[0] : '—' }}</td>
                                 <td class="px-4 py-2 text-gray-600">{{ $record->state ?? '—' }}</td>
                                 <td class="px-4 py-2 text-gray-500 font-mono text-xs">{{ $record->zip ?? '—' }}</td>
                                 <td class="px-4 py-2 text-center hidden md:table-cell">

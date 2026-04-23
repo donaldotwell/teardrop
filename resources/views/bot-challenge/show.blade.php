@@ -57,7 +57,7 @@
                 </div>
 
                 <div class="flex justify-center mb-4">
-                    <img src="{{ route('bot-challenge.image') }}"
+                    <img src="{{ $challengeImage }}"
                          alt="URL Challenge"
                          class="border-2 border-gray-300 rounded max-w-full h-auto">
                 </div>
