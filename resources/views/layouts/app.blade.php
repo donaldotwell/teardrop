@@ -231,7 +231,7 @@
                     <h3 class="text-amber-400 font-semibold mb-3 text-sm uppercase">Marketplace</h3>
                     <ul class="space-y-2 text-sm">
                         <li><a href="{{ route('home') }}" class="text-gray-400 hover:text-amber-400">Browse Listings</a></li>
-                        <li><a href="{{ route('autoshop.index') }}" class="text-gray-400 hover:text-amber-400">Autoshop</a></li>
+                        <li><a href="{{ route('autoshop.fullz.index') }}" class="text-gray-400 hover:text-amber-400">Autoshop</a></li>
                         <li><a href="{{ route('forum.index') }}" class="text-gray-400 hover:text-amber-400">Forums</a></li>
                     </ul>
                 </div>

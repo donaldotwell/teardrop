@@ -57,7 +57,7 @@
                            class="block w-full text-center py-2 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors font-medium">
                             My Orders
                         </a>
-                        <a href="{{ route('autoshop.index') }}"
+                        <a href="{{ route('autoshop.fullz.index') }}"
                            class="block w-full text-center py-2 text-sm bg-amber-50 border border-amber-300 text-amber-700 rounded-md hover:bg-amber-100 transition-colors font-medium">
                             Autoshop
                         </a>

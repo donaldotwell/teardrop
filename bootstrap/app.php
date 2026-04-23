@@ -23,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware('web')
                 ->prefix('vendor')
                 ->group(base_path('routes/vendor.php'));
+            Route::middleware('web')
+                ->prefix('autoshop')
+                ->group(base_path('routes/autoshop.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware) {

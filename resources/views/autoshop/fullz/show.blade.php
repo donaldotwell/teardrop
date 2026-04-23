@@ -1,11 +1,11 @@
-@extends('layouts.app')
+@extends('layouts.autoshop')
 
-@section('page-title', $base->name . ' — Autoshop')
+@section('page-title', $base->name . ' — Fullz')
 
 @section('page-heading'){{ $base->name }}@endsection
 
 @section('breadcrumbs')
-<a href="{{ route('autoshop.index') }}" class="hover:text-gray-900">Autoshop</a>
+<a href="{{ route('autoshop.fullz.index') }}" class="hover:text-gray-900">Fullz</a>
 <span class="text-gray-400 mx-1">/</span>
 <span class="truncate">{{ $base->name }}</span>
 @endsection
@@ -30,12 +30,12 @@
     </div>
 
     {{-- Purchase form wraps the whole table --}}
-    <form action="{{ route('autoshop.purchase') }}" method="POST">
+    <form action="{{ route('autoshop.fullz.purchase') }}" method="POST">
         @csrf
 
         <div class="bg-white border border-gray-200 rounded-xl overflow-hidden mb-5">
-            <div class="px-5 py-3 border-b border-amber-100 bg-amber-50">
-                <p class="text-xs text-amber-800">
+            <div class="px-5 py-3 border-b border-teal-100 bg-teal-50">
+                <p class="text-xs text-teal-800">
                     Select the records you want to purchase. SSN, DOB, and address are revealed after purchase.
                     Selections apply to <strong>this page only</strong> — paginate to buy more from separate pages.
                 </p>
@@ -44,8 +44,8 @@
             @if($records->isEmpty())
                 <div class="p-10 text-center">
                     <p class="text-gray-500 text-sm mb-3">No available records in this base.</p>
-                    <a href="{{ route('autoshop.index') }}"
-                       class="text-sm text-amber-700 hover:underline">Browse other bases</a>
+                    <a href="{{ route('autoshop.fullz.index') }}"
+                       class="text-sm text-teal-700 hover:underline">Browse other bases</a>
                 </div>
             @else
                 <div class="overflow-x-auto">
@@ -62,12 +62,12 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @foreach($records as $record)
-                            <tr class="hover:bg-amber-50">
+                            <tr class="hover:bg-teal-50 transition-colors">
                                 <td class="px-4 py-2 text-center">
                                     <input type="checkbox"
                                            name="fullz_ids[]"
                                            value="{{ $record->id }}"
-                                           class="w-4 h-4 accent-amber-600">
+                                           class="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
                                 </td>
                                 <td class="px-4 py-2 font-medium text-gray-900">{{ $record->name }}</td>
                                 <td class="px-4 py-2 text-gray-600">{{ $record->city ?? '—' }}</td>
@@ -86,17 +86,17 @@
                         <div class="flex flex-wrap items-center gap-3">
                             <label class="text-sm font-medium text-gray-700">Pay with:</label>
                             <label class="flex items-center gap-1.5 text-sm cursor-pointer">
-                                <input type="radio" name="currency" value="btc" checked class="accent-amber-600">
+                                <input type="radio" name="currency" value="btc" checked class="w-4 h-4 text-amber-600 focus:ring-amber-500">
                                 Bitcoin (BTC)
                             </label>
                             <label class="flex items-center gap-1.5 text-sm cursor-pointer">
-                                <input type="radio" name="currency" value="xmr" class="accent-orange-600">
+                                <input type="radio" name="currency" value="xmr" class="w-4 h-4 text-orange-600 focus:ring-orange-500">
                                 Monero (XMR)
                             </label>
                         </div>
                         <div class="sm:ml-auto">
                             <button type="submit"
-                                    class="w-full sm:w-auto px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-colors">
+                                    class="w-full sm:w-auto px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition-colors">
                                 Purchase Selected
                             </button>
                         </div>

@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\BotChallengeController;
-use App\Http\Controllers\AutoshopController;
 use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\ForumCommentController;
 use App\Http\Controllers\ForumPostController;
@@ -195,14 +194,6 @@ Route::middleware('auth')->prefix('disputes')->name('disputes.')->group(function
     });
 });
 
-// Autoshop — buyer browsing and purchasing
-Route::middleware('auth')->prefix('autoshop')->name('autoshop.')->group(function () {
-    Route::get('/',                          [AutoshopController::class, 'index'])       ->name('index');
-    Route::get('/base/{base}',               [AutoshopController::class, 'show'])        ->name('show');
-    Route::post('/purchase',                 [AutoshopController::class, 'purchase'])    ->name('purchase')->middleware('throttle:writes');
-    Route::get('/my-purchases',              [AutoshopController::class, 'myPurchases']) ->name('my-purchases');
-    Route::get('/my-purchases/{purchase}',   [AutoshopController::class, 'receipt'])     ->name('receipt');
-});
 
 Route::middleware('auth')->prefix('forum')->name('forum.')->group(function () {
     Route::get('/', [ForumPostController::class, 'index'])->name('index');

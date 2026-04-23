@@ -3,6 +3,7 @@
 use App\Http\Controllers\Vendor\VendorController;
 use App\Http\Controllers\Vendor\VendorListingController;
 use App\Http\Controllers\Vendor\FullzController;
+use App\Http\Controllers\Vendor\FsaidController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:vendor', 'vendor.pgp'])->name('vendor.')->group(function () {
@@ -52,7 +53,7 @@ Route::middleware(['auth', 'role:vendor', 'vendor.pgp'])->name('vendor.')->group
         Route::get('/{dispute}/evidence/{evidence}/download', [VendorController::class, 'downloadDisputeEvidence'])->name('download-evidence');
     });
 
-    // Autoshop — CSV upload and base management
+    // Fullz — CSV upload and base management
     Route::prefix('autoshop')->name('autoshop.')->group(function () {
         Route::get('/',                         [FullzController::class, 'index'])  ->name('index');
         Route::get('/create',                   [FullzController::class, 'create']) ->name('create');
@@ -60,5 +61,15 @@ Route::middleware(['auth', 'role:vendor', 'vendor.pgp'])->name('vendor.')->group
         Route::get('/{base}',                   [FullzController::class, 'show'])   ->name('show');
         Route::post('/{base}/toggle',           [FullzController::class, 'toggle']) ->name('toggle');
         Route::delete('/{base}',                [FullzController::class, 'destroy'])->name('destroy');
+    });
+
+    // FSAID — CSV upload and base management
+    Route::prefix('fsaid')->name('fsaid.')->group(function () {
+        Route::get('/',                         [FsaidController::class, 'index'])  ->name('index');
+        Route::get('/create',                   [FsaidController::class, 'create']) ->name('create');
+        Route::post('/',                        [FsaidController::class, 'store'])  ->name('store');
+        Route::get('/{base}',                   [FsaidController::class, 'show'])   ->name('show');
+        Route::post('/{base}/toggle',           [FsaidController::class, 'toggle']) ->name('toggle');
+        Route::delete('/{base}',                [FsaidController::class, 'destroy'])->name('destroy');
     });
 });

@@ -186,7 +186,12 @@
                     <a href="{{ route('vendor.autoshop.index') }}"
                        class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
                               {{ request()->routeIs('vendor.autoshop.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Autoshop
+                        Fullz
+                    </a>
+                    <a href="{{ route('vendor.fsaid.index') }}"
+                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                              {{ request()->routeIs('vendor.fsaid.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                        FSAID
                     </a>
                 </div>
 
@@ -224,8 +229,16 @@
                             Reviews
                         </a>
                         <a href="{{ route('vendor.analytics') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50">
+                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
                             Analytics
+                        </a>
+                        <a href="{{ route('vendor.autoshop.index') }}"
+                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
+                            Fullz
+                        </a>
+                        <a href="{{ route('vendor.fsaid.index') }}"
+                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50">
+                            FSAID
                         </a>
                     </div>
                 </details>

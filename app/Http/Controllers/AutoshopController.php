@@ -91,7 +91,7 @@ class AutoshopController extends Controller
 
         $records = $query->paginate(50)->withQueryString();
 
-        return view('autoshop.index', compact(
+        return view('autoshop.fullz.index', compact(
             'records', 'activeBases', 'states', 'genders', 'sort'
         ));
     }
@@ -108,7 +108,7 @@ class AutoshopController extends Controller
             ->orderBy('id')
             ->paginate(50);
 
-        return view('autoshop.show', compact('base', 'records'));
+        return view('autoshop.fullz.show', compact('base', 'records'));
     }
 
     /**
@@ -239,7 +239,7 @@ class AutoshopController extends Controller
         }
 
         return redirect()
-            ->route('autoshop.receipt', $purchase)
+            ->route('autoshop.fullz.receipt', $purchase)
             ->with('success', "Purchase complete! {$count} record(s) unlocked.");
     }
 
@@ -254,7 +254,7 @@ class AutoshopController extends Controller
 
         $purchase->load(['base', 'vendor:id,username_pub', 'records']);
 
-        return view('autoshop.receipt', compact('purchase'));
+        return view('autoshop.fullz.receipt', compact('purchase'));
     }
 
     /**
@@ -267,7 +267,7 @@ class AutoshopController extends Controller
             ->orderByDesc('created_at')
             ->paginate(20);
 
-        return view('autoshop.my-purchases', compact('purchases'));
+        return view('autoshop.fullz.my-purchases', compact('purchases'));
     }
 
     // -------------------------------------------------------------------------

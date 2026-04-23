@@ -1,27 +1,23 @@
-@extends('layouts.app')
+@extends('layouts.autoshop')
 
 @section('page-title', 'My Purchases — Autoshop')
-@section('page-heading', 'My Autoshop Purchases')
+@section('page-heading', 'My Purchases')
 
-@section('breadcrumbs')
-<a href="{{ route('autoshop.index') }}" class="hover:text-gray-900">Autoshop</a>
-<span class="text-gray-400 mx-1">/</span>
-<span>My Purchases</span>
-@endsection
+@section('breadcrumbs')<span>My Purchases</span>@endsection
 
 @section('content')
 
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5">
         <p class="text-sm text-gray-500">Click a purchase to view full record details.</p>
-        <a href="{{ route('autoshop.index') }}" class="text-sm text-amber-700 hover:underline sm:ml-4">Browse Autoshop</a>
+        <a href="{{ route('autoshop.fullz.index') }}" class="text-sm text-teal-700 hover:underline sm:ml-4">Browse Fullz</a>
     </div>
 
     @if($purchases->isEmpty())
         <div class="bg-white border border-gray-200 rounded-xl p-12 text-center">
             <p class="text-gray-500 mb-4">You have not purchased any records yet.</p>
-            <a href="{{ route('autoshop.index') }}"
-               class="px-5 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors">
-                Browse Autoshop
+            <a href="{{ route('autoshop.fullz.index') }}"
+               class="px-5 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors">
+                Browse Fullz
             </a>
         </div>
     @else
@@ -40,7 +36,7 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @foreach($purchases as $p)
-                    <tr class="hover:bg-amber-50">
+                    <tr class="hover:bg-teal-50 transition-colors">
                         <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ $p->created_at->format('M d, Y') }}</td>
                         <td class="px-4 py-3 font-medium">{{ $p->base?->name ?? 'Multiple Bases' }}</td>
                         <td class="px-4 py-3 text-gray-600 hidden sm:table-cell">{{ $p->vendor->username_pub }}</td>
@@ -53,8 +49,8 @@
                             <div class="text-xs text-gray-400">${{ number_format($p->total_usd, 2) }}</div>
                         </td>
                         <td class="px-4 py-3 text-right">
-                            <a href="{{ route('autoshop.receipt', $p) }}"
-                               class="text-xs text-amber-700 hover:underline font-medium whitespace-nowrap">
+                            <a href="{{ route('autoshop.fullz.receipt', $p) }}"
+                               class="text-xs text-teal-700 hover:underline font-medium whitespace-nowrap">
                                 View Records
                             </a>
                         </td>

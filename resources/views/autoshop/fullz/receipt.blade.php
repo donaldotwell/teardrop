@@ -1,12 +1,10 @@
-@extends('layouts.app')
+@extends('layouts.autoshop')
 
 @section('page-title', 'Purchase Receipt — Autoshop')
 @section('page-heading', 'Purchase Receipt')
 
 @section('breadcrumbs')
-<a href="{{ route('autoshop.index') }}" class="hover:text-gray-900">Autoshop</a>
-<span class="text-gray-400 mx-1">/</span>
-<a href="{{ route('autoshop.my-purchases') }}" class="hover:text-gray-900">My Purchases</a>
+<a href="{{ route('autoshop.fullz.my-purchases') }}" class="hover:text-gray-900">My Purchases</a>
 <span class="text-gray-400 mx-1">/</span>
 <span>Receipt</span>
 @endsection
@@ -44,8 +42,8 @@
 
     {{-- Full records revealed --}}
     <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div class="px-5 py-3 border-b border-amber-200 bg-amber-50">
-            <h2 class="text-sm font-semibold text-amber-900">Purchased Records — Full Details</h2>
+        <div class="px-5 py-3 border-b border-teal-200 bg-teal-50">
+            <h2 class="text-sm font-semibold text-teal-900">Purchased Records — Full Details</h2>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-xs">
