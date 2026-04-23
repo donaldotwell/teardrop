@@ -42,8 +42,12 @@
 
     {{-- Full records revealed --}}
     <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div class="px-5 py-3 border-b border-teal-200 bg-teal-50">
+        <div class="px-5 py-3 border-b border-teal-200 bg-teal-50 flex items-center justify-between">
             <h2 class="text-sm font-semibold text-teal-900">Purchased Records — Full Details</h2>
+            <a href="{{ route('autoshop.fullz.download', $purchase) }}"
+               class="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors">
+                Download CSV
+            </a>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-xs">

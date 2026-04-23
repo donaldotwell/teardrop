@@ -250,6 +250,40 @@ class FsaidController extends Controller
         return view('autoshop.fsaid.receipt', compact('purchase'));
     }
 
+    public function download(Request $request, FsaidPurchase $purchase): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        if ($purchase->buyer_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        $purchase->load('records');
+
+        $filename = 'fsaid-purchase-' . $purchase->id . '-' . now()->format('Ymd') . '.csv';
+
+        $headers = [
+            'first_name', 'last_name', 'dob', 'ssn',
+            'address', 'city', 'state', 'zip',
+            'email', 'email_pass',
+            'fa_uname', 'fa_pass', 'two_fa', 'backup_code', 'security_qa',
+            'level', 'enrollment', 'programs', 'enrollment_details', 'description',
+        ];
+
+        return response()->streamDownload(function () use ($purchase, $headers) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $headers);
+            foreach ($purchase->records as $r) {
+                fputcsv($out, [
+                    $r->first_name, $r->last_name, $r->dob ? explode(' ', trim($r->dob))[0] : '',
+                    $r->ssn, $r->address, $r->city, $r->state, $r->zip,
+                    $r->email, $r->email_pass,
+                    $r->fa_uname, $r->fa_pass, $r->two_fa, $r->backup_code, $r->security_qa,
+                    $r->level, $r->enrollment, $r->programs, $r->enrollment_details, $r->description,
+                ]);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
     private function processBtcPayment(User $buyer, User $vendor, float $amount): ?string
     {
         $vendorWallet  = $vendor->btcWallet ?? BitcoinRepository::getOrCreateWalletForUser($vendor);

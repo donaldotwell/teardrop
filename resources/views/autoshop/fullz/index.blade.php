@@ -200,7 +200,7 @@
                         </label>
                     </div>
                     <button type="submit"
-                            class="sm:ml-auto w-full sm:w-auto px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold text-sm rounded-lg transition-colors shadow-sm">
+                            class="sm:ml-auto w-full sm:w-auto px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm rounded-lg transition-colors shadow-sm">
                         Purchase Selected
                     </button>
                 </div>

@@ -40,10 +40,60 @@
         </div>
     </div>
 
+    {{-- Instructions --}}
+    <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6 text-sm">
+        <div class="text-xs font-bold text-gray-700 uppercase tracking-wide mb-4">Instructions</div>
+
+        <div class="space-y-5 text-gray-700">
+
+            <div>
+                <p class="font-semibold mb-1">Login</p>
+                <ol class="list-decimal list-inside space-y-1 text-xs text-gray-600">
+                    <li>Go to the FSAID website</li>
+                    <li>Enter the <span class="font-mono font-semibold text-gray-800">Email/Username</span> on the login screen</li>
+                    <li>Enter <span class="font-mono font-semibold text-gray-800">FA Pass</span> as the password on the login screen</li>
+                </ol>
+            </div>
+
+            <div class="border-t border-gray-100 pt-4">
+                <p class="font-semibold mb-1">Option 1 — Login using Email Verification Code</p>
+                <ol class="list-decimal list-inside space-y-1 text-xs text-gray-600">
+                    <li>Go to <span class="font-mono text-gray-800">mail.tm</span></li>
+                    <li>Head to the top right corner, click on profile then login</li>
+                    <li>Enter the <span class="font-mono font-semibold text-gray-800">Email</span> and <span class="font-mono font-semibold text-gray-800">Email Pass</span> and login</li>
+                    <li>You will receive your code there — proceed with it</li>
+                </ol>
+            </div>
+
+            <div class="border-t border-gray-100 pt-4">
+                <p class="font-semibold mb-1">
+                    Option 2 — Login using Backup Code
+                    <span class="ml-2 text-xs font-normal text-teal-700">(Recommended)</span>
+                </p>
+                <ol class="list-decimal list-inside space-y-1 text-xs text-gray-600">
+                    <li>Instead of proceeding with "Send Code", select <span class="font-semibold text-gray-800">"Help me access my account"</span></li>
+                    <li>Select <span class="font-semibold text-gray-800">"Backup Code &amp; Challenge Questions"</span> and click <span class="font-semibold text-gray-800">"Enter Code"</span></li>
+                    <li>Enter the <span class="font-mono font-semibold text-gray-800">Backup Code</span> from the record and click <span class="font-semibold text-gray-800">"Continue"</span></li>
+                    <li>Enter the answers from the record's <span class="font-mono font-semibold text-gray-800">Security Q&amp;A</span></li>
+                    <li>Proceed</li>
+                </ol>
+            </div>
+
+            <div class="border-t border-gray-100 pt-4 text-xs text-amber-800 bg-amber-50 rounded-lg px-4 py-3">
+                Once in, remember to change the email to your own, update the address and the username.
+            </div>
+
+        </div>
+    </div>
+
     {{-- Full records --}}
     <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div class="px-5 py-3 border-b border-teal-200 bg-teal-50">
+        <div class="px-5 py-3 border-b border-teal-200 bg-teal-50 flex items-center justify-between">
             <h2 class="text-sm font-semibold text-teal-900">Purchased Records — Full Details</h2>
+            <a href="{{ route('autoshop.fsaid.download', $purchase) }}"
+               class="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors">
+                Download CSV
+            </a>
         </div>
 
         @foreach($purchase->records as $i => $r)

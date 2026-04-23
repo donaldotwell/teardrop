@@ -257,6 +257,31 @@ class AutoshopController extends Controller
         return view('autoshop.fullz.receipt', compact('purchase'));
     }
 
+    public function download(Request $request, FullzPurchase $purchase): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        if ($purchase->buyer_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        $purchase->load('records');
+
+        $filename = 'fullz-purchase-' . $purchase->id . '-' . now()->format('Ymd') . '.csv';
+
+        $headers = ['name', 'address', 'city', 'state', 'zip', 'phone_no', 'gender', 'ssn', 'dob'];
+
+        return response()->streamDownload(function () use ($purchase, $headers) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $headers);
+            foreach ($purchase->records as $r) {
+                fputcsv($out, [
+                    $r->name, $r->address, $r->city, $r->state, $r->zip,
+                    $r->phone_no, $r->gender, $r->ssn, $r->dob,
+                ]);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
     /**
      * List all purchases by this buyer.
      */
