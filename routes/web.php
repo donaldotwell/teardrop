@@ -11,6 +11,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\VendorController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
@@ -210,6 +211,12 @@ Route::middleware('auth')->prefix('forum')->name('forum.')->group(function () {
         Route::post('/posts/{post}/report', [ForumReportController::class, 'reportPost'])->name('posts.report');
         Route::post('/comments/{comment}/report', [ForumReportController::class, 'reportComment'])->name('comments.report');
     });
+});
+
+Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', [NotificationController::class, 'index'])->name('index');
+    Route::post('/read-all', [NotificationController::class, 'markAllRead'])->name('read-all');
+    Route::post('/{notification}/read', [NotificationController::class, 'markRead'])->name('read');
 });
 
 Route::get('/landing', function () {

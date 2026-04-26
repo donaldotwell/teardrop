@@ -7,6 +7,7 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\User;
 use App\Models\AuditLog;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -256,6 +257,17 @@ class ModeratorTicketController extends Controller
             'ticket_number' => $supportTicket->ticket_number,
             'response_type' => $request->boolean('is_internal') ? 'internal' : 'public'
         ]);
+
+        // Notify ticket owner of public response
+        if (!$request->boolean('is_internal')) {
+            NotificationService::send(
+                $supportTicket->user_id,
+                'support',
+                'Support Ticket Updated',
+                "Staff responded to your ticket #{$supportTicket->id} — {$supportTicket->subject}",
+                route('support.show', $supportTicket)
+            );
+        }
 
         return redirect()->back()
             ->with('success', 'Response added successfully.');
@@ -554,6 +566,14 @@ class ModeratorTicketController extends Controller
             'resolution_notes' => $request->resolution_notes,
             'follow_up_required' => $request->boolean('follow_up_required')
         ]);
+
+        NotificationService::send(
+            $supportTicket->user_id,
+            'support',
+            'Support Ticket Resolved',
+            "Your ticket #{$supportTicket->id} — {$supportTicket->subject} has been resolved.",
+            route('support.show', $supportTicket)
+        );
 
         return redirect()->route('moderator.tickets.index')
             ->with('success', 'Ticket resolved successfully.');

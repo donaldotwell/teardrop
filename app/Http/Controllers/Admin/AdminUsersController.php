@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Order;
 use App\Models\Listing;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -114,6 +115,13 @@ class AdminUsersController extends Controller
     {
         $user->update(['status' => 'banned']);
 
+        NotificationService::send(
+            $user->id,
+            'system',
+            'Account Banned',
+            'Your account has been banned by an administrator. Contact support if you believe this is an error.'
+        );
+
         return redirect()->back()
             ->with('success', "User {$user->username_pub} has been banned.");
     }
@@ -124,6 +132,13 @@ class AdminUsersController extends Controller
     public function unban(User $user)
     {
         $user->update(['status' => 'active']);
+
+        NotificationService::send(
+            $user->id,
+            'system',
+            'Account Unbanned',
+            'Your account has been reinstated. You may now log in and use the platform.'
+        );
 
         return redirect()->back()
             ->with('success', "User {$user->username_pub} has been unbanned.");
@@ -147,6 +162,14 @@ class AdminUsersController extends Controller
 
         // Assign vendor role
         $user->assignRoleByName('vendor');
+
+        NotificationService::send(
+            $user->id,
+            'system',
+            'Vendor Status Granted',
+            'Congratulations! Your account has been promoted to vendor. You can now create listings.',
+            route('vendor.dashboard')
+        );
 
         return redirect()->back()
             ->with('success', "User {$user->username_pub} has been promoted to vendor.");
@@ -310,6 +333,15 @@ class AdminUsersController extends Controller
 
         $action = $validated['type'] === 'credit' ? 'credited' : 'debited';
 
+        $currency = strtoupper($validated['currency']);
+        NotificationService::send(
+            $user->id,
+            'system',
+            'Wallet Balance Adjusted',
+            "An admin has {$action} {$validated['amount']} {$currency} to your wallet. Reason: {$validated['reason']}",
+            route('wallet.index')
+        );
+
         return redirect()->back()
             ->with('success', "Successfully {$action} {$validated['amount']} {$validated['currency']} to {$user->username_pub}'s wallet.");
     }
@@ -332,6 +364,13 @@ class AdminUsersController extends Controller
             'vendor_since' => null,
             'early_finalization_enabled' => false,
         ]);
+
+        NotificationService::send(
+            $user->id,
+            'system',
+            'Vendor Status Revoked',
+            'Your vendor status has been revoked by an administrator. Contact support if you believe this is in error.'
+        );
 
         return redirect()->back()
             ->with('success', "Vendor role stripped from {$user->username_pub}.");

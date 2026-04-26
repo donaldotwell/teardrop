@@ -138,6 +138,19 @@
                             {{ $text }}
                         </a>
                     @endforeach
+                    @auth
+                    <a href="{{ route('notifications.index') }}"
+                       class="flex items-center text-sm px-3 py-2 rounded-md transition-colors
+                              {{ request()->routeIs('notifications.*') ? 'bg-amber-500 text-white font-semibold' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100' }}">
+                        Notifications
+                        @if($unread_notification_count > 0)
+                        <span class="ml-1.5 bg-amber-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 leading-none
+                                     {{ request()->routeIs('notifications.*') ? 'bg-white text-amber-600' : '' }}">
+                            {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
+                        </span>
+                        @endif
+                    </a>
+                    @endauth
                 </div>
 
                 <!-- Mobile Menu Toggle -->
@@ -160,6 +173,19 @@
                     {{ $text }}
                 </a>
             @endforeach
+            @auth
+            <a href="{{ route('notifications.index') }}"
+               class="flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors
+                      {{ request()->routeIs('notifications.*') ? 'bg-amber-500 text-white font-semibold' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50' }}">
+                Notifications
+                @if($unread_notification_count > 0)
+                <span class="bg-amber-500 text-white text-xs font-bold rounded-full px-2 py-0.5 leading-none
+                             {{ request()->routeIs('notifications.*') ? 'bg-white text-amber-600' : '' }}">
+                    {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
+                </span>
+                @endif
+            </a>
+            @endauth
         </div>
     </nav>
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ForumPost;
 use App\Models\ForumComment;
 use App\Models\AuditLog;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class ForumCommentController extends Controller
@@ -30,6 +31,17 @@ class ForumCommentController extends Controller
         ]);
 
         AuditLog::log('comment_created', null, ['comment_id' => $comment->id, 'post_id' => $post->id]);
+
+        // Notify post author (not if they commented on their own post)
+        if ($post->user_id !== auth()->id()) {
+            NotificationService::send(
+                $post->user_id,
+                'forum',
+                'New Comment on Your Post',
+                "Someone commented on your forum post: {$post->title}",
+                route('forum.posts.show', $post)
+            );
+        }
 
         return redirect()->route('forum.posts.show', $post)->with('success', 'Comment added successfully!');
     }

@@ -10,6 +10,7 @@ use App\Models\BtcWallet;
 use App\Models\XmrWallet;
 use App\Repositories\BitcoinRepository;
 use App\Repositories\MoneroRepository;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -170,6 +171,14 @@ class ModeratorDisputeController extends Controller
             'dispute_number' => $dispute->dispute_number,
             'assignment_type' => 'manual'
         ]);
+
+        NotificationService::send(
+            $moderator->id,
+            'dispute',
+            'Dispute Assigned to You',
+            "You have been assigned dispute #{$dispute->id}: {$dispute->subject}",
+            route('moderator.disputes.show', $dispute)
+        );
 
         return redirect()->back()
             ->with('success', 'Dispute assigned to you successfully.');
@@ -346,6 +355,27 @@ class ModeratorDisputeController extends Controller
             'target' => $request->target,
             'deadline' => $deadline
         ]);
+
+        // Notify the relevant party/parties
+        $disputeUrl = route('disputes.show', $dispute);
+        if (in_array($request->target, ['buyer', 'both'])) {
+            NotificationService::send(
+                $dispute->initiated_by,
+                'dispute',
+                'Information Requested in Dispute',
+                "A moderator is requesting information from you in dispute #{$dispute->id}: {$dispute->subject}",
+                $disputeUrl
+            );
+        }
+        if (in_array($request->target, ['vendor', 'both'])) {
+            NotificationService::send(
+                $dispute->disputed_against,
+                'dispute',
+                'Information Requested in Dispute',
+                "A moderator is requesting information from you in dispute #{$dispute->id}: {$dispute->subject}",
+                $disputeUrl
+            );
+        }
 
         return redirect()->back()
             ->with('success', 'Information request sent successfully.');
@@ -712,6 +742,22 @@ class ModeratorDisputeController extends Controller
             'resolution' => $resolution,
             'refund_usd' => $refundUsd,
         ]);
+
+        $resolutionLabel = str_replace('_', ' ', $resolution);
+        NotificationService::send(
+            $dispute->initiated_by,
+            'dispute',
+            'Dispute Resolved',
+            "Your dispute #{$dispute->id} has been resolved: {$resolutionLabel}.",
+            route('disputes.show', $dispute)
+        );
+        NotificationService::send(
+            $dispute->disputed_against,
+            'dispute',
+            'Dispute Resolved',
+            "Dispute #{$dispute->id} against you has been resolved: {$resolutionLabel}.",
+            route('disputes.show', $dispute)
+        );
 
         return redirect()->route('moderator.disputes.index')
             ->with('success', 'Dispute resolved successfully.' . ($refundUsd ? " Refund of \${$refundUsd} processed." : ''));

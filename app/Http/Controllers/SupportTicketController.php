@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketAttachment;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -157,6 +158,17 @@ class SupportTicketController extends Controller
             $this->handleFileUpload($request->file('attachment'), $ticket, $user);
         }
 
+        // Notify assigned staff
+        if ($assignedStaff) {
+            NotificationService::send(
+                $assignedStaff->id,
+                'support',
+                'New Support Ticket Assigned',
+                "Ticket #{$ticket->id} — {$ticket->subject} has been assigned to you.",
+                route('moderator.tickets.show', $ticket)
+            );
+        }
+
         return redirect()->route('support.show', $ticket)
             ->with('success', 'Support ticket created successfully. Our support team will respond as soon as possible.');
     }
@@ -222,6 +234,17 @@ class SupportTicketController extends Controller
         // Update ticket status if it was pending
         if ($supportTicket->status === 'pending') {
             $supportTicket->updateStatus('open', $user);
+        }
+
+        // Notify assigned staff when the ticket owner sends a message
+        if ($supportTicket->assigned_to && $user->id === $supportTicket->user_id) {
+            NotificationService::send(
+                $supportTicket->assigned_to,
+                'support',
+                'New Message on Your Ticket',
+                "The user replied on ticket #{$supportTicket->id} — {$supportTicket->subject}",
+                route('moderator.tickets.show', $supportTicket)
+            );
         }
 
         return redirect()->back()

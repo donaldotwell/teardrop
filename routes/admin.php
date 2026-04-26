@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\AdminBtcWalletController;
 use App\Http\Controllers\Admin\AdminXmrWalletController;
 use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AdminAutoshopController;
+use App\Http\Controllers\Admin\AdminNotificationController;
 use Illuminate\Support\Facades\Route;
 
 // Admin routes - protected by admin middleware
@@ -211,6 +212,12 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
     Route::prefix('autoshop')->name('autoshop.')->group(function () {
         Route::get('/',                  [AdminAutoshopController::class, 'index'])      ->name('index');
         Route::post('/base/{base}/toggle', [AdminAutoshopController::class, 'toggleBase'])->name('toggle-base');
+    });
+
+    // Notifications — broadcast to all users
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/',          [AdminNotificationController::class, 'index'])     ->name('index');
+        Route::post('/broadcast', [AdminNotificationController::class, 'broadcast'])->name('broadcast');
     });
 
 });

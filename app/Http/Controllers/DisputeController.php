@@ -6,6 +6,7 @@ use App\Models\Dispute;
 use App\Models\Order;
 use App\Models\DisputeEvidence;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -175,6 +176,26 @@ class DisputeController extends Controller
             ]);
         }
 
+        // Notify vendor
+        NotificationService::send(
+            $order->listing->user_id,
+            'dispute',
+            'Dispute Opened Against You',
+            "A dispute has been filed for order #{$order->uuid}: {$dispute->subject}",
+            route('disputes.show', $dispute)
+        );
+
+        // Notify assigned moderator
+        if ($assignedModerator) {
+            NotificationService::send(
+                $assignedModerator->id,
+                'dispute',
+                'Dispute Auto-Assigned',
+                "You have been assigned dispute #{$dispute->id}: {$dispute->subject}",
+                route('disputes.show', $dispute)
+            );
+        }
+
         return redirect()->route('disputes.show', $dispute)
             ->with('success', 'Dispute created successfully. An admin will review your case shortly.');
     }
@@ -252,6 +273,19 @@ class DisputeController extends Controller
                 'vendor_responded_at' => now()
             ]);
         }
+
+        // Notify other party
+        $recipientId = $user->id === $dispute->initiated_by
+            ? $dispute->disputed_against
+            : $dispute->initiated_by;
+
+        NotificationService::send(
+            $recipientId,
+            'dispute',
+            'New Dispute Message',
+            "A new message was posted in dispute #{$dispute->id}: {$dispute->subject}",
+            route('disputes.show', $dispute)
+        );
 
         return redirect()->back()
             ->with('success', 'Message added successfully.');

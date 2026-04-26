@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\UserMessage;
 use App\Services\EscrowService;
 use App\Services\FinalizationService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -279,6 +280,14 @@ class OrderController extends Controller
                     'order_id' => $order->id,
                 ]);
 
+                NotificationService::send(
+                    $order->listing->user_id,
+                    'order',
+                    'Order Completed',
+                    "Order #{$order->uuid} has been completed. Escrow released to your wallet.",
+                    route('orders.show', $order)
+                );
+
                 Log::info("Order completed via escrow release", [
                     'order_id' => $order->id,
                     'seller_txid' => $txids['seller_txid'],
@@ -337,6 +346,14 @@ class OrderController extends Controller
                     'message' => "Your order #{$order->uuid} has been marked as shipped by the vendor.",
                     'order_id' => $order->id,
                 ]);
+
+                NotificationService::send(
+                    $order->user_id,
+                    'order',
+                    'Order Shipped',
+                    "Your order #{$order->uuid} has been marked as shipped.",
+                    route('orders.show', $order)
+                );
 
                 \Log::info("Order #{$order->uuid} marked as shipped");
             });
@@ -549,6 +566,14 @@ class OrderController extends Controller
                         'order_id' => $order->id,
                     ]);
 
+                    NotificationService::send(
+                        $listing->user_id,
+                        'order',
+                        'New Order (Instant Finalization)',
+                        "You have a new order #{$order->uuid} — payment sent directly to your wallet.",
+                        route('orders.show', $order)
+                    );
+
                     Log::info("Order created with early finalization", [
                         'order_id' => $order->id,
                         'vendor_txid' => $txids['vendor_txid'],
@@ -603,6 +628,14 @@ class OrderController extends Controller
                         'message' => $messageContent,
                         'order_id' => $order->id,
                     ]);
+
+                    NotificationService::send(
+                        $listing->user_id,
+                        'order',
+                        'New Order Received',
+                        "You have a new order #{$order->uuid} in escrow.",
+                        route('orders.show', $order)
+                    );
 
                     Log::info("Order created with escrow", [
                         'order_id' => $order->id,

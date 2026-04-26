@@ -230,6 +230,16 @@
                           {{ request()->routeIs('admin.settings.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
                     Settings
                 </a>
+                <a href="{{ route('admin.notifications.index') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.notifications.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    Broadcast
+                    @if(($unread_notification_count ?? 0) > 0)
+                    <span class="ml-1 bg-amber-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 leading-none">
+                        {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
+                    </span>
+                    @endif
+                </a>
             </div>
         </div>
     </nav>

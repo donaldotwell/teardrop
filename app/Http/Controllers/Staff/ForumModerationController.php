@@ -7,6 +7,7 @@ use App\Models\ForumReport;
 use App\Models\ForumPost;
 use App\Models\User;
 use App\Models\AuditLog;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class ForumModerationController extends Controller
@@ -75,6 +76,14 @@ class ForumModerationController extends Controller
             'notes' => $request->notes,
         ]);
 
+        NotificationService::send(
+            $post->user_id,
+            'forum',
+            'Forum Post Approved',
+            "Your forum post \"{$post->title}\" has been approved and is now visible.",
+            route('forum.posts.show', $post)
+        );
+
         return redirect()->back()->with('success', 'Post approved successfully.');
     }
 
@@ -100,6 +109,14 @@ class ForumModerationController extends Controller
             'rejected_by' => auth()->id(),
             'notes' => $request->notes,
         ]);
+
+        NotificationService::send(
+            $post->user_id,
+            'forum',
+            'Forum Post Rejected',
+            "Your forum post \"{$post->title}\" was rejected by a moderator."
+                . ($request->notes ? " Reason: {$request->notes}" : '')
+        );
 
         return redirect()->back()->with('success', 'Post rejected.');
     }

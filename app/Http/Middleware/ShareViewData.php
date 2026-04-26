@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
+use App\Models\AppNotification;
 use App\Models\ProductCategory;
 use App\Models\ExchangeRate;
 use Symfony\Component\HttpFoundation\Response;
@@ -59,6 +60,8 @@ class ShareViewData
             'Profile'   => route('profile.show'),
         ];
 
+        $unread_notification_count = 0;
+
         // Load user-specific data if authenticated
         if (auth()->check()) {
             $user = auth()->user();
@@ -68,6 +71,11 @@ class ShareViewData
 
             // Get actual balance
             $balance = $user->getBalance();
+
+            // Unread notification count
+            $unread_notification_count = AppNotification::where('user_id', $user->id)
+                ->whereNull('read_at')
+                ->count();
 
             // Role-specific links
             if ($user->hasRole('user')) {
@@ -85,6 +93,7 @@ class ShareViewData
         View::share('navigation_links', $navigation_links);
         View::share('btcRate', $btcRate);
         View::share('xmrRate', $xmrRate);
+        View::share('unread_notification_count', $unread_notification_count);
 
         return $next($request);
     }

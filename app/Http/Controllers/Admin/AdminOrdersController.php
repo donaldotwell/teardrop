@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Listing;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class AdminOrdersController extends Controller
@@ -97,6 +98,22 @@ class AdminOrdersController extends Controller
             'completed_at' => now(),
         ]);
 
+        $order->load('listing');
+        NotificationService::send(
+            $order->user_id,
+            'order',
+            'Order Completed',
+            "Your order #{$order->uuid} has been marked as completed by an administrator.",
+            route('orders.show', $order)
+        );
+        NotificationService::send(
+            $order->listing->user_id,
+            'order',
+            'Order Completed',
+            "Order #{$order->uuid} has been marked as completed by an administrator.",
+            route('orders.show', $order)
+        );
+
         return redirect()->back()
             ->with('success', 'Order marked as completed.');
     }
@@ -115,6 +132,22 @@ class AdminOrdersController extends Controller
             'status' => 'cancelled',
             'cancelled_at' => now(),
         ]);
+
+        $order->load('listing');
+        NotificationService::send(
+            $order->user_id,
+            'order',
+            'Order Cancelled',
+            "Your order #{$order->uuid} has been cancelled by an administrator.",
+            route('orders.show', $order)
+        );
+        NotificationService::send(
+            $order->listing->user_id,
+            'order',
+            'Order Cancelled',
+            "Order #{$order->uuid} has been cancelled by an administrator.",
+            route('orders.show', $order)
+        );
 
         return redirect()->back()
             ->with('success', 'Order has been cancelled.');

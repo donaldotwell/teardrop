@@ -560,6 +560,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the notifications for this user.
+     */
+    public function appNotifications(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AppNotification::class);
+    }
+
+    /**
      * Get the forum reports made by the user.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany

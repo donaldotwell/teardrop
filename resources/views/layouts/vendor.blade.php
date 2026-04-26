@@ -193,6 +193,16 @@
                               {{ request()->routeIs('vendor.fsaid.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
                         FSAID
                     </a>
+                    <a href="{{ route('notifications.index') }}"
+                       class="flex items-center px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                              {{ request()->routeIs('notifications.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                        Notifications
+                        @if(($unread_notification_count ?? 0) > 0)
+                        <span class="ml-1.5 bg-amber-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 leading-none">
+                            {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
+                        </span>
+                        @endif
+                    </a>
                 </div>
 
                 {{-- Mobile Navigation Toggle --}}
@@ -239,6 +249,15 @@
                         <a href="{{ route('vendor.fsaid.index') }}"
                            class="block px-4 py-3 text-gray-700 hover:bg-yellow-50">
                             FSAID
+                        </a>
+                        <a href="{{ route('notifications.index') }}"
+                           class="flex items-center justify-between px-4 py-3 text-gray-700 hover:bg-yellow-50">
+                            Notifications
+                            @if(($unread_notification_count ?? 0) > 0)
+                            <span class="bg-amber-500 text-white text-xs font-bold rounded-full px-2 py-0.5 leading-none">
+                                {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
+                            </span>
+                            @endif
                         </a>
                     </div>
                 </details>
