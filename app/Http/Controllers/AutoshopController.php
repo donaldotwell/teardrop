@@ -48,7 +48,6 @@ class AutoshopController extends Controller
 
         $query = Fullz::select(
                 'fullz.*',
-                'fullz_bases.price_usd',
                 'fullz_bases.name as base_name',
                 'fullz_bases.vendor_id as base_vendor_id',
                 'users.username_pub as vendor_name'
@@ -88,16 +87,16 @@ class AutoshopController extends Controller
             }
         }
         if ($request->filled('price_min')) {
-            $query->where('fullz_bases.price_usd', '>=', (float) $request->input('price_min'));
+            $query->where('fullz.price_usd', '>=', (float) $request->input('price_min'));
         }
         if ($request->filled('price_max')) {
-            $query->where('fullz_bases.price_usd', '<=', (float) $request->input('price_max'));
+            $query->where('fullz.price_usd', '<=', (float) $request->input('price_max'));
         }
 
         $sort = $request->input('sort', 'newest');
         match ($sort) {
-            'price_asc'  => $query->orderBy('fullz_bases.price_usd', 'asc')->orderBy('fullz.id', 'asc'),
-            'price_desc' => $query->orderBy('fullz_bases.price_usd', 'desc')->orderBy('fullz.id', 'asc'),
+            'price_asc'  => $query->orderBy('fullz.price_usd', 'asc')->orderBy('fullz.id', 'asc'),
+            'price_desc' => $query->orderBy('fullz.price_usd', 'desc')->orderBy('fullz.id', 'asc'),
             default      => $query->orderByDesc('fullz.created_at'),
         };
 
@@ -143,8 +142,7 @@ class AutoshopController extends Controller
         $buyer    = $request->user();
         $currency = $validated['currency'];
 
-        // Load records with their base for price lookup
-        $records = Fullz::with('base:id,name,price_usd,vendor_id')
+        $records = Fullz::with('base:id,name,vendor_id')
             ->whereIn('id', $validated['fullz_ids'])
             ->where('status', 'available')
             ->get();
@@ -162,7 +160,7 @@ class AutoshopController extends Controller
         }
 
         $count     = $records->count();
-        $totalUsd  = round($records->sum(fn($r) => (float) $r->base->price_usd), 2);
+        $totalUsd  = round($records->sum(fn($r) => (float) ($r->price_usd ?? $r->base->price_usd)), 2);
         $totalCrypto = convert_usd_to_crypto($totalUsd, $currency);
 
         // Single base_id if all records share one base, else null

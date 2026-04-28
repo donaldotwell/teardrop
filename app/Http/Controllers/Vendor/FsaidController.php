@@ -164,6 +164,7 @@ class FsaidController extends Controller
                 'programs'           => $get($row, 'programs'),
                 'enrollment'         => $get($row, 'enrollment'),
                 'enrollment_details' => $get($row, 'enrollment_details'),
+                'price_usd'          => $request->input('price_usd'),
                 'status'             => 'available',
                 'created_at'         => $now,
                 'updated_at'         => $now,
@@ -264,6 +265,168 @@ class FsaidController extends Controller
         $genders = Fsaid::where('base_id', $base->id)->whereNotNull('gender')->where('gender', '!=', '')->distinct()->orderBy('gender')->pluck('gender');
 
         return view('vendor.fsaid.show', compact('base', 'records', 'states', 'genders'));
+    }
+
+    public function update(Request $request, FsaidBase $base): RedirectResponse
+    {
+        $this->authorize($base, $request->user());
+
+        $validated = $request->validate([
+            'name'            => 'required|string|max:120',
+            'price_usd'       => 'required|numeric|min:0.01|max:9999',
+            'update_existing' => 'nullable|in:1',
+        ]);
+
+        $base->update([
+            'name'      => $validated['name'],
+            'price_usd' => $validated['price_usd'],
+        ]);
+
+        if ($request->boolean('update_existing')) {
+            Fsaid::where('base_id', $base->id)
+                ->where('status', 'available')
+                ->update(['price_usd' => $validated['price_usd']]);
+        }
+
+        return back()->with('success', 'Base updated.' . ($request->boolean('update_existing') ? ' Existing unsold records repriced.' : ''));
+    }
+
+    public function upload(Request $request, FsaidBase $base): RedirectResponse
+    {
+        $this->authorize($base, $request->user());
+
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:20480',
+        ]);
+
+        $handle = fopen($request->file('file')->getRealPath(), 'r');
+        if (!$handle) {
+            return back()->withErrors(['file' => 'Could not read uploaded file.']);
+        }
+
+        $rawHeader = fgetcsv($handle);
+        if (!$rawHeader) {
+            fclose($handle);
+            return back()->withErrors(['file' => 'CSV file is empty or unreadable.']);
+        }
+
+        $header    = array_map(fn($h) => strtolower(trim(str_replace([' ', '_'], '', $h))), $rawHeader);
+        $rawHeader = array_map(fn($h) => strtolower(trim($h)), $rawHeader);
+
+        $map = [
+            'firstname' => 'first_name', 'lastname' => 'last_name', 'email' => 'email',
+            'emailpass' => 'email_pass', 'fauname' => 'fa_uname', 'fapass' => 'fa_pass',
+            'backupcode' => 'backup_code', 'securityqa' => 'security_qa', 'state' => 'state',
+            'gender' => 'gender', 'zip' => 'zip', 'dob' => 'dob', 'address' => 'address',
+            'description' => 'description', 'ssn' => 'ssn', 'cs' => 'cs', 'city' => 'city',
+            'country' => 'country', 'enrollment' => 'enrollment',
+            'enrollmentdetails' => 'enrollment_details', 'twofa' => 'two_fa',
+            'level' => 'level', 'programs' => 'programs',
+        ];
+
+        $colIndex = [];
+        foreach ($header as $i => $norm) {
+            if (isset($map[$norm])) { $colIndex[$map[$norm]] = $i; }
+        }
+        foreach ($rawHeader as $i => $raw) {
+            $rawNorm = str_replace('_', '', $raw);
+            if (isset($map[$rawNorm]) && !isset($colIndex[$map[$rawNorm]])) {
+                $colIndex[$map[$rawNorm]] = $i;
+            }
+        }
+
+        foreach (['first_name', 'last_name', 'email', 'email_pass'] as $req) {
+            if (!isset($colIndex[$req])) {
+                fclose($handle);
+                $csvName = array_search($req, $map) ?? $req;
+                return back()->withErrors(['file' => "CSV is missing required column: {$csvName}"]);
+            }
+        }
+
+        $get = fn(array $row, string $col): ?string =>
+            isset($colIndex[$col]) ? (trim($row[$colIndex[$col]] ?? '') ?: null) : null;
+
+        $records   = [];
+        $skipped   = 0;
+        $inserted  = 0;
+        $batchSize = 500;
+        $now       = now()->toDateTimeString();
+
+        while (($row = fgetcsv($handle)) !== false) {
+            while (count($row) < count($rawHeader)) { $row[] = ''; }
+
+            $firstName = $get($row, 'first_name');
+            $lastName  = $get($row, 'last_name');
+            $email     = $get($row, 'email');
+            $emailPass = $get($row, 'email_pass');
+
+            if (!$firstName || !$lastName || !$email || !$emailPass) {
+                $skipped++;
+                continue;
+            }
+
+            $records[] = [
+                'uuid'               => (string) \Illuminate\Support\Str::uuid(),
+                'base_id'            => $base->id,
+                'vendor_id'          => $base->vendor_id,
+                'price_usd'          => $base->price_usd,
+                'first_name'         => $firstName,
+                'last_name'          => $lastName,
+                'dob'                => $get($row, 'dob'),
+                'ssn'                => $get($row, 'ssn'),
+                'gender'             => $get($row, 'gender'),
+                'address'            => $get($row, 'address'),
+                'city'               => $get($row, 'city'),
+                'state'              => $get($row, 'state'),
+                'zip'                => $get($row, 'zip'),
+                'country'            => $get($row, 'country'),
+                'cs'                 => $get($row, 'cs'),
+                'description'        => $get($row, 'description'),
+                'email'              => $email,
+                'email_pass'         => $emailPass,
+                'fa_uname'           => $get($row, 'fa_uname'),
+                'fa_pass'            => $get($row, 'fa_pass'),
+                'backup_code'        => $get($row, 'backup_code'),
+                'security_qa'        => $get($row, 'security_qa'),
+                'two_fa'             => $get($row, 'two_fa'),
+                'level'              => $get($row, 'level'),
+                'programs'           => $get($row, 'programs'),
+                'enrollment'         => $get($row, 'enrollment'),
+                'enrollment_details' => $get($row, 'enrollment_details'),
+                'status'             => 'available',
+                'created_at'         => $now,
+                'updated_at'         => $now,
+            ];
+
+            if (count($records) >= $batchSize) {
+                Fsaid::insert($records);
+                $inserted += count($records);
+                $records   = [];
+            }
+        }
+
+        fclose($handle);
+
+        if (!empty($records)) {
+            Fsaid::insert($records);
+            $inserted += count($records);
+        }
+
+        if ($inserted === 0) {
+            return back()->withErrors(['file' => "No valid records found. {$skipped} row(s) skipped (missing firstName, lastName, email, or emailPass)."]);
+        }
+
+        $base->increment('record_count',    $inserted);
+        $base->increment('available_count', $inserted);
+
+        Log::info('FSAID base appended', [
+            'vendor_id' => $base->vendor_id,
+            'base_id'   => $base->id,
+            'inserted'  => $inserted,
+            'skipped'   => $skipped,
+        ]);
+
+        return back()->with('success', "{$inserted} record(s) added, {$skipped} skipped.");
     }
 
     public function toggle(Request $request, FsaidBase $base): RedirectResponse

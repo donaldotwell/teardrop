@@ -19,6 +19,69 @@
         </div>
     @endif
 
+    {{-- Management panel: edit + upload --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+        {{-- Edit name / price --}}
+        <div class="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-gray-800 mb-4">Edit Base</h2>
+            <form action="{{ route('vendor.fsaid.update', $base) }}" method="POST">
+                @csrf
+                @method('PATCH')
+                <div class="mb-4">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Base Name</label>
+                    <input type="text" name="name" value="{{ old('name', $base->name) }}"
+                           maxlength="120" required
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500 @error('name') border-red-400 @enderror">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Price per Record (USD)</label>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-500 text-sm">$</span>
+                        <input type="number" name="price_usd" value="{{ old('price_usd', $base->price_usd) }}"
+                               min="0.01" max="9999" step="0.01" required
+                               class="w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500 @error('price_usd') border-red-400 @enderror">
+                        <span class="text-xs text-gray-400">USD per record</span>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="flex items-start gap-2 cursor-pointer">
+                        <input type="checkbox" name="update_existing" value="1"
+                               class="mt-0.5 w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                        <span class="text-xs text-gray-600">
+                            Also reprice existing unsold records in this base
+                            <span class="block text-gray-400 mt-0.5">If unchecked, only new uploads will use the new price.</span>
+                        </span>
+                    </label>
+                </div>
+                <button type="submit"
+                        class="w-full py-2 bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold rounded-lg transition-colors">
+                    Save Changes
+                </button>
+            </form>
+        </div>
+
+        {{-- Upload more records --}}
+        <div class="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-gray-800 mb-4">Add More Records</h2>
+            <form action="{{ route('vendor.fsaid.upload', $base) }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-4">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">CSV File</label>
+                    <input type="file" name="file" accept=".csv,.txt" required
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500 @error('file') border-red-400 @enderror">
+                    <p class="text-xs text-gray-400 mt-1">Same format as original upload. Max 20 MB.</p>
+                </div>
+                <p class="text-xs text-gray-500 mb-4">Records will be appended to this base at the current price (${{ number_format($base->price_usd, 2) }}/record).</p>
+                <button type="submit"
+                        class="w-full py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-semibold rounded-lg transition-colors">
+                    Upload and Append
+                </button>
+            </form>
+        </div>
+
+    </div>
+
     {{-- Base stats --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div class="bg-white border border-gray-200 rounded-xl p-4 text-center">

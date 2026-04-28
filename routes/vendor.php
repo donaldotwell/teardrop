@@ -59,6 +59,8 @@ Route::middleware(['auth', 'role:vendor', 'vendor.pgp'])->name('vendor.')->group
         Route::get('/create',                   [FullzController::class, 'create']) ->name('create');
         Route::post('/',                        [FullzController::class, 'store'])  ->name('store');
         Route::get('/{base}',                   [FullzController::class, 'show'])   ->name('show');
+        Route::patch('/{base}',                 [FullzController::class, 'update']) ->name('update');
+        Route::post('/{base}/upload',           [FullzController::class, 'upload']) ->name('upload');
         Route::post('/{base}/toggle',           [FullzController::class, 'toggle']) ->name('toggle');
         Route::delete('/{base}',                [FullzController::class, 'destroy'])->name('destroy');
     });
@@ -69,6 +71,8 @@ Route::middleware(['auth', 'role:vendor', 'vendor.pgp'])->name('vendor.')->group
         Route::get('/create',                   [FsaidController::class, 'create']) ->name('create');
         Route::post('/',                        [FsaidController::class, 'store'])  ->name('store');
         Route::get('/{base}',                   [FsaidController::class, 'show'])   ->name('show');
+        Route::patch('/{base}',                 [FsaidController::class, 'update']) ->name('update');
+        Route::post('/{base}/upload',           [FsaidController::class, 'upload']) ->name('upload');
         Route::post('/{base}/toggle',           [FsaidController::class, 'toggle']) ->name('toggle');
         Route::delete('/{base}',                [FsaidController::class, 'destroy'])->name('destroy');
     });

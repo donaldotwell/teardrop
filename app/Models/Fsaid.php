@@ -28,11 +28,12 @@ class Fsaid extends Model
         'email', 'email_pass', 'fa_uname', 'fa_pass',
         'backup_code', 'security_qa', 'two_fa',
         'level', 'programs', 'enrollment', 'enrollment_details',
-        'status', 'platform_buyer_id', 'platform_purchase_id', 'sold_at',
+        'price_usd', 'status', 'platform_buyer_id', 'platform_purchase_id', 'sold_at',
     ];
 
     protected $casts = [
-        'sold_at' => 'datetime',
+        'price_usd' => 'decimal:2',
+        'sold_at'   => 'datetime',
     ];
 
     public function getFullNameAttribute(): string

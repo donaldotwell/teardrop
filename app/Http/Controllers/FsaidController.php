@@ -35,7 +35,6 @@ class FsaidController extends Controller
 
         $query = Fsaid::select(
                 'fsaid.*',
-                'fsaid_bases.price_usd',
                 'fsaid_bases.name as base_name',
                 'fsaid_bases.vendor_id as base_vendor_id',
                 'users.username_pub as vendor_name'
@@ -82,16 +81,16 @@ class FsaidController extends Controller
             $query->where('fsaid.enrollment', $request->input('enrollment'));
         }
         if ($request->filled('price_min')) {
-            $query->where('fsaid_bases.price_usd', '>=', (float) $request->input('price_min'));
+            $query->where('fsaid.price_usd', '>=', (float) $request->input('price_min'));
         }
         if ($request->filled('price_max')) {
-            $query->where('fsaid_bases.price_usd', '<=', (float) $request->input('price_max'));
+            $query->where('fsaid.price_usd', '<=', (float) $request->input('price_max'));
         }
 
         $sort = $request->input('sort', 'newest');
         match ($sort) {
-            'price_asc'  => $query->orderBy('fsaid_bases.price_usd', 'asc')->orderBy('fsaid.id', 'asc'),
-            'price_desc' => $query->orderBy('fsaid_bases.price_usd', 'desc')->orderBy('fsaid.id', 'asc'),
+            'price_asc'  => $query->orderBy('fsaid.price_usd', 'asc')->orderBy('fsaid.id', 'asc'),
+            'price_desc' => $query->orderBy('fsaid.price_usd', 'desc')->orderBy('fsaid.id', 'asc'),
             default      => $query->orderByDesc('fsaid.created_at'),
         };
 
@@ -129,7 +128,7 @@ class FsaidController extends Controller
         $buyer    = $request->user();
         $currency = $validated['currency'];
 
-        $records = Fsaid::with('base:id,name,price_usd,vendor_id')
+        $records = Fsaid::with('base:id,name,vendor_id')
             ->whereIn('id', $validated['fsaid_ids'])
             ->where('status', 'available')
             ->get();
@@ -144,7 +143,7 @@ class FsaidController extends Controller
         }
 
         $count       = $records->count();
-        $totalUsd    = round($records->sum(fn($r) => (float) $r->base->price_usd), 2);
+        $totalUsd    = round($records->sum(fn($r) => (float) ($r->price_usd ?? $r->base->price_usd)), 2);
         $totalCrypto = convert_usd_to_crypto($totalUsd, $currency);
         $baseIds     = $records->pluck('base_id')->unique();
         $baseFk      = $baseIds->count() === 1 ? $baseIds->first() : null;

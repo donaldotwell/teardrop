@@ -12,11 +12,12 @@ class Fullz extends Model
     protected $fillable = [
         'base_id', 'vendor_id',
         'name', 'address', 'city', 'state', 'zip', 'phone_no', 'gender', 'ssn', 'dob',
-        'status', 'buyer_id', 'purchase_id', 'sold_at',
+        'price_usd', 'status', 'buyer_id', 'purchase_id', 'sold_at',
     ];
 
     protected $casts = [
-        'sold_at' => 'datetime',
+        'price_usd' => 'decimal:2',
+        'sold_at'   => 'datetime',
     ];
 
     public function base(): BelongsTo

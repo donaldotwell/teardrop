@@ -126,6 +126,7 @@ class FullzController extends Controller
                 'gender'     => $get('gender')   ?: null,
                 'ssn'        => $ssn,
                 'dob'        => $dob,
+                'price_usd'  => $request->input('price_usd'),
                 'status'     => 'available',
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -182,6 +183,136 @@ class FullzController extends Controller
             ->paginate(50);
 
         return view('vendor.autoshop.show', compact('base', 'records'));
+    }
+
+    /**
+     * Update base name and/or price.
+     * If update_existing is checked, also reprices all unsold records in this base.
+     */
+    public function update(Request $request, FullzBase $base): RedirectResponse
+    {
+        $this->authorizeBase($base, $request->user());
+
+        $validated = $request->validate([
+            'name'            => 'required|string|max:120',
+            'price_usd'       => 'required|numeric|min:0.01|max:9999',
+            'update_existing' => 'nullable|in:1',
+        ]);
+
+        $base->update([
+            'name'      => $validated['name'],
+            'price_usd' => $validated['price_usd'],
+        ]);
+
+        if ($request->boolean('update_existing')) {
+            Fullz::where('base_id', $base->id)
+                ->where('status', 'available')
+                ->update(['price_usd' => $validated['price_usd']]);
+        }
+
+        return back()->with('success', 'Base updated.' . ($request->boolean('update_existing') ? ' Existing unsold records repriced.' : ''));
+    }
+
+    /**
+     * Append records from a new CSV file to an existing base.
+     */
+    public function upload(Request $request, FullzBase $base): RedirectResponse
+    {
+        $this->authorizeBase($base, $request->user());
+
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:10240',
+        ]);
+
+        $handle = fopen($request->file('file')->getRealPath(), 'r');
+        if (!$handle) {
+            return back()->withErrors(['file' => 'Could not read uploaded file.']);
+        }
+
+        $rawHeader = fgetcsv($handle);
+        if (!$rawHeader) {
+            fclose($handle);
+            return back()->withErrors(['file' => 'CSV file is empty or unreadable.']);
+        }
+
+        $header = array_map(fn($h) => strtolower(trim($h)), $rawHeader);
+
+        foreach (['name', 'ssn', 'dob'] as $col) {
+            if (!in_array($col, $header, true)) {
+                fclose($handle);
+                return back()->withErrors(['file' => "CSV is missing required column: {$col}"]);
+            }
+        }
+
+        $colIndex  = array_flip($header);
+        $get       = fn(string $col): string => isset($colIndex[$col]) ? trim($row[$colIndex[$col]] ?? '') : '';
+        $records   = [];
+        $skipped   = 0;
+        $inserted  = 0;
+        $batchSize = 500;
+        $now       = now()->toDateTimeString();
+
+        while (($row = fgetcsv($handle)) !== false) {
+            while (count($row) < count($header)) {
+                $row[] = '';
+            }
+
+            $name = $get('name');
+            $ssn  = $get('ssn');
+            $dob  = $get('dob');
+
+            if ($name === '' || $ssn === '' || $dob === '') {
+                $skipped++;
+                continue;
+            }
+
+            $records[] = [
+                'base_id'    => $base->id,
+                'vendor_id'  => $base->vendor_id,
+                'name'       => $name,
+                'address'    => $get('address')  ?: null,
+                'city'       => $get('city')     ?: null,
+                'state'      => $get('state')    ?: null,
+                'zip'        => $get('zip')      ?: null,
+                'phone_no'   => $get('phone_no') ?: null,
+                'gender'     => $get('gender')   ?: null,
+                'ssn'        => $ssn,
+                'dob'        => $dob,
+                'price_usd'  => $base->price_usd,
+                'status'     => 'available',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+
+            if (count($records) >= $batchSize) {
+                Fullz::insert($records);
+                $inserted += count($records);
+                $records   = [];
+            }
+        }
+
+        fclose($handle);
+
+        if (!empty($records)) {
+            Fullz::insert($records);
+            $inserted += count($records);
+        }
+
+        if ($inserted === 0) {
+            return back()->withErrors(['file' => "No valid records found. {$skipped} row(s) skipped (missing name, ssn, or dob)."]);
+        }
+
+        $base->increment('record_count',    $inserted);
+        $base->increment('available_count', $inserted);
+
+        Log::info("Autoshop base appended", [
+            'vendor_id' => $base->vendor_id,
+            'base_id'   => $base->id,
+            'inserted'  => $inserted,
+            'skipped'   => $skipped,
+        ]);
+
+        return back()->with('success', "{$inserted} record(s) added, {$skipped} skipped.");
     }
 
     /**
