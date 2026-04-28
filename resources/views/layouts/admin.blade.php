@@ -95,6 +95,20 @@
 
                 {{-- Admin User Info & Actions --}}
                 <div class="flex items-center space-x-4">
+
+                    {{-- Notifications --}}
+                    <a href="{{ route('notifications.index') }}"
+                       class="flex items-center gap-1 text-xs text-red-200 hover:text-white transition-colors font-medium">
+                        Alerts
+                        @if(($unread_notification_count ?? 0) > 0)
+                        <span class="bg-amber-400 text-red-900 font-bold rounded-full px-1.5 py-0.5 leading-none text-[10px]">
+                            {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
+                        </span>
+                        @endif
+                    </a>
+
+                    <div class="h-4 w-px bg-red-600"></div>
+
                     <div class="flex items-center space-x-3 text-red-100">
                         <span>{{ auth()->user()->username_pub }}</span>
                         <span class="bg-red-600 px-2 py-1 rounded text-xs">Admin</span>
@@ -234,11 +248,6 @@
                    class="px-3 py-1.5 text-sm font-medium rounded transition-colors
                           {{ request()->routeIs('admin.notifications.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
                     Broadcast
-                    @if(($unread_notification_count ?? 0) > 0)
-                    <span class="ml-1 bg-amber-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 leading-none">
-                        {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
-                    </span>
-                    @endif
                 </a>
             </div>
         </div>

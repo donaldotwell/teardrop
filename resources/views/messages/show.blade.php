@@ -1,82 +1,92 @@
 @extends('layouts.app')
 
-@section('page-title', "Messages with {$thread->receiver->username_pub}")
+@section('page-title', 'Messages with ' . $other->username_pub)
+@section('page-heading', 'Messages with ' . $other->username_pub)
 
 @section('breadcrumbs')
-    <a href="{{ route('messages.index') }}" class="text-amber-700 hover:text-amber-900">Messages</a>
-    <span class="text-amber-400">/</span>
-    <span class="text-amber-700">{{ $thread->receiver->username_pub }}</span>
+<a href="{{ route('messages.index') }}" class="text-amber-600 hover:text-amber-800">Messages</a>
+<span class="text-gray-400">/</span>
+<span>{{ $other->username_pub }}</span>
 @endsection
 
 @section('content')
-    <div class="bg-white rounded-xl shadow-lg p-8 max-w-4xl mx-auto">
-        <!-- Conversation Header -->
-        <div class="border-b border-gray-100 pb-4 mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">
-                <span class="border-l-4 border-yellow-500 pl-3">Conversation with {{ $thread->receiver->username_pub }}</span>
-            </h1>
+<div class="max-w-2xl mx-auto flex flex-col gap-4">
+
+    {{-- Chat window --}}
+    <div class="border border-gray-200 rounded-xl overflow-hidden">
+
+        {{-- Header --}}
+        <div class="px-4 py-3 bg-white border-b border-gray-100 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                {{ strtoupper(substr($other->username_pub, 0, 1)) }}
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-gray-900 leading-tight">{{ $other->username_pub }}</p>
+                <p class="text-xs text-gray-400">{{ $messages->count() }} {{ Str::plural('message', $messages->count()) }}</p>
+            </div>
         </div>
 
-        <!-- Message Form -->
-        <form action="{{ route('messages.store', $thread) }}" method="POST" class="mb-8">
-            @csrf
+        {{-- Messages --}}
+        <div class="bg-gray-50 px-4 py-6 flex flex-col gap-5">
 
-            <div class="space-y-4">
-            <textarea name="message" id="message" rows="3"
-                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                      placeholder="Write your message..." required></textarea>
-                <!-- Error Messages -->
-                @error('message')
-                <p class="text-red-500 text-sm">{{ $message }}</p>
-                @enderror
+            @forelse($messages as $message)
+            @php $isMine = $message->sender_id === auth()->id(); @endphp
 
-                <div class="flex justify-end">
-                    <button type="submit"
-                            class="inline-flex items-center px-4 py-2 bg-yellow-600 border border-transparent rounded-md font-semibold text-white hover:bg-yellow-700 focus:ring-2 focus:ring-yellow-500 transition-colors">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                        </svg>
-                        Send Message
-                    </button>
+            <div class="flex {{ $isMine ? 'justify-end' : 'justify-start' }}">
+                <div class="flex flex-col {{ $isMine ? 'items-end' : 'items-start' }}" style="max-width: 72%">
+
+                    @unless($isMine)
+                    <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                        {{ $other->username_pub }}
+                    </span>
+                    @endunless
+
+                    {{--
+                        Explicit per-corner rounding — avoids shorthand cascade conflicts.
+                        Mine:   TL TR BL all 2xl, BR = none  → sharp bottom-right tail
+                        Theirs: TR BR BL all 2xl, TL = none  → sharp top-left tail
+                    --}}
+                    <div class="px-4 py-3 text-sm leading-relaxed break-words
+                                {{ $isMine
+                                    ? 'bg-amber-500 text-white rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-none'
+                                    : 'bg-white text-gray-800 border border-gray-200 rounded-tl-none rounded-tr-2xl rounded-br-2xl rounded-bl-2xl' }}">
+                        <p class="whitespace-pre-wrap">{{ $message->message }}</p>
+                    </div>
+
+                    <span class="text-[10px] text-gray-400 mt-1.5 {{ $isMine ? 'mr-0.5' : 'ml-0.5' }}">
+                        {{ $message->created_at->format('d M Y, H:i') }}
+                    </span>
+
                 </div>
+            </div>
+
+            @empty
+            <div class="py-10 text-center text-sm text-gray-400">
+                No messages yet. Send the first one below.
+            </div>
+            @endforelse
+
+        </div>
+    </div>
+
+    {{-- Reply form --}}
+    <div class="bg-white border border-gray-200 rounded-xl p-4">
+        <form action="{{ route('messages.store', $thread) }}" method="POST">
+            @csrf
+            <textarea name="message" rows="3"
+                      class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
+                      placeholder="Write a message..." required maxlength="2000">{{ old('message') }}</textarea>
+            @error('message')
+            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+            @enderror
+            <div class="flex justify-end mt-2">
+                <button type="submit"
+                        class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg transition-colors">
+                    Send
+                </button>
             </div>
         </form>
-
-        <!-- Messages List -->
-        <div class="space-y-6">
-            @forelse ($messages as $message)
-                <div class="@if($message->sender_id === auth()->id()) text-right @endif">
-                    <div class="@if($message->sender_id === auth()->id()) bg-yellow-50 @else bg-white @endif inline-block p-4 rounded-lg border border-gray-100 shadow-sm max-w-3xl w-full">
-                        <div class="flex items-center justify-between mb-2 text-sm">
-                        <span class="font-medium text-yellow-700">
-                            @if($message->sender_id === auth()->id())
-                                You to {{ $thread->receiver->username_pub }}
-                            @else
-                                {{ $thread->user->username_pub }} to You
-                            @endif
-                        </span>
-                            <span class="text-gray-500">
-                            {{ \Carbon\Carbon::parse($message->created_at)->format('M j, Y H:i') }}
-                        </span>
-                        </div>
-                        <p class="text-gray-800 whitespace-pre-wrap">{{ $message->message }}</p>
-                    </div>
-                </div>
-            @empty
-                <div class="text-center py-12">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                    </svg>
-                    <p class="mt-4 text-gray-500">No messages in this conversation yet.</p>
-                </div>
-            @endforelse
-        </div>
-
-        <!-- Pagination -->
-        @if($messages->hasPages())
-            <div class="mt-8 border-t border-gray-100 pt-6">
-                {{ $messages->links() }}
-            </div>
-        @endif
     </div>
+
+</div>
 @endsection

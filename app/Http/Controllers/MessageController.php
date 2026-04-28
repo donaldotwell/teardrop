@@ -11,73 +11,88 @@ class MessageController extends Controller
 {
     public function index(Request $request)
     {
-        // Get the logged-in user
         $user = $request->user();
 
-        // Fetch all user threads (both sent and received) with latest message
-        $threads = $user->allThreads()
-            ->with(['latestMessage.order', 'user', 'receiver'])
-            ->paginate();
+        // Fetch all threads the user participates in, then deduplicate by
+        // normalised pair — handles legacy duplicate (A→B) + (B→A) threads.
+        $all = $user->allThreads()
+            ->with(['latestMessage.sender', 'user', 'receiver'])
+            ->withCount(['messages as unread_count' => function ($q) use ($user) {
+                $q->where('receiver_id', $user->id)->whereNull('read_at');
+            }])
+            ->orderByDesc('updated_at')
+            ->get()
+            ->unique(function ($thread) {
+                $ids = [$thread->user_id, $thread->receiver_id];
+                sort($ids);
+                return implode('-', $ids);
+            })
+            ->values();
+
+        $page    = (int) $request->get('page', 1);
+        $perPage = 20;
+        $threads = new \Illuminate\Pagination\LengthAwarePaginator(
+            $all->forPage($page, $perPage),
+            $all->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         return view('messages.index', compact('threads'));
     }
 
     public function show(Request $request, MessageThread $thread)
     {
-        // Get the logged-in user
         $user = $request->user();
 
-        // Ensure the logged-in user is part of the thread
         if ($thread->user_id !== $user->id && $thread->receiver_id !== $user->id) {
             abort(403, 'You are not authorized to view this thread.');
         }
 
-        // Load the receiver of the message thread
-        $thread->load('receiver');
+        $thread->load(['user', 'receiver']);
 
-        // Fetch all messages in the thread
+        // Mark all unread messages sent to the current user as read
+        $thread->messages()
+            ->where('receiver_id', $user->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        $other = $thread->user_id === $user->id ? $thread->receiver : $thread->user;
+
         $messages = $thread->messages()
-            ->with(['sender', 'receiver'])
-            ->latest()
-            ->paginate(10);
+            ->with(['sender'])
+            ->oldest()
+            ->get();
 
-        return view('messages.show', compact('messages', 'thread'))
-            ->with('success', 'Message sent successfully');
+        return view('messages.show', compact('messages', 'thread', 'other'));
     }
 
     public function store(Request $request, MessageThread $thread)
     {
-        // Get the logged-in user
         $user = $request->user();
 
-        // Ensure the logged-in user is part of the thread
         if ($thread->user_id !== $user->id && $thread->receiver_id !== $user->id) {
             abort(403, 'You are not authorized to send a message to this thread.');
         }
 
-        // Validate the request data
         $request->validate([
-            'message' => 'required|string|max:255',
+            'message' => 'required|string|max:2000',
         ]);
 
+        $receiverId = $thread->user_id === $user->id ? $thread->receiver_id : $thread->user_id;
 
-        // Get the receiver of the message thread
-        $receiver = $thread->receiver;
-
-        // Validate the request data
-        $request->validate([
-            'message' => 'required|string|max:255',
-        ]);
-
-        // Create a new message
         DB::table('user_messages')->insert([
-            'thread_id' => $thread->id,
-            'sender_id' => $user->id,
-            'receiver_id' => $receiver->id,
-            'message' => $request->message,
-            'created_at' => now(),
-            'updated_at' => now(),
+            'thread_id'   => $thread->id,
+            'sender_id'   => $user->id,
+            'receiver_id' => $receiverId,
+            'message'     => $request->message,
+            'created_at'  => now(),
+            'updated_at'  => now(),
         ]);
+
+        // Touch the thread so ordering by updated_at works
+        $thread->touch();
 
         return redirect()->route('messages.show', $thread);
     }

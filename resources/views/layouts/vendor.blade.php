@@ -115,6 +115,30 @@
                     <div class="h-6 w-px bg-purple-600 hidden md:block"></div>
                     @endif
 
+                    {{-- Messages & Notifications --}}
+                    <div class="flex items-center gap-3 text-xs text-purple-200">
+                        <a href="{{ route('messages.index') }}"
+                           class="flex items-center gap-1 hover:text-white transition-colors font-medium">
+                            Msg
+                            @if(($unread_message_count ?? 0) > 0)
+                            <span class="bg-amber-400 text-purple-900 font-bold rounded-full px-1.5 py-0.5 leading-none text-[10px]">
+                                {{ $unread_message_count > 99 ? '99+' : $unread_message_count }}
+                            </span>
+                            @endif
+                        </a>
+                        <a href="{{ route('notifications.index') }}"
+                           class="flex items-center gap-1 hover:text-white transition-colors font-medium">
+                            Alerts
+                            @if(($unread_notification_count ?? 0) > 0)
+                            <span class="bg-amber-400 text-purple-900 font-bold rounded-full px-1.5 py-0.5 leading-none text-[10px]">
+                                {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
+                            </span>
+                            @endif
+                        </a>
+                    </div>
+
+                    <div class="h-4 w-px bg-purple-500"></div>
+
                     <div class="flex items-center space-x-3 text-purple-100">
                         <span>{{ auth()->user()->username_pub }}</span>
                         <span class="bg-amber-600 px-2 py-1 rounded text-xs">Vendor</span>
@@ -193,16 +217,6 @@
                               {{ request()->routeIs('vendor.fsaid.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
                         FSAID
                     </a>
-                    <a href="{{ route('notifications.index') }}"
-                       class="flex items-center px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
-                              {{ request()->routeIs('notifications.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
-                        Notifications
-                        @if(($unread_notification_count ?? 0) > 0)
-                        <span class="ml-1.5 bg-amber-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 leading-none">
-                            {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
-                        </span>
-                        @endif
-                    </a>
                 </div>
 
                 {{-- Mobile Navigation Toggle --}}
@@ -249,15 +263,6 @@
                         <a href="{{ route('vendor.fsaid.index') }}"
                            class="block px-4 py-3 text-gray-700 hover:bg-yellow-50">
                             FSAID
-                        </a>
-                        <a href="{{ route('notifications.index') }}"
-                           class="flex items-center justify-between px-4 py-3 text-gray-700 hover:bg-yellow-50">
-                            Notifications
-                            @if(($unread_notification_count ?? 0) > 0)
-                            <span class="bg-amber-500 text-white text-xs font-bold rounded-full px-2 py-0.5 leading-none">
-                                {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
-                            </span>
-                            @endif
                         </a>
                     </div>
                 </details>

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\View;
 use App\Models\AppNotification;
 use App\Models\ProductCategory;
 use App\Models\ExchangeRate;
+use App\Models\UserMessage;
 use Symfony\Component\HttpFoundation\Response;
 
 class ShareViewData
@@ -52,7 +53,6 @@ class ShareViewData
             'Home'      => route('home'),
             'Autoshop'  => route('autoshop.fullz.index'),
             'Orders'    => route('orders.index'),
-            'Messages'  => route('messages.index'),
             'Wallets'   => route('wallet.index'),
             'Disputes'  => route('disputes.index'),
             'Forums'    => route('forum.index'),
@@ -61,6 +61,7 @@ class ShareViewData
         ];
 
         $unread_notification_count = 0;
+        $unread_message_count = 0;
 
         // Load user-specific data if authenticated
         if (auth()->check()) {
@@ -72,8 +73,12 @@ class ShareViewData
             // Get actual balance
             $balance = $user->getBalance();
 
-            // Unread notification count
+            // Unread counts
             $unread_notification_count = AppNotification::where('user_id', $user->id)
+                ->whereNull('read_at')
+                ->count();
+
+            $unread_message_count = UserMessage::where('receiver_id', $user->id)
                 ->whereNull('read_at')
                 ->count();
 
@@ -94,6 +99,7 @@ class ShareViewData
         View::share('btcRate', $btcRate);
         View::share('xmrRate', $xmrRate);
         View::share('unread_notification_count', $unread_notification_count);
+        View::share('unread_message_count', $unread_message_count);
 
         return $next($request);
     }

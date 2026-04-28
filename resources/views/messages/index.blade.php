@@ -1,57 +1,67 @@
 @extends('layouts.app')
 
 @section('page-title', 'Messages')
+@section('page-heading', 'Messages')
 
 @section('breadcrumbs')
-    <span class="text-amber-700">Messages</span>
+<span>Messages</span>
 @endsection
 
 @section('content')
-    <div class="bg-white rounded-xl shadow-lg p-8 max-w-4xl mx-auto">
-        <div class="flex items-center justify-between mb-8">
-            <h1 class="text-2xl font-bold text-gray-900">
-                <span class="border-l-4 border-amber-500 pl-3">Your Messages</span>
-            </h1>
-            <a href="#" class="btn-primary">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                New Message
-            </a>
-        </div>
+<div class="max-w-3xl mx-auto">
 
-        <div class="space-y-6">
-            @forelse ($threads as $thread)
-                <div class="border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
-                    <a href="{{ route('messages.show', $thread->uuid) }}" class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center space-x-3 mb-2">
-                                <div class="flex items-center space-x-2">
-                                    <span class="font-medium text-gray-900">
-                                        @if($thread->latestMessage->sender_id === auth()->id())
-                                            You → {{ $thread->latestMessage->receiver->username_pub }}
-                                        @else
-                                            {{ $thread->latestMessage->sender->username_pub }} → You
-                                        @endif
-                                    </span>
-                                    @if($thread->latestMessage->order_id)
-                                        <span class="px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded-full">Order #{{ $thread->latestMessage->order_id }}</span>
-                                    @endif
-                                </div>
-                                <span class="text-sm text-gray-500">{{ $thread->latestMessage->created_at->diffForHumans() }}</span>
-                            </div>
-                            <p class="text-gray-600 whitespace-pre-wrap">{{ $thread->latestMessage->message }}</p>
-                        </div>
-                    </a>
-                </div>
-            @empty
-                <div class="text-center py-12">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                    </svg>
-                    <p class="mt-4 text-gray-500">No messages found.</p>
-                </div>
-            @endforelse
-        </div>
+    @if($threads->isEmpty())
+    <div class="bg-white border border-gray-200 rounded-xl p-10 text-center text-gray-400 text-sm">
+        No conversations yet. Messages are opened automatically when an order is placed.
     </div>
+    @else
+    <div class="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
+        @foreach($threads as $thread)
+        @php
+            $isUnread = $thread->unread_count > 0;
+            $latest   = $thread->latestMessage;
+            $other    = $thread->user_id === auth()->id() ? $thread->receiver : $thread->user;
+            $isMine   = $latest && $latest->sender_id === auth()->id();
+        @endphp
+        <a href="{{ route('messages.show', $thread->uuid) }}"
+           class="flex items-center gap-4 px-5 py-4 transition-colors {{ $isUnread ? 'bg-amber-50 hover:bg-amber-100' : 'bg-white hover:bg-gray-50' }}">
+
+            {{-- Avatar initial --}}
+            <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold
+                        {{ $isUnread ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-600' }}">
+                {{ strtoupper(substr($other->username_pub ?? '?', 0, 1)) }}
+            </div>
+
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2 mb-0.5">
+                    <span class="text-sm font-{{ $isUnread ? 'bold' : 'medium' }} text-gray-900 truncate">
+                        {{ $other->username_pub ?? 'Unknown' }}
+                    </span>
+                    <span class="text-xs text-gray-400 flex-shrink-0">
+                        {{ $latest ? $latest->created_at->diffForHumans() : '' }}
+                    </span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <p class="text-xs text-gray-500 truncate">
+                        @if($latest)
+                            {{ $isMine ? 'You: ' : '' }}{{ $latest->message }}
+                        @endif
+                    </p>
+                    @if($isUnread)
+                    <span class="flex-shrink-0 bg-amber-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+                        {{ $thread->unread_count > 99 ? '99+' : $thread->unread_count }}
+                    </span>
+                    @endif
+                </div>
+            </div>
+        </a>
+        @endforeach
+    </div>
+
+    <div class="mt-4">
+        {{ $threads->links() }}
+    </div>
+    @endif
+
+</div>
 @endsection

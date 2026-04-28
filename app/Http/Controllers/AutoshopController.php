@@ -21,13 +21,11 @@ class AutoshopController extends Controller
      */
     public function index(Request $request): View
     {
-        // Filter options — only from active bases with available stock
         $activeBases = FullzBase::active()
             ->with('vendor:id,username_pub')
             ->orderBy('name')
             ->get();
 
-        // Distinct states and genders from available records in active bases
         $states = Fullz::select('fullz.state')
             ->join('fullz_bases', 'fullz.base_id', '=', 'fullz_bases.id')
             ->where('fullz.status', 'available')
@@ -48,40 +46,54 @@ class AutoshopController extends Controller
             ->orderBy('fullz.gender')
             ->pluck('fullz.gender');
 
-        // Build main query — always join bases so we can filter and sort by price
-        $query = Fullz::select('fullz.*', 'fullz_bases.price_usd', 'fullz_bases.name as base_name',
-                               'fullz_bases.vendor_id as base_vendor_id')
+        $query = Fullz::select(
+                'fullz.*',
+                'fullz_bases.price_usd',
+                'fullz_bases.name as base_name',
+                'fullz_bases.vendor_id as base_vendor_id',
+                'users.username_pub as vendor_name'
+            )
             ->join('fullz_bases', 'fullz.base_id', '=', 'fullz_bases.id')
+            ->join('users', 'fullz_bases.vendor_id', '=', 'users.id')
             ->where('fullz.status', 'available')
             ->where('fullz_bases.is_active', true)
             ->where('fullz_bases.available_count', '>', 0);
 
-        // --- Filters ---
-        if ($request->filled('base_id')) {
-            $query->where('fullz.base_id', $request->integer('base_id'));
-        }
-
         if ($request->filled('vendor_id')) {
             $query->where('fullz_bases.vendor_id', $request->integer('vendor_id'));
         }
-
+        if ($request->filled('base_id')) {
+            $query->where('fullz.base_id', $request->integer('base_id'));
+        }
         if ($request->filled('state')) {
             $query->where('fullz.state', $request->input('state'));
         }
-
+        if ($request->filled('name')) {
+            $query->where('fullz.name', 'like', '%' . $request->input('name') . '%');
+        }
+        if ($request->filled('city')) {
+            $query->where('fullz.city', 'like', '%' . $request->input('city') . '%');
+        }
+        if ($request->filled('zip')) {
+            $query->where('fullz.zip', $request->input('zip'));
+        }
         if ($request->filled('gender')) {
             $query->where('fullz.gender', $request->input('gender'));
         }
-
+        if ($request->filled('phone')) {
+            if ($request->input('phone') === 'yes') {
+                $query->whereNotNull('fullz.phone_no')->where('fullz.phone_no', '!=', '');
+            } else {
+                $query->where(fn($q) => $q->whereNull('fullz.phone_no')->orWhere('fullz.phone_no', ''));
+            }
+        }
         if ($request->filled('price_min')) {
             $query->where('fullz_bases.price_usd', '>=', (float) $request->input('price_min'));
         }
-
         if ($request->filled('price_max')) {
             $query->where('fullz_bases.price_usd', '<=', (float) $request->input('price_max'));
         }
 
-        // --- Sort ---
         $sort = $request->input('sort', 'newest');
         match ($sort) {
             'price_asc'  => $query->orderBy('fullz_bases.price_usd', 'asc')->orderBy('fullz.id', 'asc'),
@@ -91,8 +103,14 @@ class AutoshopController extends Controller
 
         $records = $query->paginate(50)->withQueryString();
 
+        $vendors = $activeBases
+            ->map(fn($b) => (object) ['id' => $b->vendor_id, 'name' => $b->vendor->username_pub])
+            ->unique('id')
+            ->sortBy('name')
+            ->values();
+
         return view('autoshop.fullz.index', compact(
-            'records', 'activeBases', 'states', 'genders', 'sort'
+            'records', 'activeBases', 'vendors', 'states', 'genders', 'sort'
         ));
     }
 

@@ -77,7 +77,7 @@
 
                 <!-- User Widget -->
                 @auth
-                    <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-4">
                         <!-- Wallet Balances -->
                         <div class="hidden md:flex items-center gap-4 text-xs">
                             <div class="flex flex-col">
@@ -95,17 +95,41 @@
                                 <span class="text-[10px] text-gray-400 font-mono">${{ number_format($user_balance['xmr']['usd_value'], 2) }}</span>
                             </div>
                         </div>
-                        
+
                         <div class="h-8 w-px bg-gray-200 hidden md:block"></div>
-                        
+
+                        <!-- Messages & Notifications -->
+                        <div class="flex items-center gap-3 text-xs">
+                            <a href="{{ route('messages.index') }}"
+                               class="flex items-center gap-1 text-gray-600 hover:text-amber-600 transition-colors font-medium">
+                                Msg
+                                @if(($unread_message_count ?? 0) > 0)
+                                <span class="bg-amber-500 text-white font-bold rounded-full px-1.5 py-0.5 leading-none text-[10px]">
+                                    {{ $unread_message_count > 99 ? '99+' : $unread_message_count }}
+                                </span>
+                                @endif
+                            </a>
+                            <a href="{{ route('notifications.index') }}"
+                               class="flex items-center gap-1 text-gray-600 hover:text-amber-600 transition-colors font-medium">
+                                Alerts
+                                @if(($unread_notification_count ?? 0) > 0)
+                                <span class="bg-amber-500 text-white font-bold rounded-full px-1.5 py-0.5 leading-none text-[10px]">
+                                    {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
+                                </span>
+                                @endif
+                            </a>
+                        </div>
+
+                        <div class="h-8 w-px bg-gray-200"></div>
+
                         <!-- User Avatar & Username -->
                         <div class="flex items-center gap-2">
                             <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-700 rounded-full flex items-center justify-center flex-shrink-0">
                                 <span class="text-white font-bold text-sm">{{ strtoupper(substr(auth()->user()->username_pri, 0, 1)) }}</span>
                             </div>
-                            <span class="text-sm font-medium text-gray-700">{{ auth()->user()->username_pri }}</span>
+                            <span class="text-sm font-medium text-gray-700 hidden md:block">{{ auth()->user()->username_pri }}</span>
                         </div>
-                        
+
                         <!-- Sign Out -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -138,19 +162,6 @@
                             {{ $text }}
                         </a>
                     @endforeach
-                    @auth
-                    <a href="{{ route('notifications.index') }}"
-                       class="flex items-center text-sm px-3 py-2 rounded-md transition-colors
-                              {{ request()->routeIs('notifications.*') ? 'bg-amber-500 text-white font-semibold' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100' }}">
-                        Notifications
-                        @if($unread_notification_count > 0)
-                        <span class="ml-1.5 bg-amber-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 leading-none
-                                     {{ request()->routeIs('notifications.*') ? 'bg-white text-amber-600' : '' }}">
-                            {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
-                        </span>
-                        @endif
-                    </a>
-                    @endauth
                 </div>
 
                 <!-- Mobile Menu Toggle -->
@@ -174,13 +185,22 @@
                 </a>
             @endforeach
             @auth
+            <a href="{{ route('messages.index') }}"
+               class="flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors
+                      {{ request()->routeIs('messages.*') ? 'bg-amber-500 text-white font-semibold' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50' }}">
+                Messages
+                @if(($unread_message_count ?? 0) > 0)
+                <span class="bg-amber-500 text-white text-xs font-bold rounded-full px-2 py-0.5 leading-none">
+                    {{ $unread_message_count > 99 ? '99+' : $unread_message_count }}
+                </span>
+                @endif
+            </a>
             <a href="{{ route('notifications.index') }}"
                class="flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors
                       {{ request()->routeIs('notifications.*') ? 'bg-amber-500 text-white font-semibold' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50' }}">
                 Notifications
-                @if($unread_notification_count > 0)
-                <span class="bg-amber-500 text-white text-xs font-bold rounded-full px-2 py-0.5 leading-none
-                             {{ request()->routeIs('notifications.*') ? 'bg-white text-amber-600' : '' }}">
+                @if(($unread_notification_count ?? 0) > 0)
+                <span class="bg-amber-500 text-white text-xs font-bold rounded-full px-2 py-0.5 leading-none">
                     {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
                 </span>
                 @endif

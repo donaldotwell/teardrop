@@ -101,6 +101,30 @@
 
                 <div class="h-4 w-px bg-blue-600"></div>
 
+                {{-- Messages & Notifications --}}
+                <div class="flex items-center gap-3 text-xs text-blue-200">
+                    <a href="{{ route('messages.index') }}"
+                       class="flex items-center gap-1 hover:text-white transition-colors font-medium">
+                        Msg
+                        @if(($unread_message_count ?? 0) > 0)
+                        <span class="bg-amber-400 text-blue-900 font-bold rounded-full px-1.5 py-0.5 leading-none text-[10px]">
+                            {{ $unread_message_count > 99 ? '99+' : $unread_message_count }}
+                        </span>
+                        @endif
+                    </a>
+                    <a href="{{ route('notifications.index') }}"
+                       class="flex items-center gap-1 hover:text-white transition-colors font-medium">
+                        Alerts
+                        @if(($unread_notification_count ?? 0) > 0)
+                        <span class="bg-amber-400 text-blue-900 font-bold rounded-full px-1.5 py-0.5 leading-none text-[10px]">
+                            {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
+                        </span>
+                        @endif
+                    </a>
+                </div>
+
+                <div class="h-4 w-px bg-blue-600"></div>
+
                 {{-- Quick Actions --}}
                 <div class="flex items-center space-x-2">
                     <a href="{{ route('home') }}"
@@ -184,16 +208,6 @@
                         Settings
                     </a>
                 @endif
-                <a href="{{ route('notifications.index') }}"
-                   class="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded
-                          {{ request()->routeIs('notifications.*') ? 'bg-blue-100 text-blue-700' : '' }}">
-                    Notifications
-                    @if(($unread_notification_count ?? 0) > 0)
-                    <span class="ml-1.5 bg-amber-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 leading-none">
-                        {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
-                    </span>
-                    @endif
-                </a>
             </div>
         </div>
 
@@ -256,15 +270,6 @@
                             Settings
                         </a>
                     @endif
-                    <a href="{{ route('notifications.index') }}"
-                       class="flex items-center justify-between px-3 py-2 text-gray-700 hover:bg-blue-50 rounded {{ request()->routeIs('notifications.*') ? 'bg-blue-100 text-blue-700' : '' }}">
-                        Notifications
-                        @if(($unread_notification_count ?? 0) > 0)
-                        <span class="bg-amber-500 text-white text-xs font-bold rounded-full px-2 py-0.5 leading-none">
-                            {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
-                        </span>
-                        @endif
-                    </a>
                 </div>
             </div>
         </details>
