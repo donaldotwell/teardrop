@@ -189,7 +189,7 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
         Route::get('/{btcWallet}/transfer', [AdminBtcWalletController::class, 'transferForm'])->name('transfer');
         Route::post('/{btcWallet}/transfer', [AdminBtcWalletController::class, 'transferInitiate'])->name('transfer-initiate');
         Route::get('/{btcWallet}/transfer/verify', [AdminBtcWalletController::class, 'transferVerifyForm'])->name('transfer-verify');
-        Route::post('/{btcWallet}/transfer/verify', [AdminBtcWalletController::class, 'transferExecute'])->name('transfer-execute');
+        Route::post('/{btcWallet}/transfer/verify', [AduminBtcWalletController::class, 'transferExecute'])->name('transfer-execute');
     });
 
     // XMR Wallet Management
