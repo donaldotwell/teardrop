@@ -159,6 +159,10 @@ class AutoshopController extends Controller
             ]);
         }
 
+        if ($vendorIds->first() == $buyer->id) {
+            return back()->withErrors(['error' => 'You cannot purchase records you have uploaded.']);
+        }
+
         $count     = $records->count();
         $totalUsd  = round($records->sum(fn($r) => (float) ($r->price_usd ?? $r->base->price_usd)), 2);
         $totalCrypto = convert_usd_to_crypto($totalUsd, $currency);
@@ -334,6 +338,17 @@ class AutoshopController extends Controller
             'raw_transaction' => ['purpose' => 'autoshop_purchase'],
         ]);
 
+        $vendorWallet->transactions()->create([
+            'btc_address_id'  => $vendorAddress->id,
+            'type'            => 'deposit',
+            'amount'          => $amount,
+            'usd_value'       => convert_crypto_to_usd($amount, 'btc'),
+            'status'          => 'pending',
+            'confirmations'   => 0,
+            'txid'            => $txid,
+            'raw_transaction' => ['purpose' => 'autoshop_sale'],
+        ]);
+
         return $txid;
     }
 
@@ -358,6 +373,17 @@ class AutoshopController extends Controller
             'confirmations'   => 0,
             'txid'            => $txHash,
             'raw_transaction' => ['purpose' => 'autoshop_purchase'],
+        ]);
+
+        $vendorWallet->transactions()->create([
+            'xmr_address_id'  => $vendorAddress->id,
+            'type'            => 'deposit',
+            'amount'          => $amount,
+            'usd_value'       => convert_crypto_to_usd($amount, 'xmr'),
+            'status'          => 'pending',
+            'confirmations'   => 0,
+            'txid'            => $txHash,
+            'raw_transaction' => ['purpose' => 'autoshop_sale'],
         ]);
 
         return $txHash;

@@ -142,6 +142,10 @@ class FsaidController extends Controller
             return back()->withErrors(['error' => 'All selected records must be from the same vendor.']);
         }
 
+        if ($vendorIds->first() == $buyer->id) {
+            return back()->withErrors(['error' => 'You cannot purchase records you have uploaded.']);
+        }
+
         $count       = $records->count();
         $totalUsd    = round($records->sum(fn($r) => (float) ($r->price_usd ?? $r->base->price_usd)), 2);
         $totalCrypto = convert_usd_to_crypto($totalUsd, $currency);
@@ -304,6 +308,17 @@ class FsaidController extends Controller
             'raw_transaction' => ['purpose' => 'fsaid_purchase'],
         ]);
 
+        $vendorWallet->transactions()->create([
+            'btc_address_id'  => $vendorAddress->id,
+            'type'            => 'deposit',
+            'amount'          => $amount,
+            'usd_value'       => convert_crypto_to_usd($amount, 'btc'),
+            'status'          => 'pending',
+            'confirmations'   => 0,
+            'txid'            => $txid,
+            'raw_transaction' => ['purpose' => 'fsaid_sale'],
+        ]);
+
         return $txid;
     }
 
@@ -328,6 +343,17 @@ class FsaidController extends Controller
             'confirmations'   => 0,
             'txid'            => $txHash,
             'raw_transaction' => ['purpose' => 'fsaid_purchase'],
+        ]);
+
+        $vendorWallet->transactions()->create([
+            'xmr_address_id'  => $vendorAddress->id,
+            'type'            => 'deposit',
+            'amount'          => $amount,
+            'usd_value'       => convert_crypto_to_usd($amount, 'xmr'),
+            'status'          => 'pending',
+            'confirmations'   => 0,
+            'txid'            => $txHash,
+            'raw_transaction' => ['purpose' => 'fsaid_sale'],
         ]);
 
         return $txHash;
