@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\AdminXmrWalletController;
 use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AdminAutoshopController;
 use App\Http\Controllers\Admin\AdminNotificationController;
+use App\Http\Controllers\Admin\AdminMessageController;
 use Illuminate\Support\Facades\Route;
 
 // Admin routes - protected by admin middleware
@@ -218,6 +219,12 @@ Route::middleware(['auth', 'admin'])->name('admin.')->group(function () {
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/',          [AdminNotificationController::class, 'index'])     ->name('index');
         Route::post('/broadcast', [AdminNotificationController::class, 'broadcast'])->name('broadcast');
+    });
+
+    // Messages — compose and fan-out to user groups
+    Route::prefix('messages')->name('messages.')->group(function () {
+        Route::get('/compose', [AdminMessageController::class, 'compose'])->name('compose');
+        Route::post('/send',   [AdminMessageController::class, 'send'])   ->name('send');
     });
 
 });

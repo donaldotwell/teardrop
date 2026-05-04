@@ -99,7 +99,7 @@
                     {{-- Notifications --}}
                     <a href="{{ route('notifications.index') }}"
                        class="flex items-center gap-1 text-xs text-red-200 hover:text-white transition-colors font-medium">
-                        Alerts
+                        &#128276; Alerts
                         @if(($unread_notification_count ?? 0) > 0)
                         <span class="bg-amber-400 text-red-900 font-bold rounded-full px-1.5 py-0.5 leading-none text-[10px]">
                             {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}
@@ -248,6 +248,11 @@
                    class="px-3 py-1.5 text-sm font-medium rounded transition-colors
                           {{ request()->routeIs('admin.notifications.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
                     Broadcast
+                </a>
+                <a href="{{ route('admin.messages.compose') }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors
+                          {{ request()->routeIs('admin.messages.*') ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700' }}">
+                    &#9993; Compose
                 </a>
             </div>
         </div>

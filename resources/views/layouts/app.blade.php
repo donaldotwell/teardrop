@@ -102,7 +102,7 @@
                         <div class="flex items-center gap-3 text-xs">
                             <a href="{{ route('messages.index') }}"
                                class="flex items-center gap-1 text-gray-600 hover:text-amber-600 transition-colors font-medium">
-                                Msg
+                                &#9993; Messages
                                 @if(($unread_message_count ?? 0) > 0)
                                 <span class="bg-amber-500 text-white font-bold rounded-full px-1.5 py-0.5 leading-none text-[10px]">
                                     {{ $unread_message_count > 99 ? '99+' : $unread_message_count }}
@@ -111,7 +111,7 @@
                             </a>
                             <a href="{{ route('notifications.index') }}"
                                class="flex items-center gap-1 text-gray-600 hover:text-amber-600 transition-colors font-medium">
-                                Alerts
+                                &#128276; Alerts
                                 @if(($unread_notification_count ?? 0) > 0)
                                 <span class="bg-amber-500 text-white font-bold rounded-full px-1.5 py-0.5 leading-none text-[10px]">
                                     {{ $unread_notification_count > 99 ? '99+' : $unread_notification_count }}

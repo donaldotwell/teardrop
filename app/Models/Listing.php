@@ -95,6 +95,11 @@ class Listing extends Model
         return $this->hasMany(ListingMedia::class);
     }
 
+    public function firstMedia(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ListingMedia::class)->oldestOfMany('order');
+    }
+
     /**
      * Get the product associated with the listing.
      *

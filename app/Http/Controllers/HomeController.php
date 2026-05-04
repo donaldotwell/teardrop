@@ -19,13 +19,13 @@ class HomeController extends Controller
         $searchQuery     = $request->get('search');
         $filter          = $request->get('filter');
 
-        // Base eager-loads shared by all branches
+        // Base eager-loads shared by all branches — home page only needs one image per listing.
         $with = [
             'user',
             'originCountry',
             'destinationCountry',
             'product.productCategory',
-            'media' => fn($q) => $q->orderBy('order'),
+            'firstMedia',
         ];
 
         // Core constraints shared by all branches
@@ -71,9 +71,12 @@ class HomeController extends Controller
             $regular_listings  = collect();
 
         } else {
-            // Default: featured section + regular section
+            // Randomise featured only on fresh unfiltered first page; use stable order when paginating or filtering.
+            $isFiltered   = $categoryUuid || $subcategoryUuid || $searchQuery;
+            $shouldRandom = !$isFiltered && $request->integer('page') <= 1;
+
             $featured_listings = $base(true)
-                ->inRandomOrder()
+                ->when($shouldRandom, fn($q) => $q->inRandomOrder(), fn($q) => $q->orderByDesc('listings.created_at'))
                 ->limit(20)
                 ->get();
 

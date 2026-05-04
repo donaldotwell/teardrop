@@ -208,9 +208,9 @@
                                 {{-- Listing Image Gallery --}}
                                 <div class="aspect-video bg-gray-100 overflow-hidden relative">
                                     <x-image-gallery
-                                        :images="$listing->media"
+                                        :images="$listing->firstMedia ? collect([$listing->firstMedia]) : collect()"
                                         :title="$listing->title"
-                                        :modal-id="'gallery-featured-' . $listing->id"
+                                        :simple="true"
                                     />
                                     <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded z-10 pointer-events-none">
                                         FEATURED
@@ -356,9 +356,9 @@
                                 {{-- Listing Image Gallery --}}
                                 <div class="aspect-video bg-gray-100 overflow-hidden relative">
                                     <x-image-gallery
-                                        :images="$listing->media"
+                                        :images="$listing->firstMedia ? collect([$listing->firstMedia]) : collect()"
                                         :title="$listing->title"
-                                        :modal-id="'gallery-all-' . $listing->id"
+                                        :simple="true"
                                     />
                                     @if($listing->is_featured)
                                         <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded z-10 pointer-events-none">
@@ -519,9 +519,9 @@
                                 {{-- Listing Image Gallery --}}
                                 <div class="aspect-video bg-gray-100 overflow-hidden relative">
                                     <x-image-gallery
-                                        :images="$listing->media"
+                                        :images="$listing->firstMedia ? collect([$listing->firstMedia]) : collect()"
                                         :title="$listing->title"
-                                        :modal-id="'gallery-featured-only-' . $listing->id"
+                                        :simple="true"
                                     />
                                     <div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded z-10 pointer-events-none">
                                         FEATURED
@@ -651,9 +651,9 @@
                             {{-- Listing Image Gallery --}}
                             <div class="aspect-video bg-gray-100 overflow-hidden">
                                 <x-image-gallery
-                                    :images="$listing->media"
+                                    :images="$listing->firstMedia ? collect([$listing->firstMedia]) : collect()"
                                     :title="$listing->title"
-                                    :modal-id="'gallery-search-' . $listing->id"
+                                    :simple="true"
                                 />
                             </div>
 

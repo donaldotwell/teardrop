@@ -57,9 +57,11 @@
                 </div>
 
                 <div class="flex justify-center mb-4">
-                    <img src="{{ $challengeImage }}"
-                         alt="URL Challenge"
-                         class="border-2 border-gray-300 rounded max-w-full h-auto">
+                    <a href="{{ $challengeImage }}" target="_blank" rel="noopener">
+                        <img src="{{ $challengeImage }}"
+                             alt="URL Challenge"
+                             class="border-2 border-gray-300 rounded max-w-full h-auto">
+                    </a>
                 </div>
 
                 <p class="text-xs text-gray-500 text-center mb-4">
