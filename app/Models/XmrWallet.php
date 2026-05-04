@@ -24,6 +24,7 @@ class XmrWallet extends Model
         'total_sent',
         'is_active',
         'last_synced_at',
+        'last_active_at',
     ];
 
     protected $casts = [
@@ -34,6 +35,7 @@ class XmrWallet extends Model
         'total_sent' => 'decimal:12',
         'is_active' => 'boolean',
         'last_synced_at' => 'datetime',
+        'last_active_at' => 'datetime',
     ];
 
     /**

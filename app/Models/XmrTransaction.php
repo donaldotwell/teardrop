@@ -53,6 +53,16 @@ class XmrTransaction extends Model
                 $transaction->uuid = (string) \Illuminate\Support\Str::uuid();
             }
         });
+
+        $touchWallet = function ($transaction) {
+            if ($transaction->xmr_wallet_id) {
+                \App\Models\XmrWallet::where('id', $transaction->xmr_wallet_id)
+                    ->update(['last_active_at' => now()]);
+            }
+        };
+
+        static::created($touchWallet);
+        static::updated($touchWallet);
     }
 
     /**

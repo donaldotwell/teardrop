@@ -64,4 +64,5 @@ return [
     'sync_interval' => env('BITCOIN_SYNC_INTERVAL', 60), // seconds
     'sync_enabled' => env('BITCOIN_SYNC_ENABLED', true),
     'sync_batch_size' => env('BITCOIN_SYNC_BATCH_SIZE', 100),
+    'sync_active_window_hours' => env('BITCOIN_SYNC_ACTIVE_WINDOW_HOURS', 24), // only sync wallets active within this window
 ];

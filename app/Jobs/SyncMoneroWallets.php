@@ -37,14 +37,14 @@ class SyncMoneroWallets implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        // Skip wallets idle for longer than the configured threshold.
-        $skipDays = config('monero.sync_idle_skip_days', 30);
+        // Only sync wallets that have had recent activity or have pending transactions.
+        $window = config('monero.sync_active_window_hours', 24);
 
         $dispatched = 0;
         XmrWallet::where('is_active', true)
-            ->where(function ($query) use ($skipDays) {
-                $query->whereNull('last_synced_at')
-                      ->orWhere('last_synced_at', '>=', now()->subDays($skipDays));
+            ->where(function ($q) use ($window) {
+                $q->where('last_active_at', '>=', now()->subHours($window))
+                  ->orWhereHas('transactions', fn ($tq) => $tq->where('status', 'pending'));
             })
             ->chunkById(100, function ($wallets) use (&$dispatched) {
                 foreach ($wallets as $wallet) {

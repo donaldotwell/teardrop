@@ -71,7 +71,7 @@ return [
 
     'sync_enabled' => env('MONERO_SYNC_ENABLED', true),
     'sync_interval' => env('MONERO_SYNC_INTERVAL', 120), // seconds between sync runs
-    'sync_idle_skip_days' => env('MONERO_SYNC_IDLE_SKIP_DAYS', 30), // Skip wallets idle longer than this
+    'sync_active_window_hours' => env('MONERO_SYNC_ACTIVE_WINDOW_HOURS', 24), // only sync wallets active within this window
 
     /*
     |--------------------------------------------------------------------------

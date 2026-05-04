@@ -72,6 +72,8 @@ class BitcoinController extends Controller
             }
         }
 
+        $btcWallet->update(['last_active_at' => now()]);
+
         // Generate QR code as base64 encoded PNG
         try {
             $result = Builder::create()

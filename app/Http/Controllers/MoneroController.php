@@ -76,6 +76,8 @@ class MoneroController extends Controller
             }
         }
 
+        $xmrWallet->update(['last_active_at' => now()]);
+
         // Generate QR code as base64 encoded PNG (matching BitcoinController)
         try {
             $result = \Endroid\QrCode\Builder\Builder::create()

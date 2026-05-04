@@ -17,7 +17,8 @@ class BtcWallet extends Model
         'total_received',
         'total_sent',
         'balance',
-        'is_active'
+        'is_active',
+        'last_active_at',
     ];
 
     protected $casts = [
@@ -25,7 +26,8 @@ class BtcWallet extends Model
         'total_sent' => 'decimal:8',
         'balance' => 'decimal:8',
         'address_index' => 'integer',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
+        'last_active_at' => 'datetime',
     ];
 
     /**

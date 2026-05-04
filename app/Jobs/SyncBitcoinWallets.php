@@ -37,14 +37,21 @@ class SyncBitcoinWallets implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        // Dispatch one job per active user wallet — memory stays flat regardless of wallet count.
+        // Only sync wallets that have had recent activity or have pending transactions.
+        $window = config('bitcoinrpc.sync_active_window_hours', 24);
+
         $dispatched = 0;
-        BtcWallet::where('is_active', true)->chunkById(100, function ($wallets) use (&$dispatched) {
-            foreach ($wallets as $wallet) {
-                SyncSingleBtcWallet::dispatch($wallet->id);
-                $dispatched++;
-            }
-        });
+        BtcWallet::where('is_active', true)
+            ->where(function ($q) use ($window) {
+                $q->where('last_active_at', '>=', now()->subHours($window))
+                  ->orWhereHas('transactions', fn ($tq) => $tq->where('status', 'pending'));
+            })
+            ->chunkById(100, function ($wallets) use (&$dispatched) {
+                foreach ($wallets as $wallet) {
+                    SyncSingleBtcWallet::dispatch($wallet->id);
+                    $dispatched++;
+                }
+            });
 
         Log::info("SyncBitcoinWallets: dispatched {$dispatched} per-wallet sync jobs");
 

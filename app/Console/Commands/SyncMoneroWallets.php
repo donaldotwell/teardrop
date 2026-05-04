@@ -48,12 +48,11 @@ class SyncMoneroWallets extends Command
 
             $startTime = microtime(true);
 
-            // Sync user wallets
-            $skipDays = config('monero.sync_idle_skip_days', 30);
+            $window = config('monero.sync_active_window_hours', 24);
             $userWallets = \App\Models\XmrWallet::where('is_active', true)
-                ->where(function ($query) use ($skipDays) {
-                    $query->whereNull('last_synced_at')
-                          ->orWhere('last_synced_at', '>=', now()->subDays($skipDays));
+                ->where(function ($query) use ($window) {
+                    $query->where('last_active_at', '>=', now()->subHours($window))
+                          ->orWhereHas('transactions', fn ($q) => $q->where('status', 'pending'));
                 })
                 ->get();
 
