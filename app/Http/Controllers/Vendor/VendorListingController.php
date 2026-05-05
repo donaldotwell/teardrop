@@ -78,7 +78,7 @@ class VendorListingController extends Controller
             'destination_country_id' => 'required|exists:countries,id',
             'tags' => 'nullable|string',
             'images' => 'required|array|min:1|max:3',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:500',
             'return_policy' => 'required|string',
             'product_category_id' => 'required|exists:product_categories,id',
             'product_id' => 'required|exists:products,id',
