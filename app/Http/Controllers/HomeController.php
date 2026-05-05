@@ -55,7 +55,7 @@ class HomeController extends Controller
             $all_listings = $base()
                 ->orderBy('listings.is_featured', 'desc')
                 ->orderByDesc('listings.created_at')
-                ->paginate(20)
+                ->paginate(10)
                 ->withQueryString();
 
             $featured_listings = collect();
@@ -64,7 +64,7 @@ class HomeController extends Controller
         } elseif ($filter === 'featured') {
             $all_listings = $base(true)
                 ->orderByDesc('listings.created_at')
-                ->paginate(20)
+                ->paginate(10)
                 ->withQueryString();
 
             $featured_listings = collect();
@@ -82,7 +82,7 @@ class HomeController extends Controller
 
             $regular_listings = $base(false)
                 ->orderByDesc('listings.created_at')
-                ->paginate(20)
+                ->paginate(10)
                 ->withQueryString();
 
             $all_listings = collect();
