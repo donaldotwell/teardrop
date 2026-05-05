@@ -121,6 +121,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [HomeController::class, 'home'])->name('home');
     Route::get('/listings', [HomeController::class, 'home'])->name('listings.index');
     Route::get('/listings/{listing}', [\App\Http\Controllers\ListingController::class, 'show'])->name('listings.show');
+    Route::get('/listing-image/{listingMedia}', [\App\Http\Controllers\ListingMediaController::class, 'show'])->name('listing.media.show');
 
     // create an order for a listing using get
     Route::get('/listings/{listing}/create', [\App\Http\Controllers\OrderController::class, 'create'])->name('orders.create');

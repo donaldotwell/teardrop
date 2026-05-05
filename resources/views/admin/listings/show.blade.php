@@ -238,7 +238,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     @foreach($listing->media as $media)
                         <div class="relative">
-                            <img src="{{ $media->data_uri }}"
+                            <img src="{{ $media->url }}"
                                  alt="{{ $listing->title }}"
                                  class="w-full h-64 object-contain rounded-lg bg-gray-50 p-4 border border-gray-200">
                             <div class="absolute top-2 right-2 bg-white px-2 py-1 rounded text-xs text-gray-600">

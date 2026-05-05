@@ -51,7 +51,13 @@ class ListingController extends Controller
         // Record unique view for authenticated users only
         $listing->recordView(auth()->id());
 
-        $listing->load(['media', 'user', 'originCountry', 'destinationCountry', 'reviews.user']);
+        $listing->load([
+            'media'   => fn($q) => $q->select(['id', 'listing_id', 'type', 'order'])->orderBy('order'),
+            'user',
+            'originCountry',
+            'destinationCountry',
+            'reviews.user',
+        ]);
 
         $productCategories = \App\Models\ProductCategory::where('product_categories.is_active', true)
             ->with(['products' => function($query) {

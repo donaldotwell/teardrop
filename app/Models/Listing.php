@@ -97,7 +97,9 @@ class Listing extends Model
 
     public function firstMedia(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(ListingMedia::class)->oldestOfMany('order');
+        return $this->hasOne(ListingMedia::class)
+            ->select(['id', 'listing_id', 'type', 'order'])
+            ->oldest('order');
     }
 
     /**

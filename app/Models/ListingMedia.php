@@ -33,4 +33,12 @@ class ListingMedia extends Model
     {
         return "data:{$this->type};base64,{$this->content}";
     }
+
+    /**
+     * Get the URL for serving this image via the dedicated route.
+     */
+    public function getUrlAttribute(): string
+    {
+        return route('listing.media.show', $this->id);
+    }
 }

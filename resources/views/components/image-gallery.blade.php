@@ -10,7 +10,7 @@
     {{-- Simple mode: cover image only, no modal. Used on listing index/home pages. --}}
     <div class="w-full h-full">
         @if($firstImage)
-            <img src="{{ $firstImage->data_uri }}"
+            <img src="{{ $firstImage->url }}"
                  alt="{{ $title }}"
                  class="w-full h-full object-contain bg-white border border-gray-200 rounded-lg p-2">
         @else
@@ -26,7 +26,7 @@
             <!-- Main Image with Click to Open Gallery -->
             <div class="relative group cursor-pointer">
                 <label for="{{ $modalId }}" class="cursor-pointer">
-                    <img src="{{ $firstImage->data_uri }}"
+                    <img src="{{ $firstImage->url }}"
                          alt="{{ $title }}"
                          class="w-full h-full object-contain bg-white border border-gray-200 rounded-lg p-2 transition-transform duration-300 group-hover:scale-105">
 
@@ -79,7 +79,7 @@
                             @foreach($imageCollection as $index => $image)
                                 <div class="relative group">
                                     <div class="bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-yellow-400 transition-colors">
-                                        <img src="{{ $image->data_uri }}"
+                                        <img src="{{ $image->url }}"
                                              alt="{{ $title }} - Image {{ $index + 1 }}"
                                              class="w-full h-auto object-contain p-4 max-h-[500px]">
                                     </div>
