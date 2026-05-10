@@ -208,6 +208,16 @@
                                                 Purchase Now
                                             </button>
                                         </form>
+
+                                        {{-- Add to Cart --}}
+                                        <form action="{{ route('cart.store', $listing) }}" method="POST" class="mt-2">
+                                            @csrf
+                                            <input type="hidden" name="quantity" value="1">
+                                            <button type="submit"
+                                                    class="w-full py-2.5 border-2 border-yellow-600 text-yellow-700 font-semibold rounded-lg hover:bg-yellow-50 transition-colors duration-200 text-sm">
+                                                &#128722; Add to Cart
+                                            </button>
+                                        </form>
                                     @endif
                                 </div>
                             </div>

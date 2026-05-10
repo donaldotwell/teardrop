@@ -165,8 +165,8 @@
 
     {{-- Records + purchase form --}}
     @if($records->isEmpty())
-        <div class="bg-white border border-gray-200 rounded-xl p-12 text-center">
-            <p class="text-gray-500 mb-3">No records match your filters.</p>
+        <div class="bg-white border border-gray-200 rounded-xl p-8 text-center">
+            <p class="text-gray-500 mb-2">No records match your filters.</p>
             @if($hasFilters)
                 <a href="{{ route('autoshop.fsaid.index') }}" class="text-sm text-teal-700 hover:underline">Clear filters</a>
             @endif

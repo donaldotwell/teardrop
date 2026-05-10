@@ -123,6 +123,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/listings/{listing}', [\App\Http\Controllers\ListingController::class, 'show'])->name('listings.show');
     Route::get('/listing-image/{listingMedia}', [\App\Http\Controllers\ListingMediaController::class, 'show'])->name('listing.media.show');
 
+    // Cart — specific paths before the {listing} wildcard
+    Route::get('/cart', [\App\Http\Controllers\CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/checkout', [\App\Http\Controllers\CartController::class, 'checkout'])->name('cart.checkout')->middleware('throttle:writes');
+    Route::delete('/cart/item/{cartItem}', [\App\Http\Controllers\CartController::class, 'destroy'])->name('cart.destroy')->middleware('throttle:writes');
+    Route::post('/cart/{listing}', [\App\Http\Controllers\CartController::class, 'store'])->name('cart.store')->middleware('throttle:writes');
+
     // create an order for a listing using get
     Route::get('/listings/{listing}/create', [\App\Http\Controllers\OrderController::class, 'create'])->name('orders.create');
     Route::post('/listings/{listing}/orders', [\App\Http\Controllers\OrderController::class, 'store'])

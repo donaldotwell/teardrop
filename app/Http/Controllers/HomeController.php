@@ -71,17 +71,13 @@ class HomeController extends Controller
             $regular_listings  = collect();
 
         } else {
-            // Randomise featured only on fresh unfiltered first page; use stable order when paginating or filtering.
-            $isFiltered   = $categoryUuid || $subcategoryUuid || $searchQuery;
-            $shouldRandom = !$isFiltered && $request->integer('page') <= 1;
-
             $featured_listings = $base(true)
-                ->when($shouldRandom, fn($q) => $q->inRandomOrder(), fn($q) => $q->orderByDesc('listings.created_at'))
+                ->inRandomOrder()
                 ->limit(20)
                 ->get();
 
             $regular_listings = $base(false)
-                ->orderByDesc('listings.created_at')
+                ->inRandomOrder()
                 ->paginate(10)
                 ->withQueryString();
 

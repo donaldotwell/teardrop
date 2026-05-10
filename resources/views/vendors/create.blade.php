@@ -20,7 +20,7 @@
                 <div>
                     <h3 class="text-lg font-semibold text-red-700">Important Notice</h3>
                     <p class="text-sm text-red-600 mt-1">
-                        The vendor registration fee of $1000 USD is non-refundable.
+                        The vendor registration fee of ${{ number_format($conversionFeeUsd, 0) }} USD is non-refundable.
                         Ensure you understand the marketplace rules before proceeding.
                     </p>
                 </div>
@@ -48,7 +48,7 @@
                                         Pay with Bitcoin
                                     </div>
                                     <div class="text-sm text-gray-600">
-                                        Required: {{ convert_usd_to_crypto(1000, 'btc') }} BTC
+                                        Required: {{ convert_usd_to_crypto($conversionFeeUsd, 'btc') }} BTC
                                     </div>
                                 </div>
                                 <span class="text-2xl">₿</span>
@@ -75,7 +75,7 @@
                                         Pay with Monero
                                     </div>
                                     <div class="text-sm text-gray-600">
-                                        Required: {{ convert_usd_to_crypto(1000, 'xmr') }} XMR
+                                        Required: {{ convert_usd_to_crypto($conversionFeeUsd, 'xmr') }} XMR
                                     </div>
                                 </div>
                                 <span class="text-2xl">ɱ</span>
@@ -100,7 +100,7 @@
                     <span class="ml-2 text-sm text-gray-600">
                     I agree to the marketplace
                     <a href="#" class="text-amber-700 hover:text-amber-600 underline">Vendor Agreement</a>
-                    and understand the $1000 USD fee is non-refundable
+                    and understand the ${{ number_format($conversionFeeUsd, 0) }} USD fee is non-refundable
                 </span>
                 </label>
                 @error('terms')

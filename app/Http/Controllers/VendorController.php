@@ -109,8 +109,11 @@ class VendorController extends Controller
                 ->with('info', 'You are already a vendor.');
         }
 
+        $conversionFeeUsd = AppSetting::get('vendor_conversion_usd', 1000);
+
         return view('vendors.create', [
-            'balance' => $request->user()->getBalance()
+            'balance'           => $request->user()->getBalance(),
+            'conversionFeeUsd'  => $conversionFeeUsd,
         ]);
     }
 

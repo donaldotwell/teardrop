@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
 use App\Models\AppNotification;
+use App\Models\CartItem;
 use App\Models\ProductCategory;
 use App\Models\ExchangeRate;
 use App\Models\UserMessage;
@@ -62,6 +63,7 @@ class ShareViewData
 
         $unread_notification_count = 0;
         $unread_message_count = 0;
+        $cart_item_count = 0;
 
         // Load user-specific data if authenticated
         if (auth()->check()) {
@@ -82,6 +84,10 @@ class ShareViewData
                 ->whereNull('read_at')
                 ->count();
 
+            $cart_item_count = CartItem::where('user_id', $user->id)
+                ->active()
+                ->count();
+
             // Role-specific links
             if ($user->hasRole('user')) {
                 $navigation_links['Start Selling'] = route('vendor.convert');
@@ -100,6 +106,7 @@ class ShareViewData
         View::share('xmrRate', $xmrRate);
         View::share('unread_notification_count', $unread_notification_count);
         View::share('unread_message_count', $unread_message_count);
+        View::share('cart_item_count', $cart_item_count);
 
         return $next($request);
     }

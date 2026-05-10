@@ -293,6 +293,15 @@
                                        class="block w-full text-center py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors font-medium">
                                         View Details
                                     </a>
+                                    @if($listing->user_id !== auth()->id())
+                                    <form action="{{ route('cart.store', $listing) }}" method="POST" class="mt-1">
+                                        @csrf
+                                        <input type="hidden" name="quantity" value="1">
+                                        <button type="submit" class="block w-full text-center py-1.5 text-xs border border-yellow-600 text-yellow-700 rounded hover:bg-yellow-50 transition-colors">
+                                            &#128722; Add to Cart
+                                        </button>
+                                    </form>
+                                    @endif
                                 </div>
                             </div>
                         @empty
@@ -442,7 +451,16 @@
                                     <a href="{{ route('listings.show', $listing) }}"
                                        class="block w-full text-center py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors">
                                         View Details
-                                    </a>
+
+                                    @if($listing->user_id !== auth()->id())
+                                    <form action="{{ route('cart.store', $listing) }}" method="POST" class="mt-1">
+                                        @csrf
+                                        <input type="hidden" name="quantity" value="1">
+                                        <button type="submit" class="block w-full text-center py-1.5 text-xs border border-yellow-600 text-yellow-700 rounded hover:bg-yellow-50 transition-colors">
+                                            &#128722; Add to Cart
+                                        </button>
+                                    </form>
+                                    @endif
                                 </div>
                             </div>
                         @empty
@@ -599,7 +617,16 @@
                                     <a href="{{ route('listings.show', $listing) }}"
                                        class="block w-full text-center py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors font-medium">
                                         View Details
-                                    </a>
+
+                                    @if($listing->user_id !== auth()->id())
+                                    <form action="{{ route('cart.store', $listing) }}" method="POST" class="mt-1">
+                                        @csrf
+                                        <input type="hidden" name="quantity" value="1">
+                                        <button type="submit" class="block w-full text-center py-1.5 text-xs border border-yellow-600 text-yellow-700 rounded hover:bg-yellow-50 transition-colors">
+                                            &#128722; Add to Cart
+                                        </button>
+                                    </form>
+                                    @endif
                                 </div>
                             </div>
                         @empty
@@ -733,6 +760,15 @@
                                    class="block w-full text-center py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors">
                                     View Details
                                 </a>
+                                @if($listing->user_id !== auth()->id())
+                                <form action="{{ route('cart.store', $listing) }}" method="POST" class="mt-1">
+                                    @csrf
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button type="submit" class="block w-full text-center py-1.5 text-xs border border-yellow-600 text-yellow-700 rounded hover:bg-yellow-50 transition-colors">
+                                        &#128722; Add to Cart
+                                    </button>
+                                </form>
+                                @endif
                             </div>
                         </div>
                     @empty

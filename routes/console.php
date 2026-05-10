@@ -2,6 +2,8 @@
 
 use App\Jobs\CheckExpiredDisputeWindows;
 use App\Jobs\UpdateVendorEarlyFinalizationStats;
+use App\Models\CartItem;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
@@ -63,3 +65,18 @@ Schedule::job(new UpdateVendorEarlyFinalizationStats)
     ->onFailure(function () {
         Log::error('Update vendor early finalization stats job failed');
     });
+
+// Cart cleanup — soft-delete expired active carts, prune old soft-deleted rows.
+Schedule::call(function () {
+    $expired = CartItem::where('expires_at', '<', now())->count();
+    CartItem::where('expires_at', '<', now())->delete();
+
+    // Force-delete rows already soft-deleted more than 90 days ago.
+    CartItem::onlyTrashed()
+        ->where('deleted_at', '<', now()->subDays(90))
+        ->forceDelete();
+
+    if ($expired > 0) {
+        Log::info("Cart cleanup: soft-deleted {$expired} expired cart item(s).");
+    }
+})->daily()->name('cart-cleanup')->withoutOverlapping(5);

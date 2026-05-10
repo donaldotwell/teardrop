@@ -118,6 +118,15 @@
                                 </span>
                                 @endif
                             </a>
+                            <a href="{{ route('cart.index') }}"
+                               class="flex items-center gap-1 text-gray-600 hover:text-amber-600 transition-colors font-medium">
+                                &#128722; Cart
+                                @if(($cart_item_count ?? 0) > 0)
+                                <span class="bg-amber-500 text-white font-bold rounded-full px-1.5 py-0.5 leading-none text-[10px]">
+                                    {{ $cart_item_count > 99 ? '99+' : $cart_item_count }}
+                                </span>
+                                @endif
+                            </a>
                         </div>
 
                         <div class="h-8 w-px bg-gray-200"></div>
