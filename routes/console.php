@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\CleanupExpiredDepositOrders;
 use App\Jobs\CheckExpiredDisputeWindows;
 use App\Jobs\UpdateVendorEarlyFinalizationStats;
 use App\Models\CartItem;
@@ -80,3 +81,11 @@ Schedule::call(function () {
         Log::info("Cart cleanup: soft-deleted {$expired} expired cart item(s).");
     }
 })->daily()->name('cart-cleanup')->withoutOverlapping(5);
+
+// Cancel direct-deposit orders whose 48-hour window expired with no payment received.
+Schedule::command(CleanupExpiredDepositOrders::class)
+    ->hourly()
+    ->withoutOverlapping(5)
+    ->onFailure(function () {
+        Log::error('CleanupExpiredDepositOrders failed');
+    });

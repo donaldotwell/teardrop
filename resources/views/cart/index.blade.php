@@ -6,7 +6,7 @@
 <div class="max-w-3xl mx-auto">
 
     <div class="mb-6 flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-gray-900">&#128722; Cart</h1>
+        <h1 class="text-2xl font-bold text-gray-900">Cart</h1>
         @if($items->isNotEmpty())
             <span class="text-sm text-gray-500">{{ $items->count() }} item(s) &mdash; expires in {{ $items->min('expires_at')?->diffForHumans() }}</span>
         @endif

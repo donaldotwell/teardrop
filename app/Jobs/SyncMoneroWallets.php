@@ -3,8 +3,10 @@
 namespace App\Jobs;
 
 use App\Models\EscrowWallet;
+use App\Models\UserMessage;
 use App\Models\XmrWallet;
 use App\Repositories\MoneroRepository;
+use App\Services\NotificationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -63,8 +65,39 @@ class SyncMoneroWallets implements ShouldQueue, ShouldBeUnique
             ->chunkById(50, function ($escrowWallets) use ($repository, &$escrowCount) {
                 foreach ($escrowWallets as $escrowWallet) {
                     try {
+                        $wasUnfunded = !$escrowWallet->order->escrow_funded_at;
                         $repository->syncEscrowWallet($escrowWallet);
                         $escrowCount++;
+
+                        // Send notifications if this sync just confirmed the deposit
+                        if ($wasUnfunded && $escrowWallet->order->fresh()->escrow_funded_at) {
+                            $order = $escrowWallet->order->load(['user', 'listing.user']);
+
+                            UserMessage::create([
+                                'sender_id'   => $order->user_id,
+                                'receiver_id' => $order->listing->user_id,
+                                'message'     => "New order #{$order->uuid}: {$order->quantity}x \"{$order->listing->title}\" — {$order->crypto_value} XMR deposited to escrow.",
+                                'order_id'    => $order->id,
+                            ]);
+
+                            NotificationService::send(
+                                $order->listing->user_id,
+                                'order',
+                                'New Order Received',
+                                "Order #{$order->uuid} — {$order->crypto_value} XMR confirmed in escrow.",
+                                route('orders.show', $order)
+                            );
+
+                            NotificationService::send(
+                                $order->user_id,
+                                'order',
+                                'Deposit Confirmed',
+                                "Your deposit for order #{$order->uuid} has been confirmed. The vendor will be notified.",
+                                route('orders.show', $order)
+                            );
+
+                            Log::info("Notifications sent for funded XMR escrow order #{$order->id}");
+                        }
                     } catch (\Exception $e) {
                         Log::error("Escrow wallet sync failed for order #{$escrowWallet->order_id}: {$e->getMessage()}");
                     }

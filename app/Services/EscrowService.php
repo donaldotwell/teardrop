@@ -772,8 +772,7 @@ class EscrowService
      */
     private function generateWalletName(Order $order): string
     {
-        $suffix = $order->currency === 'xmr' ? '' : '';
-        return "escrow_order_{$order->id}_{$order->currency}";
+        return 'escrow_' . \Illuminate\Support\Str::random(12) . '_' . $order->currency;
     }
 
     /**

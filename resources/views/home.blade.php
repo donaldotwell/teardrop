@@ -298,7 +298,7 @@
                                         @csrf
                                         <input type="hidden" name="quantity" value="1">
                                         <button type="submit" class="block w-full text-center py-1.5 text-xs border border-yellow-600 text-yellow-700 rounded hover:bg-yellow-50 transition-colors">
-                                            &#128722; Add to Cart
+                                            Add to Cart
                                         </button>
                                     </form>
                                     @endif
@@ -451,13 +451,13 @@
                                     <a href="{{ route('listings.show', $listing) }}"
                                        class="block w-full text-center py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors">
                                         View Details
-
+                                    </a>
                                     @if($listing->user_id !== auth()->id())
                                     <form action="{{ route('cart.store', $listing) }}" method="POST" class="mt-1">
                                         @csrf
                                         <input type="hidden" name="quantity" value="1">
                                         <button type="submit" class="block w-full text-center py-1.5 text-xs border border-yellow-600 text-yellow-700 rounded hover:bg-yellow-50 transition-colors">
-                                            &#128722; Add to Cart
+                                            Add to Cart
                                         </button>
                                     </form>
                                     @endif
@@ -547,7 +547,6 @@
                                 </div>
 
                                 <div class="p-4 bg-yellow-50 flex flex-col" style="min-height: 320px;">
-                                    {{-- Same content as featured listings above --}}
                                     <div class="mb-3 flex-shrink-0">
                                         <h3 class="font-medium text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
                                             {{ $listing->title }}
@@ -617,13 +616,13 @@
                                     <a href="{{ route('listings.show', $listing) }}"
                                        class="block w-full text-center py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors font-medium">
                                         View Details
-
+                                    </a>
                                     @if($listing->user_id !== auth()->id())
                                     <form action="{{ route('cart.store', $listing) }}" method="POST" class="mt-1">
                                         @csrf
                                         <input type="hidden" name="quantity" value="1">
                                         <button type="submit" class="block w-full text-center py-1.5 text-xs border border-yellow-600 text-yellow-700 rounded hover:bg-yellow-50 transition-colors">
-                                            &#128722; Add to Cart
+                                            Add to Cart
                                         </button>
                                     </form>
                                     @endif
@@ -765,7 +764,7 @@
                                     @csrf
                                     <input type="hidden" name="quantity" value="1">
                                     <button type="submit" class="block w-full text-center py-1.5 text-xs border border-yellow-600 text-yellow-700 rounded hover:bg-yellow-50 transition-colors">
-                                        &#128722; Add to Cart
+                                        Add to Cart
                                     </button>
                                 </form>
                                 @endif

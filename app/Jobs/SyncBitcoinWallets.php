@@ -4,7 +4,9 @@ namespace App\Jobs;
 
 use App\Models\BtcWallet;
 use App\Models\EscrowWallet;
+use App\Models\UserMessage;
 use App\Repositories\BitcoinRepository;
+use App\Services\NotificationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -71,8 +73,34 @@ class SyncBitcoinWallets implements ShouldQueue, ShouldBeUnique
                         $escrowWallet->updateBalance();
 
                         if (!$escrowWallet->order->escrow_funded_at && $escrowWallet->balance > 0) {
-                            $escrowWallet->order->update(['escrow_funded_at' => now()]);
+                            $order = $escrowWallet->order;
+                            $order->update(['escrow_funded_at' => now()]);
                             Log::info("Escrow funded for order #{$escrowWallet->order_id}");
+
+                            $order->load(['user', 'listing.user']);
+
+                            UserMessage::create([
+                                'sender_id'   => $order->user_id,
+                                'receiver_id' => $order->listing->user_id,
+                                'message'     => "New order #{$order->uuid}: {$order->quantity}x \"{$order->listing->title}\" — {$order->crypto_value} BTC deposited to escrow.",
+                                'order_id'    => $order->id,
+                            ]);
+
+                            NotificationService::send(
+                                $order->listing->user_id,
+                                'order',
+                                'New Order Received',
+                                "Order #{$order->uuid} — {$order->crypto_value} BTC confirmed in escrow.",
+                                route('orders.show', $order)
+                            );
+
+                            NotificationService::send(
+                                $order->user_id,
+                                'order',
+                                'Deposit Confirmed',
+                                "Your deposit for order #{$order->uuid} has been confirmed. The vendor will be notified.",
+                                route('orders.show', $order)
+                            );
                         }
 
                         $escrowCount++;

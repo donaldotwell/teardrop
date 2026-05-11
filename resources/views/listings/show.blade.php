@@ -215,7 +215,7 @@
                                             <input type="hidden" name="quantity" value="1">
                                             <button type="submit"
                                                     class="w-full py-2.5 border-2 border-yellow-600 text-yellow-700 font-semibold rounded-lg hover:bg-yellow-50 transition-colors duration-200 text-sm">
-                                                &#128722; Add to Cart
+                                                Add to Cart
                                             </button>
                                         </form>
                                     @endif
@@ -251,11 +251,11 @@
                         <x-tabs :tabs="[
                             'tab-desc' => [
                                 'label' => 'Description',
-                                'content' => $listing->description
+                                'content' => nl2br(e($listing->description))
                             ],
                             'tab-return-policy' => [
                                 'label' => 'Return Policy',
-                                'content' => $listing->return_policy ?: 'No return policy specified.'
+                                'content' => nl2br(e($listing->return_policy ?: 'No return policy specified.'))
                             ],
                             'tab-reviews' => [
                                 'label' => 'Reviews (' . $listing->reviews->count() . ')',

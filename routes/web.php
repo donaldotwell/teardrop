@@ -133,6 +133,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/listings/{listing}/create', [\App\Http\Controllers\OrderController::class, 'create'])->name('orders.create');
     Route::post('/listings/{listing}/orders', [\App\Http\Controllers\OrderController::class, 'store'])
         ->name('orders.store')->middleware('throttle:writes');
+    Route::post('/listings/{listing}/orders/deposit', [\App\Http\Controllers\OrderController::class, 'createDepositOrder'])
+        ->name('orders.deposit.create')->middleware('throttle:writes');
+    Route::get('/orders/{order}/deposit', [\App\Http\Controllers\OrderController::class, 'showDepositPage'])
+        ->name('orders.deposit.show');
 
     Route::get('/messages', [\App\Http\Controllers\MessageController::class, 'index'])
         ->name('messages.index');
@@ -145,10 +149,10 @@ Route::middleware('auth')->group(function () {
      */
     Route::get('/orders', [\App\Http\Controllers\OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [\App\Http\Controllers\OrderController::class, 'show'])->name('orders.show');
-    Route::post('/orders/{order}/complete', [\App\Http\Controllers\OrderController::class, 'complete'])->name('orders.complete');
+    Route::post('/orders/{order}/complete', [\App\Http\Controllers\OrderController::class, 'complete'])->name('orders.complete')->middleware('throttle:writes');
     // Route::post('/orders/{order}/ship', [\App\Http\Controllers\OrderController::class, 'ship'])->name('orders.ship');
-    Route::post('/orders/{order}/message', [\App\Http\Controllers\OrderController::class, 'sendMessage'])->name('orders.message');
-    Route::post('/orders/{order}/review', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::post('/orders/{order}/message', [\App\Http\Controllers\OrderController::class, 'sendMessage'])->name('orders.message')->middleware('throttle:writes');
+    Route::post('/orders/{order}/review', [ReviewController::class, 'store'])->name('reviews.store')->middleware('throttle:writes');
 
     // vendor routes
     Route::get('/seller/convert', [VendorController::class, 'showConvertForm'])->name('vendor.convert');
@@ -159,7 +163,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [SupportTicketController::class, 'index'])->name('index');
         Route::get('/create', [SupportTicketController::class, 'create'])->name('create');
         Route::get('/{supportTicket}', [SupportTicketController::class, 'show'])->name('show');
-        Route::get('/{supportTicket}/attachment/{attachment}/download', [SupportTicketController::class, 'downloadAttachment'])->name('download-attachment');
+        Route::get('/{supportTicket}/attachment/{attachment}/download', [SupportTicketController::class, 'downloadAttachment'])->name('download-attachment')->middleware('throttle:10,1');
 
         Route::middleware('throttle:writes')->group(function () {
             Route::post('/', [SupportTicketController::class, 'store'])->name('store');
@@ -191,7 +195,7 @@ Route::middleware('auth')->prefix('disputes')->name('disputes.')->group(function
     Route::get('/', [DisputeController::class, 'index'])->name('index');
     Route::get('/create/{order}', [DisputeController::class, 'create'])->name('create');
     Route::get('/{dispute}', [DisputeController::class, 'show'])->name('show');
-    Route::get('/{dispute}/evidence/{evidence}/download', [DisputeController::class, 'downloadEvidence'])->name('evidence.download');
+    Route::get('/{dispute}/evidence/{evidence}/download', [DisputeController::class, 'downloadEvidence'])->name('evidence.download')->middleware('throttle:10,1');
 
     Route::middleware('throttle:writes')->group(function () {
         Route::post('/create/{order}', [DisputeController::class, 'store'])->name('store');

@@ -26,6 +26,8 @@ class Order extends Model
         'cancelled_at' => 'datetime',
         'early_finalized_at' => 'datetime',
         'dispute_window_expires_at' => 'datetime',
+        'escrow_funded_at' => 'datetime',
+        'deposit_expires_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

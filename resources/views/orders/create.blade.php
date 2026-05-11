@@ -120,17 +120,23 @@
             @endif
 
             <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                <div class="flex items-center space-x-2 text-sm text-gray-600">
+                <div class="flex items-center justify-between text-sm text-gray-600">
                     <span class="font-medium">Your {{ strtoupper($currency) }} Balance:</span>
-                    <span class="font-semibold text-amber-700">
-                        {{ auth()->user()->getBalance()[$currency]['balance'] }} {{ strtoupper($currency) }}
+                    <span class="font-semibold {{ $hasSufficientBalance ? 'text-green-700' : 'text-red-600' }}">
+                        {{ number_format($availableBalance, $currency === 'btc' ? 8 : 12) }} {{ strtoupper($currency) }}
                     </span>
                 </div>
+                @if(!$hasSufficientBalance)
+                    <p class="mt-2 text-xs text-red-600">
+                        Insufficient balance — short by {{ number_format($total_needed - $availableBalance, $currency === 'btc' ? 8 : 12) }} {{ strtoupper($currency) }}.
+                        Use the Direct Deposit option below to send funds to a dedicated escrow address instead.
+                    </p>
+                @endif
             </div>
         </div>
 
-        <!-- Order Confirmation Form -->
-        <form action="{{ route('orders.store', $listing) }}" method="POST" class="space-y-6">
+        <!-- Shared form — two submit buttons route to different endpoints via formaction -->
+        <form method="POST" class="space-y-6">
             @csrf
             <input type="hidden" name="currency" value="{{ $currency }}">
             <input type="hidden" name="quantity" value="{{ $quantity }}">
@@ -145,10 +151,7 @@
                            transition-all duration-150 placeholder-gray-400 text-base"
                           placeholder="Enter your full delivery address...&#x0a;Name&#x0a;Street Address&#x0a;City, State/Province&#x0a;Postal Code, Country">{{ old('delivery_address') }}</textarea>
                 <p class="mt-2 text-xs text-gray-500">
-                    <svg class="inline-block w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
-                    Your address will be encrypted with the vendor's PGP public key. Only the vendor can decrypt it.
+                    Your address is encrypted with the vendor's PGP public key — only the vendor can decrypt it.
                 </p>
                 @error('delivery_address')
                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -160,7 +163,7 @@
                     Note to Vendor
                     <span class="text-gray-400 font-normal">(optional)</span>
                 </label>
-                <textarea id="note" name="note" rows="4"
+                <textarea id="note" name="note" rows="3"
                           class="block w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm
                            focus:ring-2 focus:ring-amber-500 focus:border-amber-500
                            transition-all duration-150 placeholder-gray-400 text-base"
@@ -170,12 +173,41 @@
                 @enderror
             </div>
 
-            <button type="submit"
-                    class="w-full py-3 px-6 bg-gradient-to-r from-amber-600 to-amber-500
-                           text-white font-semibold rounded-lg shadow-md hover:shadow-lg
-                           transition-all duration-200 transform hover:scale-[1.02]">
-                Confirm Order
-            </button>
+            <!-- Payment options -->
+            <div class="space-y-3">
+                @if($hasSufficientBalance)
+                    <!-- Pay from wallet -->
+                    <button type="submit"
+                            formaction="{{ route('orders.store', $listing) }}"
+                            class="w-full py-3 px-6 bg-gradient-to-r from-amber-600 to-amber-500
+                                   text-white font-semibold rounded-lg shadow-md hover:shadow-lg
+                                   transition-all duration-200">
+                        Confirm Order (Pay from Wallet)
+                    </button>
+                @endif
+
+                <!-- Pay by direct deposit — always available -->
+                <div class="relative">
+                    @if($hasSufficientBalance)
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-gray-200"></div>
+                        </div>
+                        <div class="relative flex justify-center text-xs">
+                            <span class="px-3 bg-white text-gray-400">or</span>
+                        </div>
+                    @endif
+                </div>
+
+                <button type="submit"
+                        formaction="{{ route('orders.deposit.create', $listing) }}"
+                        class="w-full py-3 px-6 {{ $hasSufficientBalance ? 'border-2 border-amber-500 text-amber-700 bg-white hover:bg-amber-50' : 'bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-md hover:shadow-lg' }}
+                               font-semibold rounded-lg transition-all duration-200">
+                    Pay by Direct Deposit
+                    <span class="block text-xs font-normal mt-0.5 {{ $hasSufficientBalance ? 'text-gray-500' : 'text-amber-100' }}">
+                        Receive a unique crypto address — send funds directly, no wallet required
+                    </span>
+                </button>
+            </div>
         </form>
     </div>
 @endsection

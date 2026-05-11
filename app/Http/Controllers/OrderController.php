@@ -152,24 +152,21 @@ class OrderController extends Controller
             ? $user_balance[$data['currency']]['unlocked_balance']
             : $user_balance[$data['currency']]['balance'];
 
-        if ($totalNeeded > $availableBalance) {
-            $feeDisplay = $estimatedFee > 0 ? " (including ~{$estimatedFee} {$data['currency']} network fee)" : "";
-            return redirect()->back()->withErrors([
-                'error' => "Insufficient balance for this transaction. Your current balance is {$availableBalance} {$data['currency']} which is not enough to cover the transaction of {$crypto_value} {$data['currency']}{$feeDisplay}.",
-            ]);
-        }
+        $hasSufficientBalance = $totalNeeded <= $availableBalance;
 
-        // Everything checks out—show the confirmation view.
+        // Always show the confirmation view — the direct-deposit option is available regardless of balance.
         return view('orders.create', [
-            'listing'       => $listing,
-            'usd_price'     => $usd_price,
-            'usd_subtotal'  => $listing->price * $data['quantity'],
-            'usd_shipping'  => $listing->price_shipping,
-            'crypto_value' => $crypto_value,
-            'currency'      => $data['currency'],
-            'quantity'      => $data['quantity'],
-            'estimated_fee' => $estimatedFee,
-            'total_needed'  => $totalNeeded,
+            'listing'              => $listing,
+            'usd_price'            => $usd_price,
+            'usd_subtotal'         => $listing->price * $data['quantity'],
+            'usd_shipping'         => $listing->price_shipping,
+            'crypto_value'         => $crypto_value,
+            'currency'             => $data['currency'],
+            'quantity'             => $data['quantity'],
+            'estimated_fee'        => $estimatedFee,
+            'total_needed'         => $totalNeeded,
+            'hasSufficientBalance' => $hasSufficientBalance,
+            'availableBalance'     => $availableBalance,
         ]);
     }
 
@@ -595,11 +592,8 @@ class OrderController extends Controller
                         throw new \Exception("Failed to fund escrow wallet");
                     }
 
-                    // 4. Update order with escrow info
-                    $order->update([
-                        'escrow_wallet_id' => $escrowWallet->id,
-                        'txid' => $txid, // Store initial funding transaction
-                    ]);
+                    // 4. Update order with escrow funding txid
+                    $order->update(['txid' => $txid]);
 
                     // 5. Create wallet transaction record for buyer (for balance tracking)
                     // For BTC, use the legacy wallet model. For XMR, the buyer withdrawal
@@ -662,6 +656,130 @@ class OrderController extends Controller
                 'error' => 'Failed to create order. Please try again or contact support.',
             ])->withInput();
         }
+    }
+
+    /**
+     * Create an order funded by direct on-chain deposit to a dedicated escrow address.
+     * No wallet balance required — the buyer sends crypto externally. The sync detects
+     * the incoming deposit and marks the order as funded.
+     */
+    public function createDepositOrder(Request $request, Listing $listing): \Illuminate\Http\RedirectResponse
+    {
+        if ($listing->user_id === $request->user()->id) {
+            return redirect()->back()->withErrors(['error' => 'You cannot purchase your own product.']);
+        }
+
+        $product = $listing->product;
+        if (!$product || !$product->is_active) {
+            return redirect()->route('home')->with('error', 'This product is no longer available.');
+        }
+
+        $category = $product->productCategory;
+        if (!$category || !$category->is_active) {
+            return redirect()->route('home')->with('error', 'This product category is no longer available.');
+        }
+
+        if (empty($listing->user->pgp_pub_key)) {
+            return redirect()->back()->withErrors(['error' => 'Vendor has no PGP key configured. Cannot place order.']);
+        }
+
+        $data = $request->validate([
+            'currency'         => 'required|in:btc,xmr',
+            'quantity'         => 'required|numeric|min:1',
+            'delivery_address' => 'nullable|string|max:500',
+            'note'             => 'nullable|string|max:1000',
+        ]);
+
+        if (!$listing->isInStock()) {
+            return redirect()->route('listings.show', $listing)->with('error', 'This item is currently out of stock.');
+        }
+
+        if (!$listing->hasAvailableStock($data['quantity'])) {
+            return redirect()->back()
+                ->withErrors(['quantity' => 'Requested quantity exceeds available stock.'])
+                ->withInput();
+        }
+
+        $user      = $request->user();
+        $usdPrice  = ($listing->price * $data['quantity']) + $listing->price_shipping;
+        $cryptoVal = convert_usd_to_crypto($usdPrice, $data['currency']);
+
+        $encryptedAddress = null;
+        if (!empty($data['delivery_address'])) {
+            try {
+                $encryptedAddress = $this->encryptWithPGP($data['delivery_address'], $listing->user->pgp_pub_key);
+            } catch (\Exception $e) {
+                Log::error('PGP encryption failed for deposit order', [
+                    'listing_id' => $listing->id,
+                    'error'      => $e->getMessage(),
+                ]);
+                return redirect()->back()
+                    ->withErrors(['error' => "Failed to encrypt delivery address. The vendor's PGP key may be invalid."])
+                    ->withInput();
+            }
+        }
+
+        try {
+            $order = DB::transaction(function () use ($user, $listing, $data, $usdPrice, $cryptoVal, $encryptedAddress) {
+                $order = $user->orders()->create([
+                    'listing_id'               => $listing->id,
+                    'quantity'                 => $data['quantity'],
+                    'currency'                 => $data['currency'],
+                    'crypto_value'             => $cryptoVal,
+                    'usd_price'                => $usdPrice,
+                    'status'                   => 'pending',
+                    'encrypted_delivery_address' => $encryptedAddress,
+                    'deposit_expires_at'       => now()->addHours(48),
+                    'notes'                    => $data['note'] ?? null,
+                ]);
+
+                $escrowService = new EscrowService();
+                $escrowService->createEscrowForOrder($order);
+
+                return $order;
+            });
+
+            NotificationService::send(
+                $user->id,
+                'order',
+                'Deposit Address Ready',
+                "Send exactly {$cryptoVal} " . strtoupper($data['currency']) . " to complete order #{$order->uuid}. Address expires in 48 hours.",
+                route('orders.deposit.show', $order)
+            );
+
+            return redirect()->route('orders.deposit.show', $order)
+                ->with('success', 'Deposit address created. Send the exact amount within 48 hours to confirm your order.');
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create deposit order', [
+                'error'      => $e->getMessage(),
+                'user_id'    => $user->id,
+                'listing_id' => $listing->id,
+            ]);
+
+            return redirect()->back()
+                ->withErrors(['error' => 'Failed to create deposit order. Please try again or contact support.'])
+                ->withInput();
+        }
+    }
+
+    /**
+     * Show the deposit-awaiting page for an order funded by direct on-chain deposit.
+     */
+    public function showDepositPage(Request $request, Order $order): \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
+    {
+        if ($order->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        $order->load(['listing', 'escrowWallet']);
+
+        if (!$order->escrowWallet) {
+            return redirect()->route('orders.index')
+                ->withErrors(['error' => 'No deposit address found for this order.']);
+        }
+
+        return view('orders.deposit', compact('order'));
     }
 
     /**

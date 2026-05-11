@@ -61,7 +61,7 @@ class ProcessCartItem implements ShouldQueue
                 throw new \Exception("Escrow funding returned no txid for listing #{$this->listingId}.");
             }
 
-            $order->update(['escrow_wallet_id' => $escrow->id, 'txid' => $txid]);
+            $order->update(['txid' => $txid]);
 
             return $order;
         });
