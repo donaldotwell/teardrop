@@ -106,8 +106,8 @@ class VendorController extends Controller
             $q->where('user_id', $vendor->id);
         })
         ->where('status', 'completed')
-        ->select(DB::raw('DATE_FORMAT(completed_at, "%Y-%m") as month'), DB::raw('COUNT(*) as count'), DB::raw('SUM(usd_price) as revenue'))
-        ->groupBy('month')
+        ->select(DB::raw("TO_CHAR(completed_at, 'YYYY-MM') as month"), DB::raw('COUNT(*) as count'), DB::raw('SUM(usd_price) as revenue'))
+        ->groupBy(DB::raw("TO_CHAR(completed_at, 'YYYY-MM')"))
         ->orderBy('month', 'desc')
         ->limit(12)
         ->get();
