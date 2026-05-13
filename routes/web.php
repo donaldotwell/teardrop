@@ -121,7 +121,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [HomeController::class, 'home'])->name('home');
     Route::get('/listings', [HomeController::class, 'home'])->name('listings.index');
     Route::get('/listings/{listing}', [\App\Http\Controllers\ListingController::class, 'show'])->name('listings.show');
-    Route::get('/listing-image/{listingMedia}', [\App\Http\Controllers\ListingMediaController::class, 'show'])->name('listing.media.show');
 
     // Cart — specific paths before the {listing} wildcard
     Route::get('/cart', [\App\Http\Controllers\CartController::class, 'index'])->name('cart.index');

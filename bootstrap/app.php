@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\ListingMediaController;
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Middleware\ModeratorMiddleware;
 use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -14,6 +16,13 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
+            // Listing images served without session middleware so that browser image fetches
+            // never overwrite session('_previous.url'), which would break back() redirects
+            // on Add to Cart, Place Orders, and other form submissions.
+            Route::middleware([SubstituteBindings::class])
+                ->get('/listing-image/{listingMedia}', [ListingMediaController::class, 'show'])
+                ->name('listing.media.show');
+
             Route::middleware('web')
                 ->prefix('admin')
                 ->group(base_path('routes/admin.php'));
