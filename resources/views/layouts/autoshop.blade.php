@@ -140,6 +140,11 @@
                               {{ request()->routeIs('autoshop.fsaid.*') ? 'bg-teal-50 text-teal-700 font-medium' : '' }}">
                         FSAID
                     </a>
+                    <a href="{{ route('autoshop.cards.index') }}"
+                       class="px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700 rounded transition-colors
+                              {{ request()->routeIs('autoshop.cards.*') ? 'bg-teal-50 text-teal-700 font-medium' : '' }}">
+                        Cards
+                    </a>
                 </div>
 
                 {{-- Mobile nav --}}
@@ -154,9 +159,14 @@
                             Fullz
                         </a>
                         <a href="{{ route('autoshop.fsaid.index') }}"
-                           class="block px-4 py-3 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700
+                           class="block px-4 py-3 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700 border-b border-gray-100
                                   {{ request()->routeIs('autoshop.fsaid.*') ? 'bg-teal-50 text-teal-700 font-medium' : '' }}">
                             FSAID
+                        </a>
+                        <a href="{{ route('autoshop.cards.index') }}"
+                           class="block px-4 py-3 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700
+                                  {{ request()->routeIs('autoshop.cards.*') ? 'bg-teal-50 text-teal-700 font-medium' : '' }}">
+                            Cards
                         </a>
                     </div>
                 </details>
@@ -166,6 +176,12 @@
                 <a href="{{ route('autoshop.fsaid.my-purchases') }}"
                    class="text-sm text-teal-700 hover:underline
                           {{ request()->routeIs('autoshop.fsaid.my-purchases') || request()->routeIs('autoshop.fsaid.receipt') ? 'font-medium' : '' }}">
+                    My Purchases
+                </a>
+                @elseif(request()->routeIs('autoshop.cards.*'))
+                <a href="{{ route('autoshop.cards.my-purchases') }}"
+                   class="text-sm text-teal-700 hover:underline
+                          {{ request()->routeIs('autoshop.cards.my-purchases') || request()->routeIs('autoshop.cards.receipt') ? 'font-medium' : '' }}">
                     My Purchases
                 </a>
                 @else

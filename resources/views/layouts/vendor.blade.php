@@ -217,6 +217,11 @@
                               {{ request()->routeIs('vendor.fsaid.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
                         FSAID
                     </a>
+                    <a href="{{ route('vendor.cards.index') }}"
+                       class="px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded
+                              {{ request()->routeIs('vendor.cards.*') ? 'bg-yellow-100 text-yellow-700' : '' }}">
+                        Cards
+                    </a>
                 </div>
 
                 {{-- Mobile Navigation Toggle --}}
@@ -261,8 +266,12 @@
                             Fullz
                         </a>
                         <a href="{{ route('vendor.fsaid.index') }}"
-                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50">
+                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50 border-b border-gray-100">
                             FSAID
+                        </a>
+                        <a href="{{ route('vendor.cards.index') }}"
+                           class="block px-4 py-3 text-gray-700 hover:bg-yellow-50">
+                            Cards
                         </a>
                     </div>
                 </details>

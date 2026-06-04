@@ -4,6 +4,7 @@ use App\Http\Controllers\Vendor\VendorController;
 use App\Http\Controllers\Vendor\VendorListingController;
 use App\Http\Controllers\Vendor\FullzController;
 use App\Http\Controllers\Vendor\FsaidController;
+use App\Http\Controllers\Vendor\CardController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:vendor', 'vendor.pgp'])->name('vendor.')->group(function () {
@@ -75,5 +76,17 @@ Route::middleware(['auth', 'role:vendor', 'vendor.pgp'])->name('vendor.')->group
         Route::post('/{base}/upload',           [FsaidController::class, 'upload']) ->name('upload');
         Route::post('/{base}/toggle',           [FsaidController::class, 'toggle']) ->name('toggle');
         Route::delete('/{base}',                [FsaidController::class, 'destroy'])->name('destroy');
+    });
+
+    // Cards — CSV upload and base management
+    Route::prefix('cards')->name('cards.')->group(function () {
+        Route::get('/',                         [CardController::class, 'index'])  ->name('index');
+        Route::get('/create',                   [CardController::class, 'create']) ->name('create');
+        Route::post('/',                        [CardController::class, 'store'])  ->name('store');
+        Route::get('/{base}',                   [CardController::class, 'show'])   ->name('show');
+        Route::patch('/{base}',                 [CardController::class, 'update']) ->name('update');
+        Route::post('/{base}/upload',           [CardController::class, 'upload']) ->name('upload');
+        Route::post('/{base}/toggle',           [CardController::class, 'toggle']) ->name('toggle');
+        Route::delete('/{base}',                [CardController::class, 'destroy'])->name('destroy');
     });
 });
