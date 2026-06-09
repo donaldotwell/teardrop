@@ -98,6 +98,13 @@ class SyncBitcoinWalletBalances extends Command
 
                     $rpcBalance = $repository->getWalletBalance($wallet->name);
 
+                    if ($rpcBalance === null) {
+                        $this->warn("Wallet {$wallet->id}: RPC returned null balance, skipping.");
+                        $skippedCount++;
+                        $progressBar->advance();
+                        continue;
+                    }
+
                     $wallet->update([
                         'balance' => $rpcBalance,
                         'last_synced_at' => now(),

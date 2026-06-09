@@ -79,6 +79,15 @@ class SyncBitcoinBalances extends Command
         $progressBar->start();
 
         foreach ($wallets as $btcWallet) {
+            $label = $btcWallet->user?->username_pub ?? "wallet#{$btcWallet->id}";
+
+            if (!$btcWallet->user) {
+                $this->newLine();
+                $this->warn("{$label}: No associated user, skipping.");
+                $progressBar->advance();
+                continue;
+            }
+
             try {
                 $oldBalance = $btcWallet->balance;
 
@@ -90,22 +99,22 @@ class SyncBitcoinBalances extends Command
                 $this->newLine();
 
                 if ($oldBalance != $newBalance) {
-                    $this->line("User {$btcWallet->user->username_pub}: Balance updated from {$oldBalance} to {$newBalance} BTC");
+                    $this->line("User {$label}: Balance updated from {$oldBalance} to {$newBalance} BTC");
                 } else {
-                    $this->line("User {$btcWallet->user->username_pub}: Balance unchanged at {$newBalance} BTC");
+                    $this->line("User {$label}: Balance unchanged at {$newBalance} BTC");
                 }
 
                 $successCount++;
 
             } catch (\Exception $e) {
                 $this->newLine();
-                $this->error("User {$btcWallet->user->username_pub}: Error - {$e->getMessage()}");
+                $this->error("User {$label}: Error - {$e->getMessage()}");
 
                 $failureCount++;
 
                 \Log::error("Failed to sync Bitcoin balance for user {$btcWallet->user_id}", [
                     'user_id' => $btcWallet->user_id,
-                    'username' => $btcWallet->user->username_pub,
+                    'username' => $label,
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
                 ]);

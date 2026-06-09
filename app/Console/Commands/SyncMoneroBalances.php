@@ -79,6 +79,15 @@ class SyncMoneroBalances extends Command
         $progressBar->start();
 
         foreach ($wallets as $xmrWallet) {
+            $label = $xmrWallet->user?->username_pub ?? "wallet#{$xmrWallet->id}";
+
+            if (!$xmrWallet->user) {
+                $this->newLine();
+                $this->warn("{$label}: No associated user, skipping.");
+                $progressBar->advance();
+                continue;
+            }
+
             try {
                 $oldBalance = $xmrWallet->balance;
 
@@ -90,22 +99,22 @@ class SyncMoneroBalances extends Command
                 $this->newLine();
 
                 if ($oldBalance != $newBalance) {
-                    $this->line("User {$xmrWallet->user->username_pub}: Balance updated from {$oldBalance} to {$newBalance} XMR");
+                    $this->line("User {$label}: Balance updated from {$oldBalance} to {$newBalance} XMR");
                 } else {
-                    $this->line("User {$xmrWallet->user->username_pub}: Balance unchanged at {$newBalance} XMR");
+                    $this->line("User {$label}: Balance unchanged at {$newBalance} XMR");
                 }
 
                 $successCount++;
 
             } catch (\Exception $e) {
                 $this->newLine();
-                $this->error("User {$xmrWallet->user->username_pub}: Error - {$e->getMessage()}");
+                $this->error("User {$label}: Error - {$e->getMessage()}");
 
                 $failureCount++;
 
                 \Log::error("Failed to sync Monero balance for user {$xmrWallet->user_id}", [
                     'user_id' => $xmrWallet->user_id,
-                    'username' => $xmrWallet->user->username_pub,
+                    'username' => $label,
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
                 ]);
