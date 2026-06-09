@@ -99,22 +99,24 @@ class SyncBitcoinWalletBalances extends Command
                     $rpcBalance = $repository->getWalletBalance($wallet->name);
 
                     if ($rpcBalance === null) {
-                        $this->warn("Wallet {$wallet->id}: RPC returned null balance, skipping.");
-                        $skippedCount++;
-                        $progressBar->advance();
-                        continue;
+                        // RPC unavailable — reconcile from local transaction records
+                        $wallet->updateBalance();
+                        Log::debug("Bitcoin wallet balance reconciled from transactions (RPC unavailable)", [
+                            'wallet_id' => $wallet->id,
+                            'user_id'   => $wallet->user_id,
+                            'balance'   => $wallet->fresh()->balance,
+                        ]);
+                    } else {
+                        $wallet->update([
+                            'balance'        => $rpcBalance,
+                            'last_synced_at' => now(),
+                        ]);
+                        Log::debug("Bitcoin wallet balance synced from RPC", [
+                            'wallet_id' => $wallet->id,
+                            'user_id'   => $wallet->user_id,
+                            'balance'   => $rpcBalance,
+                        ]);
                     }
-
-                    $wallet->update([
-                        'balance' => $rpcBalance,
-                        'last_synced_at' => now(),
-                    ]);
-
-                    Log::debug("Bitcoin wallet balance synced", [
-                        'wallet_id' => $wallet->id,
-                        'user_id' => $wallet->user_id,
-                        'balance' => $rpcBalance,
-                    ]);
 
                     $successCount++;
 
