@@ -511,6 +511,42 @@ class BitcoinRepository
         }
     }
 
+    /**
+     * Return all wallet names currently loaded on the node.
+     */
+    public function listLoadedWallets(): ?array
+    {
+        try {
+            $result = $this->client->listWallets();
+            if (is_object($result) && method_exists($result, 'result')) {
+                return (array) $result->result();
+            }
+            return (array) $result;
+        } catch (\Exception $e) {
+            Log::error('listLoadedWallets failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Load an existing wallet file from disk.
+     * Returns 'loaded', 'not_found', or 'error'.
+     */
+    public function loadWallet(string $walletName): string
+    {
+        try {
+            $this->client->loadWallet($walletName);
+            return 'loaded';
+        } catch (\Exception $e) {
+            $msg = $e->getMessage();
+            if (str_contains($msg, '-18') || str_contains($msg, 'not found') || str_contains($msg, 'does not exist')) {
+                return 'not_found';
+            }
+            Log::warning("loadWallet({$walletName}) error: {$msg}");
+            return 'error';
+        }
+    }
+
     public function generateBTCWallet(string $name) : void
     {
         $repository = new static();
