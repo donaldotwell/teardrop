@@ -47,6 +47,7 @@ class CardController extends Controller
                 'cards.*',
                 'card_bases.name as base_name',
                 'card_bases.vendor_id as base_vendor_id',
+                'card_bases.discount_pct as base_discount_pct',
                 'users.username_pub as vendor_name'
             )
             ->join('card_bases', 'cards.base_id', '=', 'card_bases.id')
@@ -110,6 +111,7 @@ class CardController extends Controller
     public function show(CardBase $base): View
     {
         abort_if(!$base->is_active, 404);
+        abort_if($base->available_count === 0, 404);
 
         $records = $base->records()
             ->available()
@@ -130,7 +132,7 @@ class CardController extends Controller
         $buyer    = $request->user();
         $currency = $validated['currency'];
 
-        $records = Card::with('base:id,name,vendor_id')
+        $records = Card::with('base:id,name,vendor_id,price_usd,discount_pct')
             ->whereIn('id', $validated['card_ids'])
             ->where('status', 'available')
             ->get();
@@ -151,7 +153,11 @@ class CardController extends Controller
         }
 
         $count       = $records->count();
-        $totalUsd    = round($records->sum(fn($r) => (float) ($r->price_usd ?? $r->base->price_usd)), 2);
+        $totalUsd    = round($records->sum(function ($r) {
+            $full = (float) ($r->price_usd ?? $r->base?->price_usd ?? 0);
+            $pct  = max(0, min(99, (float) ($r->base?->discount_pct ?? 0)));
+            return $full * (1 - $pct / 100);
+        }), 2);
         $totalCrypto = convert_usd_to_crypto($totalUsd, $currency);
 
         $baseIds = $records->pluck('base_id')->unique();

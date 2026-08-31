@@ -59,7 +59,15 @@
                             </a>
                             <div class="text-xs text-gray-400">{{ $base->created_at->diffForHumans() }}</div>
                         </td>
-                        <td class="px-4 py-3 text-right font-mono">${{ number_format($base->price_usd, 2) }}</td>
+                        <td class="px-4 py-3 text-right font-mono">
+                            @if((float)$base->discount_pct > 0)
+                                <span class="line-through text-gray-400 text-xs">${{ number_format($base->price_usd, 2) }}</span>
+                                <span class="text-green-700 font-semibold">${{ number_format($base->effective_price, 2) }}</span>
+                                <span class="text-xs text-green-600 block">-{{ number_format($base->discount_pct, 0) }}%</span>
+                            @else
+                                ${{ number_format($base->price_usd, 2) }}
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-right">{{ number_format($base->record_count) }}</td>
                         <td class="px-4 py-3 text-right text-green-700 font-medium">{{ number_format($base->available_count) }}</td>
                         <td class="px-4 py-3 text-right text-amber-700 font-medium">{{ number_format($base->sold_count) }}</td>

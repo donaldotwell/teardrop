@@ -31,9 +31,10 @@ class CardController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name'      => 'required|string|max:120',
-            'price_usd' => 'required|numeric|min:0.01|max:9999',
-            'file'      => 'required|file|mimes:csv,txt|max:10240',
+            'name'         => 'required|string|max:120',
+            'price_usd'    => 'required|numeric|min:0.01|max:9999',
+            'discount_pct' => 'nullable|numeric|min:0|max:99',
+            'file'         => 'required|file|mimes:csv,txt|max:10240',
         ]);
 
         $vendor = $request->user();
@@ -49,6 +50,7 @@ class CardController extends Controller
                 'vendor_id'       => $vendor->id,
                 'name'            => trim($request->input('name')),
                 'price_usd'       => $request->input('price_usd'),
+                'discount_pct'    => $request->input('discount_pct', 0),
                 'record_count'    => 0,
                 'available_count' => 0,
                 'sold_count'      => 0,
@@ -100,12 +102,14 @@ class CardController extends Controller
         $validated = $request->validate([
             'name'            => 'required|string|max:120',
             'price_usd'       => 'required|numeric|min:0.01|max:9999',
+            'discount_pct'    => 'nullable|numeric|min:0|max:99',
             'update_existing' => 'nullable|in:1',
         ]);
 
         $base->update([
-            'name'      => $validated['name'],
-            'price_usd' => $validated['price_usd'],
+            'name'         => $validated['name'],
+            'price_usd'    => $validated['price_usd'],
+            'discount_pct' => $validated['discount_pct'] ?? 0,
         ]);
 
         if ($request->boolean('update_existing')) {
@@ -114,7 +118,10 @@ class CardController extends Controller
                 ->update(['price_usd' => $validated['price_usd']]);
         }
 
-        return back()->with('success', 'Base updated.' . ($request->boolean('update_existing') ? ' Existing unsold cards repriced.' : ''));
+        $msg = 'Base updated.';
+        if ($request->boolean('update_existing')) $msg .= ' Existing unsold cards repriced.';
+        if ((float) ($validated['discount_pct'] ?? 0) > 0) $msg .= ' Discount of ' . $validated['discount_pct'] . '% applied.';
+        return back()->with('success', $msg);
     }
 
     public function upload(Request $request, CardBase $base): RedirectResponse

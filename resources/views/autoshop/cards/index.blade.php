@@ -40,7 +40,7 @@
                     <option value="">All bases</option>
                     @foreach($activeBases as $b)
                         <option value="{{ $b->id }}" {{ request('base_id') == $b->id ? 'selected' : '' }}>
-                            {{ $b->name }} (${{ number_format($b->price_usd, 2) }})
+                            {{ $b->name }} (${{ number_format($b->effective_price, 2) }}{{ (float)$b->discount_pct > 0 ? ' — ' . number_format($b->discount_pct, 0) . '% off' : '' }})
                         </option>
                     @endforeach
                 </select>
@@ -237,8 +237,18 @@
                                 <span class="text-red-400">&#10007;</span>
                             @endif
                         </td>
-                        <td class="px-3 py-2 text-right font-mono text-amber-700 font-medium whitespace-nowrap text-xs">
-                            ${{ number_format($card->price_usd, 2) }}
+                        <td class="px-3 py-2 text-right font-mono whitespace-nowrap text-xs">
+                            @php
+                                $disc = max(0, min(99, (float)($card->base_discount_pct ?? 0)));
+                                $effective = round((float)$card->price_usd * (1 - $disc / 100), 2);
+                            @endphp
+                            @if($disc > 0)
+                                <span class="line-through text-gray-400">${{ number_format($card->price_usd, 2) }}</span>
+                                <span class="text-green-700 font-semibold block">${{ number_format($effective, 2) }}</span>
+                                <span class="text-green-600 text-[10px]">-{{ number_format($disc, 0) }}%</span>
+                            @else
+                                <span class="text-amber-700 font-medium">${{ number_format($card->price_usd, 2) }}</span>
+                            @endif
                         </td>
                     </tr>
                     @endforeach

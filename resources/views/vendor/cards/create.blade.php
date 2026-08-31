@@ -50,6 +50,21 @@
                 </div>
             </div>
 
+            <div class="mb-5">
+                <label for="discount_pct" class="block text-sm font-medium text-gray-700 mb-1">
+                    Discount (%) <span class="text-gray-400 font-normal">optional</span>
+                </label>
+                <div class="flex items-center gap-2">
+                    <input type="number"
+                           id="discount_pct" name="discount_pct"
+                           value="{{ old('discount_pct', 0) }}"
+                           min="0" max="99" step="0.01"
+                           placeholder="0"
+                           class="w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500 @error('discount_pct') border-red-400 @enderror">
+                    <span class="text-xs text-gray-400">% off the listed price (0 = no discount)</span>
+                </div>
+            </div>
+
             <div class="mb-6">
                 <label for="file" class="block text-sm font-medium text-gray-700 mb-1">
                     Card File <span class="text-red-500">*</span>

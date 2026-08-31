@@ -55,8 +55,17 @@
                 <div class="text-xs text-gray-500">Sold</div>
             </div>
             <div>
+                @if((float)$base->discount_pct > 0)
+                <div class="text-2xl font-bold text-green-700">${{ number_format($base->effective_price, 2) }}</div>
+                <div class="text-xs text-gray-500">
+                    Price / Card
+                    <span class="line-through text-gray-400 ml-1">${{ number_format($base->price_usd, 2) }}</span>
+                    <span class="text-green-600 ml-1">-{{ number_format($base->discount_pct, 0) }}%</span>
+                </div>
+            @else
                 <div class="text-2xl font-bold text-gray-900">${{ number_format($base->price_usd, 2) }}</div>
                 <div class="text-xs text-gray-500">Price / Card</div>
+            @endif
             </div>
         </div>
     </div>
@@ -84,6 +93,21 @@
                                min="0.01" max="9999" step="0.01" required
                                class="w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500">
                         <span class="text-xs text-gray-400">USD per card</span>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Discount (%)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" name="discount_pct" value="{{ old('discount_pct', $base->discount_pct) }}"
+                               min="0" max="99" step="0.01"
+                               placeholder="0"
+                               class="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500">
+                        <span class="text-xs text-gray-400">% off (0 = no discount)</span>
+                        @if((float)$base->discount_pct > 0)
+                            <span class="text-xs text-green-700 font-semibold">
+                                Effective: ${{ number_format($base->effective_price, 2) }}/card
+                            </span>
+                        @endif
                     </div>
                 </div>
                 <div class="mb-4">

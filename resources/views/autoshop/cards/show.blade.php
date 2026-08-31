@@ -19,7 +19,13 @@
         </div>
         <div>
             <div class="text-xs text-gray-500 mb-0.5">Price / card</div>
-            <div class="font-bold text-amber-700">${{ number_format($base->price_usd, 2) }}</div>
+            @if((float)$base->discount_pct > 0)
+                <div class="font-bold text-green-700">${{ number_format($base->effective_price, 2) }}</div>
+                <div class="text-xs text-gray-400 line-through">${{ number_format($base->price_usd, 2) }}</div>
+                <div class="text-xs text-green-600 font-semibold">-{{ number_format($base->discount_pct, 0) }}% off</div>
+            @else
+                <div class="font-bold text-amber-700">${{ number_format($base->price_usd, 2) }}</div>
+            @endif
         </div>
         <div>
             <div class="text-xs text-gray-500 mb-0.5">Available</div>
@@ -95,8 +101,13 @@
                                 <span class="text-red-400">&#10007;</span>
                             @endif
                         </td>
-                        <td class="px-3 py-2 text-right font-mono text-amber-700 font-medium text-xs">
-                            ${{ number_format($card->price_usd, 2) }}
+                        <td class="px-3 py-2 text-right font-mono whitespace-nowrap text-xs">
+                            @if((float)$base->discount_pct > 0)
+                                <span class="line-through text-gray-400">${{ number_format($card->price_usd, 2) }}</span>
+                                <span class="text-green-700 font-semibold block">${{ number_format($base->effective_price, 2) }}</span>
+                            @else
+                                <span class="text-amber-700 font-medium">${{ number_format($card->price_usd, 2) }}</span>
+                            @endif
                         </td>
                     </tr>
                     @endforeach
