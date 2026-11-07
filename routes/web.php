@@ -168,6 +168,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/', [SupportTicketController::class, 'store'])->name('store');
             Route::post('/{supportTicket}/message', [SupportTicketController::class, 'addMessage'])->name('add-message');
             Route::post('/{supportTicket}/close', [SupportTicketController::class, 'closeTicket'])->name('close');
+            Route::post('/{supportTicket}/reopen', [SupportTicketController::class, 'reopenTicket'])->name('reopen');
             Route::post('/{supportTicket}/attachment', [SupportTicketController::class, 'uploadAttachment'])->name('upload-attachment');
             Route::post('/{supportTicket}/mark-read', [SupportTicketController::class, 'markMessagesRead'])->name('mark-read');
         });

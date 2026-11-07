@@ -163,10 +163,10 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-gray-900 max-w-xs truncate">
-                                    {{ $order->listing->title }}
+                                    {{ $order->listing?->title ?? '(deleted listing)' }}
                                 </div>
                                 <div class="text-sm text-gray-500">
-                                    by {{ $order->listing->user->username_pub }}
+                                    by {{ $order->listing?->user?->username_pub ?? '(unknown)' }}
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">

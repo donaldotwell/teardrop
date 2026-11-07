@@ -179,13 +179,13 @@ class OrderController extends Controller
     public function show(Request $request, Order $order)
     {
         // Authorization check
-        if ($order->user_id !== $request->user()->id && $order->listing->user_id !== $request->user()->id) {
+        if ($order->user_id !== $request->user()->id && $order->listing?->user_id !== $request->user()->id) {
             abort(403, 'Unauthorized access to order');
         }
 
         // Determine who is viewing and who is the other party
-        $isVendor = $order->listing->user_id === $request->user()->id;
-        $otherParty = $isVendor ? $order->user : $order->listing->user;
+        $isVendor = $order->listing?->user_id === $request->user()->id;
+        $otherParty = $isVendor ? $order->user : $order->listing?->user;
 
         // Load order relationships including recent messages
         $order = $order->load([
