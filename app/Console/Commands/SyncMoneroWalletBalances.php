@@ -123,6 +123,10 @@ class SyncMoneroWalletBalances extends Command
                 }
 
                 $progressBar->advance();
+
+                // Release the RPC lock long enough for a waiting web request to take it;
+                // without this gap the next iteration re-acquires it instantly and users starve.
+                usleep((int) config('monero.balance_sync_pause_ms', 750) * 1000);
             }
         });
 

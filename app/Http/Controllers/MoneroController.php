@@ -68,6 +68,8 @@ class MoneroController extends Controller
         if (!$currentAddress) {
             try {
                 $currentAddress = $xmrWallet->generateNewAddress();
+            } catch (\App\Exceptions\MoneroBusyException $e) {
+                return back()->with('error', $e->getMessage());
             } catch (\Exception $e) {
                 // Log error and show user-friendly message
                 \Log::error("Failed to generate Monero address for user {$user->id}", ['exception' => $e]);

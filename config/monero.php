@@ -60,7 +60,9 @@ return [
     */
 
     'rpc_lock_timeout' => env('MONERO_RPC_LOCK_TIMEOUT', 300),      // Max seconds to hold the lock (refresh can take minutes)
-    'rpc_lock_wait_timeout' => env('MONERO_RPC_LOCK_WAIT', 300),    // Max seconds to wait for lock acquisition
+    'rpc_lock_wait_timeout' => env('MONERO_RPC_LOCK_WAIT', 300),    // Max seconds to wait for lock acquisition (console / queue)
+    'rpc_lock_wait_timeout_web' => env('MONERO_RPC_LOCK_WAIT_WEB', 15), // Web requests fail fast instead of tying up a PHP-FPM worker
+    'balance_sync_pause_ms' => env('MONERO_BALANCE_SYNC_PAUSE_MS', 750), // Gap between wallets in monero:sync-balances so web requests can grab the lock
 
     /*
     |--------------------------------------------------------------------------

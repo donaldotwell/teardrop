@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Exceptions\MoneroBusyException;
 use App\Exceptions\MoneroRpcException;
 use App\Models\User;
 use App\Models\XmrWallet;
@@ -119,6 +120,15 @@ class MoneroRepository
 
     // --- Wallet Lifecycle (open / close / lock) ---
 
+    // Queue workers and artisan commands can afford to wait out a long sync; a web
+    // request must not — a blocked PHP-FPM worker stalls every other visitor.
+    private function lockWaitTimeout(): int
+    {
+        return app()->runningInConsole()
+            ? (int) config('monero.rpc_lock_wait_timeout', 300)
+            : (int) config('monero.rpc_lock_wait_timeout_web', 15);
+    }
+
     /**
      * Execute a callback with a specific wallet opened and locked.
      *
@@ -140,7 +150,7 @@ class MoneroRepository
     public function withWallet(string $walletName, string $password, \Closure $callback, bool $refresh = true, ?int $startHeight = null): mixed
     {
         $lockTimeout = config('monero.rpc_lock_timeout', 300);
-        $waitTimeout = config('monero.rpc_lock_wait_timeout', 300);
+        $waitTimeout = $this->lockWaitTimeout();
 
         $lock = Cache::lock('monero:rpc:wallet', $lockTimeout);
 
@@ -149,11 +159,8 @@ class MoneroRepository
         $acquired = $lock->block($waitTimeout);
 
         if (!$acquired) {
-            throw new MoneroRpcException(
-                "Could not acquire Monero RPC lock after {$waitTimeout}s — another operation is in progress",
-                0,
-                ['wallet' => $walletName]
-            );
+            Log::warning("[withWallet] Could not acquire Monero RPC lock after {$waitTimeout}s for wallet '{$walletName}'");
+            throw new MoneroBusyException($waitTimeout, ['wallet' => $walletName]);
         }
 
         try {
@@ -265,17 +272,14 @@ class MoneroRepository
     public function createWalletFile(string $walletName, string $password): array
     {
         $lockTimeout = config('monero.rpc_lock_timeout', 60);
-        $waitTimeout = config('monero.rpc_lock_wait_timeout', 30);
+        $waitTimeout = $this->lockWaitTimeout();
 
         $lock = Cache::lock('monero:rpc:wallet', $lockTimeout);
         $acquired = $lock->block($waitTimeout);
 
         if (!$acquired) {
-            throw new MoneroRpcException(
-                "Could not acquire Monero RPC lock for wallet creation",
-                0,
-                ['wallet' => $walletName]
-            );
+            Log::warning("[createWalletFile] Could not acquire Monero RPC lock after {$waitTimeout}s for wallet '{$walletName}'");
+            throw new MoneroBusyException($waitTimeout, ['wallet' => $walletName]);
         }
 
         try {
