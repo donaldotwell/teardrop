@@ -55,11 +55,16 @@ class BtcTransaction extends Model
             if ($transaction->btc_wallet_id) {
                 \App\Models\BtcWallet::where('id', $transaction->btc_wallet_id)
                     ->update(['last_active_at' => now()]);
+
+                User::forgetBalanceCache(
+                    \App\Models\BtcWallet::where('id', $transaction->btc_wallet_id)->value('user_id')
+                );
             }
         };
 
         static::created($touchWallet);
         static::updated($touchWallet);
+        static::deleted($touchWallet);
     }
 
     /**

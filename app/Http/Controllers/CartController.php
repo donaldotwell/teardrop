@@ -92,6 +92,7 @@ class CartController extends Controller
         $stale = $items->filter(fn($i) => !$i->listing || !$i->listing->is_active);
         if ($stale->isNotEmpty()) {
             CartItem::whereIn('id', $stale->pluck('id'))->delete();
+            \App\Models\User::forgetNavCountsCache($user->id);
             $items = $items->diff($stale);
         }
 

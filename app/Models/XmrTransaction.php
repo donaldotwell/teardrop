@@ -58,11 +58,16 @@ class XmrTransaction extends Model
             if ($transaction->xmr_wallet_id) {
                 \App\Models\XmrWallet::where('id', $transaction->xmr_wallet_id)
                     ->update(['last_active_at' => now()]);
+
+                User::forgetBalanceCache(
+                    \App\Models\XmrWallet::where('id', $transaction->xmr_wallet_id)->value('user_id')
+                );
             }
         };
 
         static::created($touchWallet);
         static::updated($touchWallet);
+        static::deleted($touchWallet);
     }
 
     /**

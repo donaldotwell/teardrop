@@ -59,6 +59,8 @@ class ProcessAdminMessageChunk implements ShouldQueue
                     'updated_at'  => $now,
                 ]);
 
+                \App\Models\User::forgetNavCountsCache($recipientId);
+
                 $thread->touch();
             }
         });

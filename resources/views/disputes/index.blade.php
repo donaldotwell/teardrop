@@ -129,16 +129,9 @@
                             </div>
 
                             {{-- Unread Messages Indicator --}}
-                            @php
-                                $unreadCount = $dispute->messages()
-                                    ->where('user_id', '!=', auth()->id())
-                                    ->where('is_internal', false)
-                                    ->where('is_read', false)
-                                    ->count();
-                            @endphp
-                            @if($unreadCount > 0)
+                            @if($dispute->unread_messages_count > 0)
                                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                    {{ $unreadCount }} new message{{ $unreadCount > 1 ? 's' : '' }}
+                                    {{ $dispute->unread_messages_count }} new message{{ $dispute->unread_messages_count > 1 ? 's' : '' }}
                                 </span>
                             @endif
                         </div>

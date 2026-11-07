@@ -67,7 +67,7 @@
                                       class="text-yellow-700 hover:text-yellow-600">{{ $post->user->username_pub }}</a>
                                 • {{ $post->created_at->diffForHumans() }}
                                 • {{ $post->views_count }} views
-                                • {{ $post->allComments()->count() }} comments
+                                • {{ $post->all_comments_count }} comments
                             </div>
                         </div>
                     </div>

@@ -39,6 +39,8 @@ class NotificationController extends Controller
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
+        \App\Models\User::forgetNavCountsCache($request->user()->id);
+
         return back()->with('success', 'All notifications marked as read.');
     }
 }

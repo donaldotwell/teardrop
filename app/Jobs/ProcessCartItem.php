@@ -68,6 +68,7 @@ class ProcessCartItem implements ShouldQueue
 
         // Cart item fulfilled — remove it.
         CartItem::where('id', $this->cartItemId)->delete();
+        \App\Models\User::forgetNavCountsCache($this->userId);
 
         // Message + notification to vendor.
         UserMessage::create([

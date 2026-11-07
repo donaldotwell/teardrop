@@ -47,6 +47,12 @@ class XmrWallet extends Model
         'seed_encrypted',
     ];
 
+    protected static function booted(): void
+    {
+        // XMR balances are read from these columns, which the sync jobs write.
+        static::saved(fn (self $wallet) => User::forgetBalanceCache($wallet->user_id));
+    }
+
     /**
      * Get the user that owns the wallet.
      */

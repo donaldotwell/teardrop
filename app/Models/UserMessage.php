@@ -40,6 +40,9 @@ class UserMessage extends Model
 
             $message->thread_id = $thread->id;
         });
+
+        static::saved(fn ($message) => User::forgetNavCountsCache($message->receiver_id));
+        static::deleted(fn ($message) => User::forgetNavCountsCache($message->receiver_id));
     }
 
     /**

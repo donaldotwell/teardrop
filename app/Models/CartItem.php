@@ -18,6 +18,12 @@ class CartItem extends Model
         'expires_at' => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(fn (self $item) => User::forgetNavCountsCache($item->user_id));
+        static::deleted(fn (self $item) => User::forgetNavCountsCache($item->user_id));
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

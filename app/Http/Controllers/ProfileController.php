@@ -180,7 +180,7 @@ class ProfileController extends Controller
         $forumStats = [
             'posts_count' => $user->forumPosts()->count(),
             'comments_count' => $user->forumComments()->count(),
-            'recent_posts' => $user->forumPosts()->latest()->take(5)->get(),
+            'recent_posts' => $user->forumPosts()->withCount('allComments')->latest()->take(5)->get(),
             'recent_comments' => $user->forumComments()->with('post')->latest()->take(5)->get(),
         ];
 

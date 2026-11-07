@@ -72,7 +72,7 @@
                                 <p class="text-sm text-gray-600 mt-1">
                                     {{ $post->created_at->diffForHumans() }}
                                     • {{ $post->views_count }} views
-                                    • {{ $post->allComments()->count() }} comments
+                                    • {{ $post->all_comments_count }} comments
                                 </p>
                             </div>
                         @endforeach

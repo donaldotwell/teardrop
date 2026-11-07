@@ -16,6 +16,7 @@ class AdminForumController extends Controller
     public function index(Request $request)
     {
         $query = ForumPost::with(['user', 'assignedModerator', 'moderatedBy'])
+            ->withCount('allComments')
             ->latest();
 
         // Filter by status

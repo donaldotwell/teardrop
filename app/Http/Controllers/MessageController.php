@@ -58,6 +58,8 @@ class MessageController extends Controller
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
+        \App\Models\User::forgetNavCountsCache($user->id);
+
         $other = $thread->user_id === $user->id ? $thread->receiver : $thread->user;
 
         $messages = $thread->messages()
@@ -90,6 +92,8 @@ class MessageController extends Controller
             'created_at'  => now(),
             'updated_at'  => now(),
         ]);
+
+        \App\Models\User::forgetNavCountsCache($receiverId);
 
         // Touch the thread so ordering by updated_at works
         $thread->touch();

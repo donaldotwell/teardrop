@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Repositories\RolesRepository;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class User extends Authenticatable
@@ -189,9 +190,39 @@ class User extends Authenticatable
      */
     protected ?array $cachedBalance = null;
 
+    public const BALANCE_CACHE_TTL = 30;
+    public const NAV_COUNTS_CACHE_TTL = 30;
+
+    public static function balanceCacheKey(int $userId): string
+    {
+        return "user:{$userId}:balance";
+    }
+
+    public static function navCountsCacheKey(int $userId): string
+    {
+        return "user:{$userId}:nav_counts";
+    }
+
+    // Called from model hooks on every balance-affecting write (transactions,
+    // wallet syncs) so the shared cache can never disagree with the wallet pages.
+    public static function forgetBalanceCache(?int $userId): void
+    {
+        if ($userId) {
+            Cache::forget(static::balanceCacheKey($userId));
+        }
+    }
+
+    public static function forgetNavCountsCache(?int $userId): void
+    {
+        if ($userId) {
+            Cache::forget(static::navCountsCacheKey($userId));
+        }
+    }
+
     public function clearBalanceCache(): void
     {
         $this->cachedBalance = null;
+        static::forgetBalanceCache($this->id);
     }
 
     public function getBalance(): array
@@ -200,45 +231,45 @@ class User extends Authenticatable
             return $this->cachedBalance;
         }
 
-        \Log::debug('[User::getBalance] START for user', [
-            'user_id' => $this->id,
-            'username' => $this->username_pub
-        ]);
+        // Only the crypto amounts are cached; USD is derived at read time so a rate
+        // update is reflected everywhere at once.
+        $raw = Cache::remember(static::balanceCacheKey($this->id), static::BALANCE_CACHE_TTL, function () {
+            $btcWallet = $this->btcWallet;
+            $xmrWallet = $this->xmrWallet;
+            $xmr = $xmrWallet ? $xmrWallet->getBalance() : ['balance' => 0, 'unlocked_balance' => 0];
 
-        $wallets = $this->wallets;
-        $btcWallet = $this->btcWallet;
-        $xmrWallet = $this->xmrWallet;
-
-        \Log::debug('[User::getBalance] Wallets loaded', [
-            'btcWallet_is_null' => is_null($btcWallet),
-            'xmrWallet_is_null' => is_null($xmrWallet),
-            'btcWallet_id' => $btcWallet ? $btcWallet->id : null,
-            'xmrWallet_id' => $xmrWallet ? $xmrWallet->id : null,
-        ]);
-
-        // Get balances directly from transaction sums (fast ~0.05s, always fresh)
-        $btcBalance = $btcWallet ? $btcWallet->getBalance() : 0;
-        $xmrBalanceData = $xmrWallet ? $xmrWallet->getBalance() : ['balance' => 0, 'unlocked_balance' => 0];
-
-        \Log::debug('[User::getBalance] Balance calculated', [
-            'btcBalance' => $btcBalance,
-            'xmrBalance' => $xmrBalanceData['balance'] ?? null,
-            'xmrUnlocked' => $xmrBalanceData['unlocked_balance'] ?? null,
-        ]);
+            return [
+                'btc'          => $btcWallet ? (float) $btcWallet->getBalance() : 0.0,
+                'xmr'          => (float) $xmr['balance'],
+                'xmr_unlocked' => (float) $xmr['unlocked_balance'],
+            ];
+        });
 
         $this->cachedBalance = [
             'btc' => [
-                'balance' => $btcBalance,
-                'usd_value' => convert_crypto_to_usd($btcBalance, 'btc'),
+                'balance' => $raw['btc'],
+                'usd_value' => convert_crypto_to_usd($raw['btc'], 'btc'),
             ],
             'xmr' => [
-                'balance' => $xmrBalanceData['balance'],
-                'unlocked_balance' => $xmrBalanceData['unlocked_balance'],
-                'usd_value' => convert_crypto_to_usd($xmrBalanceData['balance'], 'xmr'),
+                'balance' => $raw['xmr'],
+                'unlocked_balance' => $raw['xmr_unlocked'],
+                'usd_value' => convert_crypto_to_usd($raw['xmr'], 'xmr'),
             ],
         ];
 
         return $this->cachedBalance;
+    }
+
+    /**
+     * Unread notification / message and active cart counts for the nav bar.
+     */
+    public function navCounts(): array
+    {
+        return Cache::remember(static::navCountsCacheKey($this->id), static::NAV_COUNTS_CACHE_TTL, fn () => [
+            'notifications' => AppNotification::where('user_id', $this->id)->whereNull('read_at')->count(),
+            'messages'      => UserMessage::where('receiver_id', $this->id)->whereNull('read_at')->count(),
+            'cart'          => CartItem::where('user_id', $this->id)->active()->count(),
+        ]);
     }
 
     /**

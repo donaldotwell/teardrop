@@ -5,11 +5,8 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
-use App\Models\AppNotification;
-use App\Models\CartItem;
 use App\Models\ProductCategory;
 use App\Models\ExchangeRate;
-use App\Models\UserMessage;
 use Symfony\Component\HttpFoundation\Response;
 
 class ShareViewData
@@ -69,24 +66,14 @@ class ShareViewData
         if (auth()->check()) {
             $user = auth()->user();
 
-            // Eager load wallet relationships to avoid N+1 queries
-            $user->load(['btcWallet', 'xmrWallet']);
-
-            // Get actual balance
+            // Both are cached ~30s per user and invalidated by model hooks on every
+            // write that changes them (see User::forgetBalanceCache / forgetNavCountsCache).
             $balance = $user->getBalance();
+            $counts  = $user->navCounts();
 
-            // Unread counts
-            $unread_notification_count = AppNotification::where('user_id', $user->id)
-                ->whereNull('read_at')
-                ->count();
-
-            $unread_message_count = UserMessage::where('receiver_id', $user->id)
-                ->whereNull('read_at')
-                ->count();
-
-            $cart_item_count = CartItem::where('user_id', $user->id)
-                ->active()
-                ->count();
+            $unread_notification_count = $counts['notifications'];
+            $unread_message_count      = $counts['messages'];
+            $cart_item_count           = $counts['cart'];
 
             // Role-specific links
             if ($user->hasRole('user')) {

@@ -23,7 +23,12 @@ class DisputeController extends Controller
         $query = Dispute::where(function($q) use ($user) {
             $q->where('initiated_by', $user->id)
                 ->orWhere('disputed_against', $user->id);
-        })->with(['order.listing', 'initiatedBy', 'disputedAgainst', 'assignedAdmin']);
+        })->with(['order.listing', 'initiatedBy', 'disputedAgainst', 'assignedAdmin'])
+          ->withCount(['messages as unread_messages_count' => fn ($q) => $q
+              ->where('user_id', '!=', $user->id)
+              ->where('is_internal', false)
+              ->where('is_read', false),
+          ]);
 
         // Filter by status if requested
         if ($request->filled('status')) {

@@ -12,6 +12,7 @@ class ForumPostController extends Controller
     public function index(Request $request)
     {
         $query = ForumPost::with('user')
+            ->withCount('allComments')
             ->approved()
             ->orderByDesc('is_pinned')
             ->orderByDesc('last_activity_at');
@@ -87,7 +88,8 @@ class ForumPostController extends Controller
             abort(404, 'Post not found or pending approval.');
         }
 
-        $post->load(['user', 'comments.user', 'comments.replies.user']);
+        $post->load(['user', 'comments.user', 'comments.replies.user'])
+             ->loadCount('allComments');
 
         // Only increment views for approved posts
         if ($post->status === 'approved') {

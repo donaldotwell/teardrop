@@ -44,6 +44,11 @@ class NotificationService
                 ])->toArray();
 
                 DB::table('app_notifications')->insert($rows);
+
+                // Raw insert bypasses AppNotification model events.
+                foreach ($users as $u) {
+                    User::forgetNavCountsCache($u->id);
+                }
             });
     }
 }

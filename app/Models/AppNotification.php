@@ -21,6 +21,9 @@ class AppNotification extends Model
         static::creating(function ($notification) {
             $notification->uuid = (string) Str::uuid();
         });
+
+        static::saved(fn ($notification) => User::forgetNavCountsCache($notification->user_id));
+        static::deleted(fn ($notification) => User::forgetNavCountsCache($notification->user_id));
     }
 
     public function getRouteKeyName(): string

@@ -72,14 +72,14 @@
             {{-- Post Stats --}}
             <div class="flex items-center space-x-4 mt-4 pt-4 border-t border-gray-100 text-sm text-gray-500">
                 <span>{{ $post->views_count }} views</span>
-                <span>{{ $post->allComments()->count() }} comments</span>
+                <span>{{ $post->all_comments_count }} comments</span>
             </div>
         </div>
 
         {{-- Comments Section --}}
         <div class="bg-white border border-gray-200 rounded-lg p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-6">
-                Comments ({{ $post->allComments()->count() }})
+                Comments ({{ $post->all_comments_count }})
             </h3>
 
             {{-- Add Comment Form --}}

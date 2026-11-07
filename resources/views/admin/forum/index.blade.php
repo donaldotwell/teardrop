@@ -134,7 +134,7 @@
                                                 {{ $post->title }}
                                             </a>
                                             <div class="text-xs text-gray-500">
-                                                {{ $post->views_count }} views • {{ $post->allComments()->count() }} comments
+                                                {{ $post->views_count }} views • {{ $post->all_comments_count }} comments
                                             </div>
                                         </div>
                                     </div>
