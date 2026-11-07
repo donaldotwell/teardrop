@@ -92,7 +92,11 @@ class Listing extends Model
      */
     public function media() : \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(ListingMedia::class);
+        // `content` holds the base64 image (up to ~2.7 MB per row) and is only read by
+        // ListingMediaController via route binding; everything else just needs the URL.
+        return $this->hasMany(ListingMedia::class)
+            ->select(['id', 'listing_id', 'type', 'order'])
+            ->orderBy('order');
     }
 
     public function firstMedia(): \Illuminate\Database\Eloquent\Relations\HasOne
