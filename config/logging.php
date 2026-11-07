@@ -58,10 +58,14 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        // 'permission' => 0664: log files are created by whichever process logs
+        // first (cron/queue as forge, web as www-data); without group-write the
+        // other user's log calls throw "could not be opened in append mode".
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
+            'permission' => 0664,
             'replace_placeholders' => true,
         ],
 
@@ -70,6 +74,7 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
+            'permission' => 0664,
             'replace_placeholders' => true,
         ],
 
