@@ -5,6 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Git Commits
 Do not add `Co-Authored-By` lines to commit messages.
 
+## Production Access
+Always route SSH (and any other connection) to the production server through Tor: `torsocks ssh ...`. Never connect directly. Credentials come from the `TEARDROP_IP`, `TEARDROP_USER` and `TEARDROP_PASSWORD` environment variables (set in the shell rc file); never print or log their values.
+
 ## Commands
 
 ### Local Development
