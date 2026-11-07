@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\BtcWallet;
+use App\Models\XmrWallet;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,6 +27,13 @@ class UpdateLastSeenAt
             // Only update if we haven't updated in the last minute (reduces DB writes)
             if (!Cache::has($cacheKey)) {
                 $user->update(['last_seen_at' => now()]);
+
+                // The 10-minute wallet sync only covers wallets active within
+                // sync_active_window_hours; a logged-in user must count as active or
+                // their deposits are never picked up. Query-builder updates so no
+                // model events (and no balance-cache churn) fire.
+                BtcWallet::where('user_id', $user->id)->update(['last_active_at' => now()]);
+                XmrWallet::where('user_id', $user->id)->update(['last_active_at' => now()]);
 
                 // Cache for 1 minute to prevent excessive updates
                 Cache::put($cacheKey, true, 60);

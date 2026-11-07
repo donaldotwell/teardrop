@@ -169,7 +169,7 @@ RUN mkdir -p /var/log/supervisor \
         echo ''; \
         echo '[program:laravel-worker]'; \
         echo 'process_name=%(program_name)s_%(process_num)02d'; \
-        echo 'command=php /var/www/html/artisan queue:work --sleep=3 --tries=3 --max-time=3600'; \
+        echo 'command=php /var/www/html/artisan queue:work --queue=default,wallet-sync --sleep=3 --tries=3 --max-time=3600'; \
         echo 'autostart=true'; \
         echo 'autorestart=true'; \
         echo 'stopasgroup=true'; \
@@ -178,6 +178,20 @@ RUN mkdir -p /var/log/supervisor \
         echo 'numprocs=2'; \
         echo 'redirect_stderr=true'; \
         echo 'stdout_logfile=/var/www/html/storage/logs/worker.log'; \
+        echo 'stopwaitsecs=3600'; \
+        echo ''; \
+        echo '# monero-wallet-rpc holds one wallet at a time: exactly ONE worker on this queue.'; \
+        echo '[program:laravel-worker-xmr]'; \
+        echo 'process_name=%(program_name)s_%(process_num)02d'; \
+        echo 'command=php /var/www/html/artisan queue:work --queue=wallet-sync-xmr --sleep=3 --tries=3 --max-time=3600'; \
+        echo 'autostart=true'; \
+        echo 'autorestart=true'; \
+        echo 'stopasgroup=true'; \
+        echo 'killasgroup=true'; \
+        echo 'user=www-data'; \
+        echo 'numprocs=1'; \
+        echo 'redirect_stderr=true'; \
+        echo 'stdout_logfile=/var/www/html/storage/logs/worker-xmr.log'; \
         echo 'stopwaitsecs=3600'; \
         echo ''; \
         echo '[program:laravel-scheduler]'; \
