@@ -440,6 +440,7 @@ class MoneroRepository
             'total_received' => 0,
             'total_sent' => 0,
             'is_active' => true,
+            'last_active_at' => now(), // new wallets start inside the sync window
         ]);
 
         // Create initial address record (primary address = account 0, index 0)

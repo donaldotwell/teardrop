@@ -57,7 +57,8 @@ class BitcoinRepository
                 'user_id' => $user->id,
                 'xpub' => null, // Will be set when wallet is created
                 'address_index' => 0,
-                'is_active' => true
+                'is_active' => true,
+                'last_active_at' => now(), // new wallets start inside the sync window
             ]
         );
     }
