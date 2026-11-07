@@ -58,7 +58,7 @@ class MoneroRepository
         return false;
     }
 
-    public function rpcCall(string $method, array $params = [], int $timeout = 30)
+    public function rpcCall(string $method, array $params = [], int $timeout = 30, bool $silent = false)
     {
         try {
             $request = Http::timeout($timeout);
@@ -75,10 +75,12 @@ class MoneroRepository
             ]);
 
             if (!$response->successful()) {
-                Log::error("Monero RPC call failed: {$method}", [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
+                if (!$silent) {
+                    Log::error("Monero RPC call failed: {$method}", [
+                        'status' => $response->status(),
+                        'body' => $response->body(),
+                    ]);
+                }
                 throw new MoneroRpcException(
                     "RPC call failed with status {$response->status()}",
                     $response->status(),
@@ -89,7 +91,9 @@ class MoneroRepository
             $data = $response->json();
 
             if (isset($data['error'])) {
-                Log::error("Monero RPC error: {$method}", $data['error']);
+                if (!$silent) {
+                    Log::error("Monero RPC error: {$method}", $data['error']);
+                }
                 throw new MoneroRpcException(
                     $data['error']['message'] ?? 'Unknown RPC error',
                     $data['error']['code'] ?? 0,
@@ -102,7 +106,9 @@ class MoneroRepository
         } catch (MoneroRpcException $e) {
             throw $e;
         } catch (\Exception $e) {
-            Log::error("Monero RPC exception: {$method} - " . $e->getMessage());
+            if (!$silent) {
+                Log::error("Monero RPC exception: {$method} - " . $e->getMessage());
+            }
             throw new MoneroRpcException(
                 "RPC call exception: " . $e->getMessage(),
                 0,
@@ -153,7 +159,7 @@ class MoneroRepository
         try {
             // Close any wallet that might be left open from a previous crash
             try {
-                $this->rpcCall('close_wallet');
+                $this->rpcCall('close_wallet', [], 30, true); // silent — expected when no wallet is open
             } catch (\Exception $e) {
                 // Expected if no wallet open — ignore
             }
@@ -188,7 +194,7 @@ class MoneroRepository
         } catch (\Exception $e) {
             // Best-effort close on error
             try {
-                $this->rpcCall('close_wallet');
+                $this->rpcCall('close_wallet', [], 30, true); // silent — may fail if wallet wasn't opened
             } catch (\Exception $closeEx) {
                 Log::warning("[withWallet] Failed to close wallet after error: " . $closeEx->getMessage());
             }
@@ -275,7 +281,7 @@ class MoneroRepository
         try {
             // Close any open wallet first
             try {
-                $this->rpcCall('close_wallet');
+                $this->rpcCall('close_wallet', [], 30, true); // silent — expected when no wallet is open
             } catch (\Exception $e) {
                 // Ignore
             }
@@ -367,7 +373,7 @@ class MoneroRepository
 
         } catch (\Exception $e) {
             try {
-                $this->rpcCall('close_wallet');
+                $this->rpcCall('close_wallet', [], 30, true); // silent — may fail if wallet was never opened
             } catch (\Exception $closeEx) {
                 // Ignore
             }

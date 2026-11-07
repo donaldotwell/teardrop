@@ -129,9 +129,9 @@ class BtcWallet extends Model
             ->sum('amount');
 
         $this->update([
-            'total_received' => $totalReceived,
-            'total_sent' => $totalSent,
-            'balance' => $totalReceived - $totalSent
+            'total_received' => $totalReceived ?? 0,
+            'total_sent' => $totalSent ?? 0,
+            'balance' => ($totalReceived ?? 0) - ($totalSent ?? 0),
         ]);
 
         // Sync with main wallet system (only for user wallets, not escrow wallets)

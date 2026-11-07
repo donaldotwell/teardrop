@@ -108,8 +108,7 @@ class SyncBitcoinWalletBalances extends Command
                         ]);
                     } else {
                         $wallet->update([
-                            'balance'        => $rpcBalance,
-                            'last_synced_at' => now(),
+                            'balance' => $rpcBalance ?? 0,
                         ]);
                         Log::debug("Bitcoin wallet balance synced from RPC", [
                             'wallet_id' => $wallet->id,
