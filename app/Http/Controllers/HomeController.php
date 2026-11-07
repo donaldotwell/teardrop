@@ -18,6 +18,7 @@ class HomeController extends Controller
         $subcategoryUuid = $request->get('scat');
         $searchQuery     = $request->get('search');
         $filter          = $request->get('filter');
+        $shuffleSeed     = $this->shuffleSeed($request);
 
         // Base eager-loads shared by all branches — home page only needs one image per listing.
         $with = [
@@ -76,8 +77,11 @@ class HomeController extends Controller
                 ->limit(20)
                 ->get();
 
+            // Seeded shuffle instead of ORDER BY random(): random() re-rolls on every
+            // request, so page 2 was a fresh shuffle of the same set and listings
+            // repeated or vanished between pages.
             $regular_listings = $base(false)
-                ->inRandomOrder()
+                ->orderByRaw('md5(listings.id::text || ?)', [$shuffleSeed])
                 ->paginate(20)
                 ->withQueryString();
 
@@ -101,5 +105,25 @@ class HomeController extends Controller
             'selectedCategory'    => $selectedCategory,
             'selectedSubcategory' => $selectedSubcategory,
         ]);
+    }
+
+    /**
+     * Per-visitor shuffle seed, stable across page links so pagination is
+     * consistent. Rotates after 10 minutes, but never while the visitor is on
+     * page 2+, so a slow browse through the pages is never reshuffled underneath them.
+     */
+    private function shuffleSeed(Request $request): string
+    {
+        $stored = $request->session()->get('home_shuffle');
+        $onFirstPage = (int) $request->get('page', 1) <= 1;
+
+        if ($stored && (!$onFirstPage || $stored['at'] > time() - 600)) {
+            return $stored['seed'];
+        }
+
+        $seed = bin2hex(random_bytes(8));
+        $request->session()->put('home_shuffle', ['seed' => $seed, 'at' => time()]);
+
+        return $seed;
     }
 }
