@@ -19,13 +19,25 @@ class SyncSingleBtcWallet implements ShouldQueue
     public int $timeout = 60;
     public int $backoff = 10;
 
+    // A sync job older than two dispatch cycles is superseded by a newer one;
+    // running it only burns RPC time (and, after a worker outage, a backlog
+    // of them would run for hours).
+    public const MAX_AGE_SECONDS = 1200;
+
+    public int $dispatchedAt;
+
     public function __construct(public readonly int $walletId)
     {
+        $this->dispatchedAt = time();
         $this->onQueue('wallet-sync');
     }
 
     public function handle(): void
     {
+        if (time() - $this->dispatchedAt > self::MAX_AGE_SECONDS) {
+            return;
+        }
+
         $wallet = BtcWallet::find($this->walletId);
 
         if (!$wallet || !$wallet->is_active) {
