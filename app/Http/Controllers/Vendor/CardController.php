@@ -50,7 +50,9 @@ class CardController extends Controller
                 'vendor_id'       => $vendor->id,
                 'name'            => trim($request->input('name')),
                 'price_usd'       => $request->input('price_usd'),
-                'discount_pct'    => $request->input('discount_pct', 0),
+                // An empty form field arrives as null (ConvertEmptyStringsToNull), which
+                // input()'s default does not cover, and the column is NOT NULL.
+                'discount_pct'    => (float) ($request->input('discount_pct') ?? 0),
                 'record_count'    => 0,
                 'available_count' => 0,
                 'sold_count'      => 0,
@@ -186,6 +188,15 @@ class CardController extends Controller
      * Expected positional format (pipe-separated):
      *   card_number|exp_month|exp_year|cvv|cardholder_name|address|city|state|zip|country|email|phone
      */
+    // Column lengths from the cards migration.
+    private const REQUIRED_MAX_LENGTHS = [
+        'card_number' => 25, 'exp_month' => 2, 'exp_year' => 4, 'cvv' => 6, 'cardholder_name' => 255,
+    ];
+
+    private const OPTIONAL_MAX_LENGTHS = [
+        'address' => 255, 'city' => 100, 'state' => 50, 'zip' => 20, 'country' => 60, 'email' => 120, 'phone' => 30,
+    ];
+
     private function parseAndInsert($handle, CardBase $base, float $priceUsd): array
     {
         $records   = [];
@@ -233,7 +244,7 @@ class CardController extends Controller
                 continue;
             }
 
-            $records[] = [
+            $record = [
                 'base_id'          => $base->id,
                 'vendor_id'        => $base->vendor_id,
                 'card_number'      => $cardNumber,
@@ -253,6 +264,22 @@ class CardController extends Controller
                 'created_at'       => $now,
                 'updated_at'       => $now,
             ];
+
+            // A value longer than its column means the row is misaligned or junk;
+            // one such row used to abort the whole 500-row INSERT with a 500 page.
+            foreach (self::REQUIRED_MAX_LENGTHS as $col => $max) {
+                if (mb_strlen($record[$col]) > $max) {
+                    $skipped++;
+                    continue 2;
+                }
+            }
+            foreach (self::OPTIONAL_MAX_LENGTHS as $col => $max) {
+                if ($record[$col] !== null && mb_strlen($record[$col]) > $max) {
+                    $record[$col] = mb_substr($record[$col], 0, $max);
+                }
+            }
+
+            $records[] = $record;
 
             if (count($records) >= $batchSize) {
                 Card::insert($records);
