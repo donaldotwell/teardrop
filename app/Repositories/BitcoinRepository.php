@@ -13,15 +13,78 @@ class BitcoinRepository
 {
     private BitcoinClient $client;
 
+    // Node-level RPCs (listwallets, loadwallet, createwallet). $client->wallet($name)
+    // permanently switches that instance to /wallet/<name>, which fails with -18 once
+    // that wallet is unloaded, so node calls get their own instance.
+    private BitcoinClient $node;
+
+    private ?array $loadedWallets = null;
+
     public function __construct()
     {
-        $this->client = new BitcoinClient([
+        $this->client = $this->makeClient();
+        $this->node = $this->makeClient();
+    }
+
+    private function makeClient(): BitcoinClient
+    {
+        return new BitcoinClient([
             'scheme' => config('bitcoinrpc.scheme', 'http'),
             'host' => config('bitcoinrpc.host', 'localhost'),
             'port' => config('bitcoinrpc.port', 8332),
             'user' => config('bitcoinrpc.user'),
             'password' => config('bitcoinrpc.password'),
         ]);
+    }
+
+    /**
+     * Make sure bitcoind has this wallet open.
+     *
+     * Wallets created without load_on_startup are dropped when bitcoind restarts,
+     * and users who never requested an address have no wallet file at all.
+     * Returns false (without logging an error) when there is nothing to load.
+     */
+    public function ensureWalletLoaded(string $walletName, bool $createIfMissing = false): bool
+    {
+        $this->loadedWallets ??= $this->listLoadedWallets() ?? [];
+
+        if (in_array($walletName, $this->loadedWallets, true)) {
+            return true;
+        }
+
+        if ($this->walletFileExists($walletName)) {
+            $ok = $this->loadWallet($walletName) === 'loaded';
+        } elseif ($createIfMissing) {
+            $ok = $this->createWallet($walletName);
+        } else {
+            return false;
+        }
+
+        if ($ok) {
+            $this->loadedWallets[] = $walletName;
+        }
+
+        return $ok;
+    }
+
+    private function walletFileExists(string $walletName): bool
+    {
+        try {
+            $result = $this->node->listWalletDir();
+            $result = is_object($result) && method_exists($result, 'result')
+                ? (array) $result->result()
+                : (array) $result;
+
+            foreach ($result['wallets'] ?? [] as $entry) {
+                if (($entry['name'] ?? null) === $walletName) {
+                    return true;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning("listwalletdir failed: " . $e->getMessage());
+        }
+
+        return false;
     }
 
     /**
@@ -122,6 +185,11 @@ class BitcoinRepository
             Log::debug("  Wallet {$wallet->id}: Starting sync");
 
             $repository = new static();
+
+            if (!$repository->ensureWalletLoaded($wallet->name)) {
+                Log::debug("  Wallet {$wallet->id}: no wallet file on node yet, nothing to sync");
+                return;
+            }
 
             // Get ALL transactions for this wallet from Bitcoin node (once per wallet, not per address)
             $response = $repository->client->wallet($wallet->name)->listTransactions("*", 1000);
@@ -436,19 +504,13 @@ class BitcoinRepository
     /**
      * Get current Bitcoin price in USD.
      */
+    /**
+     * Current BTC/USD rate from the hourly exchange:update snapshot. Views call
+     * this per render, so it must never make a network request.
+     */
     public static function getCurrentPrice(): float
     {
-        try {
-            // You can use an API like CoinGecko or your preferred price source
-            $response = file_get_contents('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
-            $data = json_decode($response, true);
-
-            return $data['bitcoin']['usd'] ?? 0;
-
-        } catch (\Exception $e) {
-            Log::error("Failed to fetch BTC price: " . $e->getMessage());
-            return 0;
-        }
+        return \App\Models\ExchangeRate::getRate('btc') ?? 0.0;
     }
 
     /**
@@ -456,8 +518,7 @@ class BitcoinRepository
      */
     public static function convertToUsd(float $btcAmount): float
     {
-        $price = static::getCurrentPrice();
-        return $btcAmount * $price;
+        return convert_crypto_to_usd($btcAmount, 'btc');
     }
 
     /**
@@ -466,7 +527,7 @@ class BitcoinRepository
     public function getWalletInfo(string $walletName): array
     {
         try {
-            return $this->client->getWalletInfo($walletName);
+            return $this->node->getWalletInfo($walletName);
         } catch (\Exception $e) {
             Log::error("Failed to get wallet info for {$walletName}: " . $e->getMessage());
             return [];
@@ -479,7 +540,9 @@ class BitcoinRepository
     public function createWallet(string $walletName): bool
     {
         try {
-            $this->client->createWallet($walletName);
+            // disable_private_keys, blank, passphrase, avoid_reuse, descriptors (node default),
+            // load_on_startup=true so the wallet survives bitcoind restarts.
+            $this->node->createWallet($walletName, false, false, '', false, null, true);
             return true;
         } catch (\Exception $e) {
             Log::error("Failed to create wallet {$walletName}: " . $e->getMessage());
@@ -504,7 +567,7 @@ class BitcoinRepository
     public function searchWallet(string $walletName): bool
     {
         try {
-            $wallets = $this->client->listWallets();
+            $wallets = $this->node->listWallets();
             return in_array($walletName, $wallets->toArray());
         } catch (\Exception $e) {
             Log::error("Failed to search wallet {$walletName}: " . $e->getMessage());
@@ -518,7 +581,7 @@ class BitcoinRepository
     public function listLoadedWallets(): ?array
     {
         try {
-            $result = $this->client->listWallets();
+            $result = $this->node->listWallets();
             if (is_object($result) && method_exists($result, 'result')) {
                 return (array) $result->result();
             }
@@ -536,10 +599,13 @@ class BitcoinRepository
     public function loadWallet(string $walletName): string
     {
         try {
-            $this->client->loadWallet($walletName);
+            $this->node->loadWallet($walletName, true); // load_on_startup
             return 'loaded';
         } catch (\Exception $e) {
             $msg = $e->getMessage();
+            if (str_contains($msg, '-35') || str_contains($msg, 'already loaded')) {
+                return 'loaded';
+            }
             if (str_contains($msg, '-18') || str_contains($msg, 'not found') || str_contains($msg, 'does not exist')) {
                 return 'not_found';
             }
@@ -550,9 +616,8 @@ class BitcoinRepository
 
     public function generateBTCWallet(string $name) : void
     {
-        $repository = new static();
-        if (!$repository->searchWallet($name)) {
-            $repository->createWallet($name);
+        if (!$this->ensureWalletLoaded($name, true)) {
+            Log::error("Could not load or create Bitcoin wallet {$name} on the node");
         }
     }
 
@@ -564,6 +629,11 @@ class BitcoinRepository
      */
     public function getWalletBalance(string $walletName): ?float
     {
+        if (!$this->ensureWalletLoaded($walletName)) {
+            Log::debug("No wallet file on node for {$walletName}; balance left to local reconciliation");
+            return null;
+        }
+
         try {
             $wallet = $this->client->wallet($walletName);
             $balanceResponse = $wallet->getBalance();
@@ -648,8 +718,8 @@ class BitcoinRepository
         $repository = new self();
 
         try {
-            // Validate wallet exists
-            if (!$repository->searchWallet($walletName)) {
+            // Validate wallet exists (and load it if bitcoind dropped it on restart)
+            if (!$repository->ensureWalletLoaded($walletName)) {
                 Log::error("Wallet not found: {$walletName}");
                 return null;
             }
