@@ -1077,16 +1077,13 @@ class MoneroRepository
     /**
      * Get current Monero price in USD.
      */
+    /**
+     * Current XMR/USD rate from the hourly exchange:update snapshot. Views call
+     * this per render, so it must never make a network request.
+     */
     public static function getCurrentPrice(): float
     {
-        try {
-            $response = file_get_contents('https://api.coingecko.com/api/v3/simple/price?ids=monero&vs_currencies=usd');
-            $data = json_decode($response, true);
-            return $data['monero']['usd'] ?? 0;
-        } catch (\Exception $e) {
-            Log::error("Failed to fetch XMR price: " . $e->getMessage());
-            return 0;
-        }
+        return \App\Models\ExchangeRate::getRate('xmr') ?? 0.0;
     }
 
     /**
