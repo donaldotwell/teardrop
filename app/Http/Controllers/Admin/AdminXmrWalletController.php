@@ -343,8 +343,19 @@ class AdminXmrWalletController extends Controller
             return $encrypted;
 
         } finally {
+            // Cleanup temp GPG home. GnuPG 2.1+ creates sub-directories such as
+            // private-keys-v1.d inside it, so remove the tree depth-first; a flat
+            // unlink() over glob() would error on those dirs and, from this
+            // finally block, mask a successful encryption and fail the transfer.
             if (is_dir($tempGpgHome)) {
-                array_map('unlink', glob("{$tempGpgHome}/*"));
+                $files = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($tempGpgHome, \RecursiveDirectoryIterator::SKIP_DOTS),
+                    \RecursiveIteratorIterator::CHILD_FIRST
+                );
+                foreach ($files as $fileinfo) {
+                    $todo = ($fileinfo->isDir() ? 'rmdir' : 'unlink');
+                    @$todo($fileinfo->getRealPath());
+                }
                 @rmdir($tempGpgHome);
             }
             putenv("GNUPGHOME");
