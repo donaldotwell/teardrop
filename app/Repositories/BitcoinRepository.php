@@ -323,6 +323,15 @@ class BitcoinRepository
         $requiredConfirmations = config('bitcoinrpc.confirmations_required', 6);
         $isConfirmed = $confirmations >= $requiredConfirmations;
 
+        // Use the on-chain time reported by the node, not the moment the sync
+        // happened to notice the transaction. Otherwise an old send that the
+        // sync only now picked up is stamped with today's date and looks like a
+        // brand-new withdrawal. `blocktime` is the mined time; `time` is when
+        // the wallet first saw it; fall back to now() only if neither is set.
+        $onChainUnix = $txData['blocktime'] ?? $txData['time'] ?? null;
+        $onChainAt = $onChainUnix ? \Illuminate\Support\Carbon::createFromTimestamp($onChainUnix, 'UTC') : now();
+        $blockHeight = $txData['blockheight'] ?? null;
+
         // Calculate USD value at time of transaction
         $btcAmount = abs($txData['amount']);
         $usdValue = null;
@@ -337,7 +346,7 @@ class BitcoinRepository
         }
 
         // Create transaction record
-        $transaction = BtcTransaction::create([
+        $transaction = new BtcTransaction([
             'btc_wallet_id' => $wallet->id,
             'btc_address_id' => $btcAddressId,
             'txid' => $txData['txid'],
@@ -349,8 +358,15 @@ class BitcoinRepository
             'status' => $isConfirmed ? 'confirmed' : 'pending',
             'raw_transaction' => $txData,
             'block_hash' => $txData['blockhash'] ?? null,
-            'confirmed_at' => $isConfirmed ? now() : null
+            'block_height' => $blockHeight,
+            'confirmed_at' => $isConfirmed ? $onChainAt : null,
         ]);
+        // Backdate the ledger row to the on-chain time. created_at/updated_at are
+        // not mass-assignable, so set them before the insert; being dirty, Eloquent
+        // leaves them as-is instead of overwriting with now().
+        $transaction->created_at = $onChainAt;
+        $transaction->updated_at = $onChainAt;
+        $transaction->save();
 
         Log::info("New BTC transaction detected: {$transaction->txid} ({$type}) for {$transaction->amount} BTC on wallet {$wallet->name}" . ($isFeaturedPayment ? ' [FEATURED LISTING PAYMENT]' : ''));
 
